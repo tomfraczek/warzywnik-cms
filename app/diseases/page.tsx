@@ -2,49 +2,36 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useGetVegetables } from "@/app/api/queries/vegetables/useGetVegetables";
-import { useDeleteVegetable } from "@/app/api/mutations/vegetables/useDeleteVegetable";
-import { demandLevelOptions, sunExposureOptions } from "@/app/api/api.types";
-import type { DemandLevel, SunExposure } from "@/app/api/api.types";
+import { useGetDiseases } from "@/app/api/queries/diseases/useGetDiseases";
+import { useDeleteDisease } from "@/app/api/mutations/diseases/useDeleteDisease";
 import { useQueryClient } from "@tanstack/react-query";
 
-export default function VegetablesPage() {
+export default function DiseasesPage() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
-  const [sunExposure, setSunExposure] = useState<"" | SunExposure>("");
-  const [waterDemand, setWaterDemand] = useState<"" | DemandLevel>("");
-  const [nutrientDemand, setNutrientDemand] = useState<"" | DemandLevel>("");
   const [notice, setNotice] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
-
   const params = useMemo(
-    () => ({
-      page,
-      limit,
-      q: q.trim() || undefined,
-      sunExposure: sunExposure || undefined,
-      waterDemand: waterDemand || undefined,
-      nutrientDemand: nutrientDemand || undefined,
-    }),
-    [page, limit, q, sunExposure, waterDemand, nutrientDemand],
+    () => ({ page, limit, q: q.trim() || undefined }),
+    [page, limit, q],
   );
 
-  const { data, isLoading, error } = useGetVegetables(params);
-  const deleteMutation = useDeleteVegetable();
+  const { data, isLoading, error } = useGetDiseases(params);
+  const deleteMutation = useDeleteDisease();
 
   const handleDelete = async (id: string) => {
-    const confirmed = window.confirm("Czy na pewno usunąć warzywo?");
+    const confirmed = window.confirm("Czy na pewno usunąć chorobę?");
     if (!confirmed) return;
 
     setNotice(null);
     try {
       await deleteMutation.mutateAsync({ id });
-      await queryClient.invalidateQueries({ queryKey: ["vegetables"] });
-      setNotice("Warzywo zostało usunięte.");
+      await queryClient.invalidateQueries({ queryKey: ["diseases"] });
+      setNotice("Choroba została usunięta.");
     } catch {
-      setNotice("Nie udało się usunąć warzywa.");
+      setNotice("Nie udało się usunąć choroby.");
     }
   };
 
@@ -52,73 +39,26 @@ export default function VegetablesPage() {
     <section className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Warzywa
+          Choroby
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-3xl font-semibold text-zinc-900">Lista warzyw</h1>
+          <h1 className="text-3xl font-semibold text-zinc-900">Lista chorób</h1>
           <Link
             className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-            href="/vegetables/new"
+            href="/diseases/new"
           >
-            Dodaj warzywo
+            Dodaj chorobę
           </Link>
         </div>
-        <p className="text-base text-zinc-600">
-          Wyszukuj i zarządzaj warzywami w bazie danych.
-        </p>
       </header>
 
       <div className="rounded-xl border border-zinc-200 bg-white p-4">
-        <div className="grid gap-3 md:grid-cols-5">
-          <input
-            className="rounded-lg border border-zinc-200 px-3 py-2 text-sm md:col-span-2"
-            placeholder="Szukaj po nazwie lub slug"
-            value={q}
-            onChange={(event) => setQ(event.target.value)}
-          />
-          <select
-            className="rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-            value={sunExposure}
-            onChange={(event) =>
-              setSunExposure(event.target.value as "" | SunExposure)
-            }
-          >
-            <option value="">Sun exposure</option>
-            {sunExposureOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-          <select
-            className="rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-            value={waterDemand}
-            onChange={(event) =>
-              setWaterDemand(event.target.value as "" | DemandLevel)
-            }
-          >
-            <option value="">Water demand</option>
-            {demandLevelOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-          <select
-            className="rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-            value={nutrientDemand}
-            onChange={(event) =>
-              setNutrientDemand(event.target.value as "" | DemandLevel)
-            }
-          >
-            <option value="">Nutrient demand</option>
-            {demandLevelOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
+        <input
+          className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+          placeholder="Szukaj po nazwie lub slug"
+          value={q}
+          onChange={(event) => setQ(event.target.value)}
+        />
       </div>
 
       {notice && (
@@ -133,30 +73,28 @@ export default function VegetablesPage() {
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Slug</th>
-              <th className="px-4 py-3">Latin name</th>
-              <th className="px-4 py-3">Image</th>
               <th className="px-4 py-3 text-right">Akcje</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={5}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={3}>
                   Ładowanie...
                 </td>
               </tr>
             )}
             {error && (
               <tr>
-                <td className="px-4 py-6 text-red-500" colSpan={5}>
+                <td className="px-4 py-6 text-red-500" colSpan={3}>
                   Nie udało się pobrać listy.
                 </td>
               </tr>
             )}
             {!isLoading && data?.items.length === 0 && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={5}>
-                  Brak warzyw.
+                <td className="px-4 py-6 text-zinc-500" colSpan={3}>
+                  Brak chorób.
                 </td>
               </tr>
             )}
@@ -166,29 +104,17 @@ export default function VegetablesPage() {
                   {item.name}
                 </td>
                 <td className="px-4 py-3 text-zinc-500">{item.slug}</td>
-                <td className="px-4 py-3 text-zinc-500">
-                  {item.latinName || "-"}
-                </td>
-                <td className="px-4 py-3 text-zinc-500">
-                  {item.imageUrl ? (
-                    <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 text-[10px]">
-                      IMG
-                    </span>
-                  ) : (
-                    "-"
-                  )}
-                </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-3 text-xs font-medium">
                     <Link
                       className="text-zinc-600 hover:text-zinc-900"
-                      href={`/vegetables/${item.slug}`}
+                      href={`/diseases/${item.slug}`}
                     >
                       View
                     </Link>
                     <Link
                       className="text-zinc-600 hover:text-zinc-900"
-                      href={`/vegetables/${item.slug}/edit`}
+                      href={`/diseases/${item.slug}/edit`}
                     >
                       Edit
                     </Link>
