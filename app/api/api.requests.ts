@@ -38,17 +38,6 @@ export const getVegetable = async (id: string): Promise<Vegetable> => {
   return data;
 };
 
-export const getVegetableIdBySlug = async (slug: string): Promise<string> => {
-  const { data } = await apiClient.get<VegetableListResponse>("/vegetables", {
-    params: { q: slug, limit: 100, page: 1 },
-  });
-  const match = data.items.find((item) => item.slug === slug);
-  if (!match) {
-    throw new Error("NOT_FOUND");
-  }
-  return match.id;
-};
-
 export const createVegetable = async (
   payload: CreateVegetablePayload,
 ): Promise<Vegetable> => {
@@ -85,17 +74,6 @@ export const getPest = async (id: string): Promise<Pest> => {
   return data;
 };
 
-export const getPestIdBySlug = async (slug: string): Promise<string> => {
-  const { data } = await apiClient.get<
-    ListResponse<{ id: string; slug: string; name: string }>
-  >("/pests", { params: { q: slug, limit: 100, page: 1 } });
-  const match = data.items.find((item) => item.slug === slug);
-  if (!match) {
-    throw new Error("NOT_FOUND");
-  }
-  return match.id;
-};
-
 export const createPest = async (payload: CreatePestPayload): Promise<Pest> => {
   const { data } = await apiClient.post<Pest>("/pests", payload);
   return data;
@@ -125,17 +103,6 @@ export const getDiseases = async (
 export const getDisease = async (id: string): Promise<Disease> => {
   const { data } = await apiClient.get<Disease>(`/diseases/${id}`);
   return data;
-};
-
-export const getDiseaseIdBySlug = async (slug: string): Promise<string> => {
-  const { data } = await apiClient.get<
-    ListResponse<{ id: string; slug: string; name: string }>
-  >("/diseases", { params: { q: slug, limit: 100, page: 1 } });
-  const match = data.items.find((item) => item.slug === slug);
-  if (!match) {
-    throw new Error("NOT_FOUND");
-  }
-  return match.id;
 };
 
 export const createDisease = async (

@@ -182,13 +182,13 @@ export default function VegetablesPage() {
                   <div className="flex justify-end gap-3 text-xs font-medium">
                     <Link
                       className="text-zinc-600 hover:text-zinc-900"
-                      href={`/vegetables/${item.slug}`}
+                      href={`/vegetables/${item.id}`}
                     >
                       View
                     </Link>
                     <Link
                       className="text-zinc-600 hover:text-zinc-900"
-                      href={`/vegetables/${item.slug}/edit`}
+                      href={`/vegetables/${item.id}/edit`}
                     >
                       Edit
                     </Link>

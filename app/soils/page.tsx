@@ -2,36 +2,37 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useGetDiseases } from "@/app/api/queries/diseases/useGetDiseases";
-import { useDeleteDisease } from "@/app/api/mutations/diseases/useDeleteDisease";
 import { useQueryClient } from "@tanstack/react-query";
+import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
+import { useDeleteSoil } from "@/app/api/mutations/soils/useDeleteSoil";
 
-export default function DiseasesPage() {
+export default function SoilsPage() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [notice, setNotice] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
+
   const params = useMemo(
     () => ({ page, limit, q: q.trim() || undefined }),
     [page, limit, q],
   );
 
-  const { data, isLoading, error } = useGetDiseases(params);
-  const deleteMutation = useDeleteDisease();
+  const { data, isLoading, error } = useGetSoils(params);
+  const deleteMutation = useDeleteSoil();
 
   const handleDelete = async (id: string) => {
-    const confirmed = window.confirm("Czy na pewno usunąć chorobę?");
+    const confirmed = window.confirm("Czy na pewno usunąć glebę?");
     if (!confirmed) return;
 
     setNotice(null);
     try {
       await deleteMutation.mutateAsync({ id });
-      await queryClient.invalidateQueries({ queryKey: ["diseases"] });
-      setNotice("Choroba została usunięta.");
+      await queryClient.invalidateQueries({ queryKey: ["soils"] });
+      setNotice("Gleba została usunięta.");
     } catch {
-      setNotice("Nie udało się usunąć choroby.");
+      setNotice("Nie udało się usunąć gleby.");
     }
   };
 
@@ -39,15 +40,15 @@ export default function DiseasesPage() {
     <section className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Choroby
+          Gleby
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-3xl font-semibold text-zinc-900">Lista chorób</h1>
+          <h1 className="text-3xl font-semibold text-zinc-900">Lista gleb</h1>
           <Link
             className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-            href="/diseases/new"
+            href="/soils/new"
           >
-            Dodaj chorobę
+            Dodaj glebę
           </Link>
         </div>
       </header>
@@ -73,28 +74,29 @@ export default function DiseasesPage() {
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Slug</th>
+              <th className="px-4 py-3">Soil type</th>
               <th className="px-4 py-3 text-right">Akcje</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={3}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={4}>
                   Ładowanie...
                 </td>
               </tr>
             )}
             {error && (
               <tr>
-                <td className="px-4 py-6 text-red-500" colSpan={3}>
+                <td className="px-4 py-6 text-red-500" colSpan={4}>
                   Nie udało się pobrać listy.
                 </td>
               </tr>
             )}
             {!isLoading && data?.items.length === 0 && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={3}>
-                  Brak chorób.
+                <td className="px-4 py-6 text-zinc-500" colSpan={4}>
+                  Brak gleb.
                 </td>
               </tr>
             )}
@@ -104,17 +106,18 @@ export default function DiseasesPage() {
                   {item.name}
                 </td>
                 <td className="px-4 py-3 text-zinc-500">{item.slug}</td>
+                <td className="px-4 py-3 text-zinc-500">{item.soilType}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-3 text-xs font-medium">
                     <Link
                       className="text-zinc-600 hover:text-zinc-900"
-                      href={`/diseases/${item.id}`}
+                      href={`/soils/${item.id}`}
                     >
                       View
                     </Link>
                     <Link
                       className="text-zinc-600 hover:text-zinc-900"
-                      href={`/diseases/${item.id}/edit`}
+                      href={`/soils/${item.id}/edit`}
                     >
                       Edit
                     </Link>

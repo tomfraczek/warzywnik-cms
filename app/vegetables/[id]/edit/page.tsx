@@ -4,8 +4,6 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AxiosError } from "axios";
 import { VegetableForm } from "@/app/components/VegetableForm";
-import { useQuery } from "@tanstack/react-query";
-import { getVegetableIdBySlug } from "@/app/api/api.requests";
 import { useGetVegetable } from "@/app/api/queries/vegetables/useGetVegetable";
 import { useUpdateVegetable } from "@/app/api/mutations/vegetables/useUpdateVegetable";
 import type { VegetableFormValues } from "@/app/components/VegetableForm";
@@ -20,8 +18,8 @@ const mapVegetableToFormValues = (data: Vegetable): VegetableFormValues => ({
   sunExposure: data.sunExposure || "",
   waterDemand: data.waterDemand || "",
   soilType: data.soilType || "",
-  soilPHMin: data.soilPHMin?.toString() ?? "",
-  soilPHMax: data.soilPHMax?.toString() ?? "",
+  soil_ph_min: data.soil_ph_min?.toString() ?? "",
+  soil_ph_max: data.soil_ph_max?.toString() ?? "",
   nutrientDemand: data.nutrientDemand || "",
   sowingMethods:
     data.sowingMethods?.map((method) => ({
@@ -53,19 +51,11 @@ const mapVegetableToFormValues = (data: Vegetable): VegetableFormValues => ({
 export default function EditVegetablePage({
   params,
 }: {
-  params: { slug: string };
+  params: { id: string };
 }) {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const {
-    data: vegetableId,
-    isLoading: isIdLoading,
-    error: idError,
-  } = useQuery({
-    queryKey: ["vegetable-id", params.slug],
-    queryFn: () => getVegetableIdBySlug(params.slug),
-  });
-  const { data, isLoading, error } = useGetVegetable(vegetableId);
+  const { data, isLoading, error } = useGetVegetable(params.id);
   const updateMutation = useUpdateVegetable();
 
   const initialValues = useMemo(
@@ -78,7 +68,7 @@ export default function EditVegetablePage({
     setErrorMessage(null);
     try {
       const result = await updateMutation.mutateAsync({ id: data.id, payload });
-      router.push(`/vegetables/${result.slug || result.id}`);
+      router.push(`/vegetables/${result.id}`);
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
         if (err.response.status === 409) {
@@ -98,18 +88,15 @@ export default function EditVegetablePage({
     }
   };
 
-  if (isIdLoading || isLoading) {
+  if (isLoading) {
     return <p className="text-sm text-zinc-500">Ładowanie...</p>;
   }
 
-  if (
-    (idError instanceof Error && idError.message === "NOT_FOUND") ||
-    (error instanceof AxiosError && error.response?.status === 404)
-  ) {
+  if (error instanceof AxiosError && error.response?.status === 404) {
     return <p className="text-sm text-red-500">Nie znaleziono warzywa.</p>;
   }
 
-  if (idError || error) {
+  if (error) {
     return <p className="text-sm text-red-500">Nie udało się pobrać danych.</p>;
   }
 

@@ -50,9 +50,9 @@ export default function RootLayout({
                 </Link>
                 <Link
                   className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
-                  href="/soil"
+                  href="/soils"
                 >
-                  Gleba
+                  Gleby
                 </Link>
                 <Link
                   className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100"

@@ -4,14 +4,12 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AxiosError } from "axios";
 import { ReferenceForm } from "@/app/components/ReferenceForm";
-import { useQuery } from "@tanstack/react-query";
-import { getDiseaseIdBySlug } from "@/app/api/api.requests";
-import { useGetDisease } from "@/app/api/queries/diseases/useGetDisease";
-import { useUpdateDisease } from "@/app/api/mutations/diseases/useUpdateDisease";
+import { useGetPest } from "@/app/api/queries/pests/useGetPest";
+import { useUpdatePest } from "@/app/api/mutations/pests/useUpdatePest";
 import type { ReferenceFormValues } from "@/app/components/ReferenceForm";
-import type { CreateDiseasePayload, Disease } from "@/app/api/api.types";
+import type { CreatePestPayload, Pest } from "@/app/api/api.types";
 
-const mapDiseaseToFormValues = (data: Disease): ReferenceFormValues => ({
+const mapPestToFormValues = (data: Pest): ReferenceFormValues => ({
   slug: data.slug,
   name: data.name,
   description: data.description,
@@ -20,35 +18,23 @@ const mapDiseaseToFormValues = (data: Disease): ReferenceFormValues => ({
   treatment: data.treatment || "",
 });
 
-export default function EditDiseasePage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default function EditPestPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const {
-    data: diseaseId,
-    isLoading: isIdLoading,
-    error: idError,
-  } = useQuery({
-    queryKey: ["disease-id", params.slug],
-    queryFn: () => getDiseaseIdBySlug(params.slug),
-  });
-  const { data, isLoading, error } = useGetDisease(diseaseId);
-  const updateMutation = useUpdateDisease();
+  const { data, isLoading, error } = useGetPest(params.id);
+  const updateMutation = useUpdatePest();
 
   const initialValues = useMemo(
-    () => (data ? mapDiseaseToFormValues(data) : undefined),
+    () => (data ? mapPestToFormValues(data) : undefined),
     [data],
   );
 
-  const handleSubmit = async (payload: CreateDiseasePayload) => {
+  const handleSubmit = async (payload: CreatePestPayload) => {
     if (!data) return;
     setErrorMessage(null);
     try {
       const result = await updateMutation.mutateAsync({ id: data.id, payload });
-      router.push(`/diseases/${result.slug || result.id}`);
+      router.push(`/pests/${result.id}`);
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
         if (err.response.status === 409) {
@@ -60,7 +46,7 @@ export default function EditDiseasePage({
           return;
         }
         if (err.response.status === 404) {
-          setErrorMessage("Nie znaleziono choroby.");
+          setErrorMessage("Nie znaleziono szkodnika.");
           return;
         }
       }
@@ -68,18 +54,15 @@ export default function EditDiseasePage({
     }
   };
 
-  if (isIdLoading || isLoading) {
+  if (isLoading) {
     return <p className="text-sm text-zinc-500">Ładowanie...</p>;
   }
 
-  if (
-    (idError instanceof Error && idError.message === "NOT_FOUND") ||
-    (error instanceof AxiosError && error.response?.status === 404)
-  ) {
-    return <p className="text-sm text-red-500">Nie znaleziono choroby.</p>;
+  if (error instanceof AxiosError && error.response?.status === 404) {
+    return <p className="text-sm text-red-500">Nie znaleziono szkodnika.</p>;
   }
 
-  if (idError || error) {
+  if (error) {
     return <p className="text-sm text-red-500">Nie udało się pobrać danych.</p>;
   }
 
@@ -91,9 +74,11 @@ export default function EditDiseasePage({
     <section className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Choroby
+          Szkodniki
         </p>
-        <h1 className="text-3xl font-semibold text-zinc-900">Edytuj chorobę</h1>
+        <h1 className="text-3xl font-semibold text-zinc-900">
+          Edytuj szkodnika
+        </h1>
       </header>
       <ReferenceForm
         initialValues={initialValues}

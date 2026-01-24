@@ -16,7 +16,7 @@ export default function NewPestPage() {
     setErrorMessage(null);
     try {
       const result = await createMutation.mutateAsync(payload);
-      router.push(`/pests/${result.slug || result.id}`);
+      router.push(`/pests/${result.id}`);
     } catch (error) {
       if (error instanceof AxiosError && error.response) {
         if (error.response.status === 409) {

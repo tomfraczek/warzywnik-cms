@@ -3,26 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
-import { useQuery } from "@tanstack/react-query";
-import { getPestIdBySlug } from "@/app/api/api.requests";
 import { useGetPest } from "@/app/api/queries/pests/useGetPest";
 import { useDeletePest } from "@/app/api/mutations/pests/useDeletePest";
 
 export default function PestDetailsPage({
   params,
 }: {
-  params: { slug: string };
+  params: { id: string };
 }) {
   const router = useRouter();
-  const {
-    data: pestId,
-    isLoading: isIdLoading,
-    error: idError,
-  } = useQuery({
-    queryKey: ["pest-id", params.slug],
-    queryFn: () => getPestIdBySlug(params.slug),
-  });
-  const { data, isLoading, error } = useGetPest(pestId);
+  const { data, isLoading, error } = useGetPest(params.id);
   const deleteMutation = useDeletePest();
 
   const handleDelete = async () => {
@@ -35,10 +25,9 @@ export default function PestDetailsPage({
   };
 
   const notFound =
-    (idError instanceof Error && idError.message === "NOT_FOUND") ||
-    (error instanceof AxiosError && error.response?.status === 404);
+    error instanceof AxiosError && error.response?.status === 404;
 
-  if (isIdLoading || isLoading) {
+  if (isLoading) {
     return <p className="text-sm text-zinc-500">Ładowanie...</p>;
   }
 
@@ -46,7 +35,7 @@ export default function PestDetailsPage({
     return <p className="text-sm text-red-500">Nie znaleziono szkodnika.</p>;
   }
 
-  if (idError || error) {
+  if (error) {
     return <p className="text-sm text-red-500">Nie udało się pobrać danych.</p>;
   }
 
@@ -65,7 +54,7 @@ export default function PestDetailsPage({
           <div className="flex items-center gap-3">
             <Link
               className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium"
-              href={`/pests/${data.slug}/edit`}
+              href={`/pests/${data.id}/edit`}
             >
               Edytuj
             </Link>

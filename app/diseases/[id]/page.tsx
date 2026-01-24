@@ -3,26 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
-import { useQuery } from "@tanstack/react-query";
-import { getDiseaseIdBySlug } from "@/app/api/api.requests";
 import { useGetDisease } from "@/app/api/queries/diseases/useGetDisease";
 import { useDeleteDisease } from "@/app/api/mutations/diseases/useDeleteDisease";
 
 export default function DiseaseDetailsPage({
   params,
 }: {
-  params: { slug: string };
+  params: { id: string };
 }) {
   const router = useRouter();
-  const {
-    data: diseaseId,
-    isLoading: isIdLoading,
-    error: idError,
-  } = useQuery({
-    queryKey: ["disease-id", params.slug],
-    queryFn: () => getDiseaseIdBySlug(params.slug),
-  });
-  const { data, isLoading, error } = useGetDisease(diseaseId);
+  const { data, isLoading, error } = useGetDisease(params.id);
   const deleteMutation = useDeleteDisease();
 
   const handleDelete = async () => {
@@ -35,10 +25,9 @@ export default function DiseaseDetailsPage({
   };
 
   const notFound =
-    (idError instanceof Error && idError.message === "NOT_FOUND") ||
-    (error instanceof AxiosError && error.response?.status === 404);
+    error instanceof AxiosError && error.response?.status === 404;
 
-  if (isIdLoading || isLoading) {
+  if (isLoading) {
     return <p className="text-sm text-zinc-500">Ładowanie...</p>;
   }
 
@@ -46,7 +35,7 @@ export default function DiseaseDetailsPage({
     return <p className="text-sm text-red-500">Nie znaleziono choroby.</p>;
   }
 
-  if (idError || error) {
+  if (error) {
     return <p className="text-sm text-red-500">Nie udało się pobrać danych.</p>;
   }
 
@@ -65,7 +54,7 @@ export default function DiseaseDetailsPage({
           <div className="flex items-center gap-3">
             <Link
               className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium"
-              href={`/diseases/${data.slug}/edit`}
+              href={`/diseases/${data.id}/edit`}
             >
               Edytuj
             </Link>

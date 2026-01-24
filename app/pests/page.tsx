@@ -110,13 +110,13 @@ export default function PestsPage() {
                   <div className="flex justify-end gap-3 text-xs font-medium">
                     <Link
                       className="text-zinc-600 hover:text-zinc-900"
-                      href={`/pests/${item.slug}`}
+                      href={`/pests/${item.id}`}
                     >
                       View
                     </Link>
                     <Link
                       className="text-zinc-600 hover:text-zinc-900"
-                      href={`/pests/${item.slug}/edit`}
+                      href={`/pests/${item.id}/edit`}
                     >
                       Edit
                     </Link>

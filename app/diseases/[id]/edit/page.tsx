@@ -4,14 +4,12 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AxiosError } from "axios";
 import { ReferenceForm } from "@/app/components/ReferenceForm";
-import { useQuery } from "@tanstack/react-query";
-import { getPestIdBySlug } from "@/app/api/api.requests";
-import { useGetPest } from "@/app/api/queries/pests/useGetPest";
-import { useUpdatePest } from "@/app/api/mutations/pests/useUpdatePest";
+import { useGetDisease } from "@/app/api/queries/diseases/useGetDisease";
+import { useUpdateDisease } from "@/app/api/mutations/diseases/useUpdateDisease";
 import type { ReferenceFormValues } from "@/app/components/ReferenceForm";
-import type { CreatePestPayload, Pest } from "@/app/api/api.types";
+import type { CreateDiseasePayload, Disease } from "@/app/api/api.types";
 
-const mapPestToFormValues = (data: Pest): ReferenceFormValues => ({
+const mapDiseaseToFormValues = (data: Disease): ReferenceFormValues => ({
   slug: data.slug,
   name: data.name,
   description: data.description,
@@ -20,31 +18,27 @@ const mapPestToFormValues = (data: Pest): ReferenceFormValues => ({
   treatment: data.treatment || "",
 });
 
-export default function EditPestPage({ params }: { params: { slug: string } }) {
+export default function EditDiseasePage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const {
-    data: pestId,
-    isLoading: isIdLoading,
-    error: idError,
-  } = useQuery({
-    queryKey: ["pest-id", params.slug],
-    queryFn: () => getPestIdBySlug(params.slug),
-  });
-  const { data, isLoading, error } = useGetPest(pestId);
-  const updateMutation = useUpdatePest();
+  const { data, isLoading, error } = useGetDisease(params.id);
+  const updateMutation = useUpdateDisease();
 
   const initialValues = useMemo(
-    () => (data ? mapPestToFormValues(data) : undefined),
+    () => (data ? mapDiseaseToFormValues(data) : undefined),
     [data],
   );
 
-  const handleSubmit = async (payload: CreatePestPayload) => {
+  const handleSubmit = async (payload: CreateDiseasePayload) => {
     if (!data) return;
     setErrorMessage(null);
     try {
       const result = await updateMutation.mutateAsync({ id: data.id, payload });
-      router.push(`/pests/${result.slug || result.id}`);
+      router.push(`/diseases/${result.id}`);
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
         if (err.response.status === 409) {
@@ -56,7 +50,7 @@ export default function EditPestPage({ params }: { params: { slug: string } }) {
           return;
         }
         if (err.response.status === 404) {
-          setErrorMessage("Nie znaleziono szkodnika.");
+          setErrorMessage("Nie znaleziono choroby.");
           return;
         }
       }
@@ -64,18 +58,15 @@ export default function EditPestPage({ params }: { params: { slug: string } }) {
     }
   };
 
-  if (isIdLoading || isLoading) {
+  if (isLoading) {
     return <p className="text-sm text-zinc-500">Ładowanie...</p>;
   }
 
-  if (
-    (idError instanceof Error && idError.message === "NOT_FOUND") ||
-    (error instanceof AxiosError && error.response?.status === 404)
-  ) {
-    return <p className="text-sm text-red-500">Nie znaleziono szkodnika.</p>;
+  if (error instanceof AxiosError && error.response?.status === 404) {
+    return <p className="text-sm text-red-500">Nie znaleziono choroby.</p>;
   }
 
-  if (idError || error) {
+  if (error) {
     return <p className="text-sm text-red-500">Nie udało się pobrać danych.</p>;
   }
 
@@ -87,11 +78,9 @@ export default function EditPestPage({ params }: { params: { slug: string } }) {
     <section className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Szkodniki
+          Choroby
         </p>
-        <h1 className="text-3xl font-semibold text-zinc-900">
-          Edytuj szkodnika
-        </h1>
+        <h1 className="text-3xl font-semibold text-zinc-900">Edytuj chorobę</h1>
       </header>
       <ReferenceForm
         initialValues={initialValues}

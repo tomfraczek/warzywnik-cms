@@ -1,28 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { AxiosError } from "axios";
-import { useQuery } from "@tanstack/react-query";
-import { getVegetableIdBySlug } from "@/app/api/api.requests";
 import { useGetVegetable } from "@/app/api/queries/vegetables/useGetVegetable";
 import { useDeleteVegetable } from "@/app/api/mutations/vegetables/useDeleteVegetable";
 
-export default function VegetableDetailsPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default function VegetableDetailsPage() {
   const router = useRouter();
-  const {
-    data: vegetableId,
-    isLoading: isIdLoading,
-    error: idError,
-  } = useQuery({
-    queryKey: ["vegetable-id", params.slug],
-    queryFn: () => getVegetableIdBySlug(params.slug),
-  });
-  const { data, isLoading, error } = useGetVegetable(vegetableId);
+  const params = useParams<{ id: string }>();
+  const { data, isLoading, error } = useGetVegetable(params?.id);
   const deleteMutation = useDeleteVegetable();
 
   const handleDelete = async () => {
@@ -35,10 +22,9 @@ export default function VegetableDetailsPage({
   };
 
   const notFound =
-    (idError instanceof Error && idError.message === "NOT_FOUND") ||
-    (error instanceof AxiosError && error.response?.status === 404);
+    error instanceof AxiosError && error.response?.status === 404;
 
-  if (isIdLoading || isLoading) {
+  if (isLoading) {
     return <p className="text-sm text-zinc-500">Ładowanie...</p>;
   }
 
@@ -46,7 +32,7 @@ export default function VegetableDetailsPage({
     return <p className="text-sm text-red-500">Nie znaleziono warzywa.</p>;
   }
 
-  if (idError || error) {
+  if (error) {
     return <p className="text-sm text-red-500">Nie udało się pobrać danych.</p>;
   }
 
@@ -65,7 +51,7 @@ export default function VegetableDetailsPage({
           <div className="flex items-center gap-3">
             <Link
               className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium"
-              href={`/vegetables/${data.slug}/edit`}
+              href={`/vegetables/${data.id}/edit`}
             >
               Edytuj
             </Link>
@@ -83,14 +69,14 @@ export default function VegetableDetailsPage({
 
       <div className="grid gap-6 md:grid-cols-2">
         <section className="rounded-xl border border-zinc-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-zinc-900">Basic</h2>
+          <h2 className="text-lg font-semibold text-zinc-900">Podstawy</h2>
           <div className="mt-4 space-y-2 text-sm text-zinc-600">
             <p>
               <span className="font-medium text-zinc-900">Nazwa łacińska:</span>{" "}
               {data.latinName || "-"}
             </p>
             <p>
-              <span className="font-medium text-zinc-900">Image URL:</span>{" "}
+              <span className="font-medium text-zinc-900">URL zdjęcia:</span>{" "}
               {data.imageUrl || "-"}
             </p>
             <p>
@@ -101,27 +87,31 @@ export default function VegetableDetailsPage({
         </section>
 
         <section className="rounded-xl border border-zinc-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-zinc-900">Requirements</h2>
+          <h2 className="text-lg font-semibold text-zinc-900">Wymagania</h2>
           <div className="mt-4 space-y-2 text-sm text-zinc-600">
             <p>
-              <span className="font-medium text-zinc-900">Sun exposure:</span>{" "}
+              <span className="font-medium text-zinc-900">
+                Nasłonecznienie:
+              </span>{" "}
               {data.sunExposure || "-"}
             </p>
             <p>
-              <span className="font-medium text-zinc-900">Water demand:</span>{" "}
+              <span className="font-medium text-zinc-900">
+                Zapotrzebowanie na wodę:
+              </span>{" "}
               {data.waterDemand || "-"}
             </p>
             <p>
-              <span className="font-medium text-zinc-900">Soil type:</span>{" "}
+              <span className="font-medium text-zinc-900">Typ gleby:</span>{" "}
               {data.soilType || "-"}
             </p>
             <p>
-              <span className="font-medium text-zinc-900">Soil pH:</span>{" "}
-              {data.soilPHMin ?? "-"} - {data.soilPHMax ?? "-"}
+              <span className="font-medium text-zinc-900">pH gleby:</span>{" "}
+              {data.soil_ph_min ?? "-"} - {data.soil_ph_max ?? "-"}
             </p>
             <p>
               <span className="font-medium text-zinc-900">
-                Nutrient demand:
+                Zapotrzebowanie na składniki:
               </span>{" "}
               {data.nutrientDemand || "-"}
             </p>
@@ -130,7 +120,7 @@ export default function VegetableDetailsPage({
       </div>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Sowing methods</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">Metody siewu</h2>
         <div className="mt-4 space-y-3 text-sm text-zinc-600">
           {data.sowingMethods?.length ? (
             data.sowingMethods.map((method, index) => (
@@ -139,16 +129,16 @@ export default function VegetableDetailsPage({
                 className="rounded-lg border border-zinc-200 p-3"
               >
                 <p>
-                  <span className="font-medium text-zinc-900">Method:</span>{" "}
+                  <span className="font-medium text-zinc-900">Metoda:</span>{" "}
                   {method.method}
                 </p>
                 <p>
-                  <span className="font-medium text-zinc-900">Window:</span>{" "}
+                  <span className="font-medium text-zinc-900">Okno:</span>{" "}
                   {method.startMonth} - {method.endMonth}
                 </p>
                 <p>
                   <span className="font-medium text-zinc-900">
-                    Under cover:
+                    Pod osłonami:
                   </span>{" "}
                   {method.underCover ? "Tak" : "Nie"}
                 </p>
@@ -161,7 +151,7 @@ export default function VegetableDetailsPage({
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Harvest</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">Zbiory</h2>
         <div className="mt-4 space-y-2 text-sm text-zinc-600">
           <p>
             <span className="font-medium text-zinc-900">Okno zbioru:</span>{" "}
@@ -180,9 +170,7 @@ export default function VegetableDetailsPage({
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">
-          Fertilization stages
-        </h2>
+        <h2 className="text-lg font-semibold text-zinc-900">Etapy nawożenia</h2>
         <div className="mt-4 space-y-3 text-sm text-zinc-600">
           {data.fertilizationStages?.length ? (
             data.fertilizationStages.map((stage, index) => (
@@ -202,16 +190,16 @@ export default function VegetableDetailsPage({
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Relations</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">Relacje</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2 text-sm">
           <div>
-            <p className="font-medium text-zinc-900">Pests</p>
+            <p className="font-medium text-zinc-900">Szkodniki</p>
             <div className="mt-2 space-y-1 text-zinc-600">
               {data.commonPests.length ? (
                 data.commonPests.map((pest) => (
                   <Link
                     key={pest.id}
-                    href={`/pests/${pest.slug}`}
+                    href={`/pests/${pest.id}`}
                     className="block hover:text-zinc-900"
                   >
                     {pest.name}
@@ -223,13 +211,13 @@ export default function VegetableDetailsPage({
             </div>
           </div>
           <div>
-            <p className="font-medium text-zinc-900">Diseases</p>
+            <p className="font-medium text-zinc-900">Choroby</p>
             <div className="mt-2 space-y-1 text-zinc-600">
               {data.commonDiseases.length ? (
                 data.commonDiseases.map((disease) => (
                   <Link
                     key={disease.id}
-                    href={`/diseases/${disease.slug}`}
+                    href={`/diseases/${disease.id}`}
                     className="block hover:text-zinc-900"
                   >
                     {disease.name}
@@ -241,13 +229,13 @@ export default function VegetableDetailsPage({
             </div>
           </div>
           <div>
-            <p className="font-medium text-zinc-900">Good companions</p>
+            <p className="font-medium text-zinc-900">Dobre sąsiedztwo</p>
             <div className="mt-2 space-y-1 text-zinc-600">
               {data.goodCompanions.length ? (
                 data.goodCompanions.map((companion) => (
                   <Link
                     key={companion.id}
-                    href={`/vegetables/${companion.slug}`}
+                    href={`/vegetables/${companion.id}`}
                     className="block hover:text-zinc-900"
                   >
                     {companion.name}
@@ -259,13 +247,13 @@ export default function VegetableDetailsPage({
             </div>
           </div>
           <div>
-            <p className="font-medium text-zinc-900">Bad companions</p>
+            <p className="font-medium text-zinc-900">Złe sąsiedztwo</p>
             <div className="mt-2 space-y-1 text-zinc-600">
               {data.badCompanions.length ? (
                 data.badCompanions.map((companion) => (
                   <Link
                     key={companion.id}
-                    href={`/vegetables/${companion.slug}`}
+                    href={`/vegetables/${companion.id}`}
                     className="block hover:text-zinc-900"
                   >
                     {companion.name}

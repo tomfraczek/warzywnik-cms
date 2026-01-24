@@ -28,8 +28,8 @@ export type VegetableFormValues = {
   sunExposure: "" | CreateVegetablePayload["sunExposure"];
   waterDemand: "" | CreateVegetablePayload["waterDemand"];
   soilType: "" | CreateVegetablePayload["soilType"];
-  soilPHMin: string;
-  soilPHMax: string;
+  soil_ph_min: string;
+  soil_ph_max: string;
   nutrientDemand: "" | CreateVegetablePayload["nutrientDemand"];
   sowingMethods: Array<
     Omit<
@@ -61,6 +61,53 @@ export type VegetableFormValues = {
   commonDiseaseIds: string[];
   goodCompanionIds: string[];
   badCompanionIds: string[];
+};
+
+const sunExposureLabels: Record<
+  NonNullable<CreateVegetablePayload["sunExposure"]>,
+  string
+> = {
+  full_sun: "Pełne słońce",
+  partial_shade: "Półcień",
+  shade: "Cień",
+};
+
+const demandLevelLabels: Record<
+  NonNullable<CreateVegetablePayload["waterDemand"]>,
+  string
+> = {
+  low: "Niskie",
+  medium: "Średnie",
+  high: "Wysokie",
+};
+
+const soilTypeLabels: Record<
+  NonNullable<CreateVegetablePayload["soilType"]>,
+  string
+> = {
+  light: "Lekka",
+  medium: "Średnia",
+  heavy: "Ciężka",
+};
+
+const sowingMethodLabels: Record<NonNullable<SowingMethodType>, string> = {
+  direct_sow: "Siew do gruntu",
+  seedlings: "Rozsada",
+};
+
+const monthLabels: Record<Month, string> = {
+  january: "Styczeń",
+  february: "Luty",
+  march: "Marzec",
+  april: "Kwiecień",
+  may: "Maj",
+  june: "Czerwiec",
+  july: "Lipiec",
+  august: "Sierpień",
+  september: "Wrzesień",
+  october: "Październik",
+  november: "Listopad",
+  december: "Grudzień",
 };
 
 const createEmptySowingMethod =
@@ -111,8 +158,8 @@ const defaultValues: VegetableFormValues = {
   sunExposure: "",
   waterDemand: "",
   soilType: "",
-  soilPHMin: "",
-  soilPHMax: "",
+  soil_ph_min: "",
+  soil_ph_max: "",
   nutrientDemand: "",
   sowingMethods: [],
   timeToHarvestDaysMin: "",
@@ -189,8 +236,8 @@ export const VegetableForm = ({
       return;
     }
 
-    const soilPHMin = toNumberOrNull(values.soilPHMin);
-    const soilPHMax = toNumberOrNull(values.soilPHMax);
+    const soilPHMin = toNumberOrNull(values.soil_ph_min);
+    const soilPHMax = toNumberOrNull(values.soil_ph_max);
     if (soilPHMin !== null && (soilPHMin < 0 || soilPHMin > 14)) {
       setClientError("pH minimalne musi być w zakresie 0-14.");
       return;
@@ -260,8 +307,8 @@ export const VegetableForm = ({
       sunExposure: values.sunExposure || null,
       waterDemand: values.waterDemand || null,
       soilType: values.soilType || null,
-      soilPHMin,
-      soilPHMax,
+      soil_ph_min: soilPHMin,
+      soil_ph_max: soilPHMax,
       nutrientDemand: values.nutrientDemand || null,
       sowingMethods,
       timeToHarvestDaysMin,
@@ -293,10 +340,14 @@ export const VegetableForm = ({
   return (
     <form className="space-y-8" onSubmit={handleSubmit}>
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Basic</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">Podstawy</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-2 text-sm">
-            Slug
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Slug</span>
+            <span className="text-xs text-zinc-500">
+              Unikalny identyfikator techniczny używany w URL i jako klucz w
+              API. Tylko małe litery, cyfry i myślniki (np. „pomidor”).
+            </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.slug}
@@ -304,8 +355,12 @@ export const VegetableForm = ({
               required
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm">
-            Nazwa
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Nazwa</span>
+            <span className="text-xs text-zinc-500">
+              Nazwa warzywa w języku polskim, wyświetlana w aplikacji mobilnej
+              (np. „Pomidor”).
+            </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.name}
@@ -313,16 +368,23 @@ export const VegetableForm = ({
               required
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm">
-            Nazwa łacińska
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Nazwa łacińska</span>
+            <span className="text-xs text-zinc-500">
+              Nazwa łacińska gatunku (opcjonalnie), pomaga jednoznacznie
+              zidentyfikować roślinę.
+            </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.latinName}
               onChange={(event) => updateValue("latinName", event.target.value)}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm">
-            Image URL
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">URL zdjęcia</span>
+            <span className="text-xs text-zinc-500">
+              Link do jednego zdjęcia warzywa (opcjonalnie).
+            </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.imageUrl}
@@ -330,8 +392,11 @@ export const VegetableForm = ({
             />
           </label>
         </div>
-        <label className="mt-4 flex flex-col gap-2 text-sm">
-          Opis
+        <label className="mt-4 flex flex-col gap-1 text-sm">
+          <span className="font-medium">Opis</span>
+          <span className="text-xs text-zinc-500">
+            Główny opis edukacyjny: wymagania, uprawa, najczęstsze porady.
+          </span>
           <textarea
             className="min-h-30 rounded-lg border border-zinc-200 px-3 py-2"
             value={values.description}
@@ -342,10 +407,13 @@ export const VegetableForm = ({
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Requirements</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">Wymagania</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <label className="flex flex-col gap-2 text-sm">
-            Sun exposure
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Nasłonecznienie</span>
+            <span className="text-xs text-zinc-500">
+              Ile światła potrzebuje roślina (pełne słońce / półcień / cień).
+            </span>
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.sunExposure ?? ""}
@@ -361,13 +429,16 @@ export const VegetableForm = ({
               <option value="">Brak</option>
               {sunExposureOptions.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {sunExposureLabels[option]}
                 </option>
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-2 text-sm">
-            Water demand
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Zapotrzebowanie na wodę</span>
+            <span className="text-xs text-zinc-500">
+              Ogólne wymagania wodne: niskie/średnie/wysokie.
+            </span>
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.waterDemand ?? ""}
@@ -383,13 +454,16 @@ export const VegetableForm = ({
               <option value="">Brak</option>
               {demandLevelOptions.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {demandLevelLabels[option]}
                 </option>
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-2 text-sm">
-            Soil type
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Typ gleby</span>
+            <span className="text-xs text-zinc-500">
+              Preferowany typ gleby (lekka/średnia/ciężka).
+            </span>
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.soilType ?? ""}
@@ -403,15 +477,19 @@ export const VegetableForm = ({
               <option value="">Brak</option>
               {soilTypeOptions.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {soilTypeLabels[option]}
                 </option>
               ))}
             </select>
           </label>
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <label className="flex flex-col gap-2 text-sm">
-            Nutrient demand
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Zapotrzebowanie na składniki</span>
+            <span className="text-xs text-zinc-500">
+              Zapotrzebowanie na składniki: low/medium/high. High oznacza, że
+              roślina mocno korzysta z żyznej gleby i dokarmiania.
+            </span>
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.nutrientDemand ?? ""}
@@ -427,33 +505,45 @@ export const VegetableForm = ({
               <option value="">Brak</option>
               {demandLevelOptions.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {demandLevelLabels[option]}
                 </option>
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-2 text-sm">
-            Soil pH min
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">pH gleby min</span>
+            <span className="text-xs text-zinc-500">
+              Zakres preferowanego pH (0–14). Jeśli podajesz oba, min nie może
+              być większe niż max.
+            </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
               type="number"
               min={0}
               max={14}
               step="0.1"
-              value={values.soilPHMin}
-              onChange={(event) => updateValue("soilPHMin", event.target.value)}
+              value={values.soil_ph_min}
+              onChange={(event) =>
+                updateValue("soil_ph_min", event.target.value)
+              }
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm">
-            Soil pH max
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">pH gleby max</span>
+            <span className="text-xs text-zinc-500">
+              Zakres preferowanego pH (0–14). Jeśli podajesz oba, min nie może
+              być większe niż max.
+            </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
               type="number"
               min={0}
               max={14}
               step="0.1"
-              value={values.soilPHMax}
-              onChange={(event) => updateValue("soilPHMax", event.target.value)}
+              value={values.soil_ph_max}
+              onChange={(event) =>
+                updateValue("soil_ph_max", event.target.value)
+              }
             />
           </label>
         </div>
@@ -461,9 +551,7 @@ export const VegetableForm = ({
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900">
-            Sowing methods
-          </h2>
+          <h2 className="text-lg font-semibold text-zinc-900">Metody siewu</h2>
           <button
             type="button"
             className="rounded-lg border border-zinc-200 px-3 py-2 text-sm"
@@ -502,8 +590,12 @@ export const VegetableForm = ({
                 </button>
               </div>
               <div className="mt-3 grid gap-4 md:grid-cols-3">
-                <label className="flex flex-col gap-2 text-sm">
-                  Method
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Metoda</span>
+                  <span className="text-xs text-zinc-500">
+                    Metoda uprawy: direct_sow = siew do gruntu, seedlings =
+                    rozsada.
+                  </span>
                   <select
                     className="rounded-lg border border-zinc-200 px-3 py-2"
                     value={method.method}
@@ -518,13 +610,16 @@ export const VegetableForm = ({
                   >
                     {sowingMethodOptions.map((option) => (
                       <option key={option} value={option}>
-                        {option}
+                        {sowingMethodLabels[option]}
                       </option>
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-2 text-sm">
-                  Start month
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Miesiąc startu</span>
+                  <span className="text-xs text-zinc-500">
+                    Zakres miesięcy wysiewu dla tego wariantu.
+                  </span>
                   <select
                     className="rounded-lg border border-zinc-200 px-3 py-2"
                     value={method.startMonth}
@@ -539,13 +634,16 @@ export const VegetableForm = ({
                   >
                     {monthOptions.map((option) => (
                       <option key={option} value={option}>
-                        {option}
+                        {monthLabels[option]}
                       </option>
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-2 text-sm">
-                  End month
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Miesiąc końca</span>
+                  <span className="text-xs text-zinc-500">
+                    Zakres miesięcy wysiewu dla tego wariantu.
+                  </span>
                   <select
                     className="rounded-lg border border-zinc-200 px-3 py-2"
                     value={method.endMonth}
@@ -560,30 +658,40 @@ export const VegetableForm = ({
                   >
                     {monthOptions.map((option) => (
                       <option key={option} value={option}>
-                        {option}
+                        {monthLabels[option]}
                       </option>
                     ))}
                   </select>
                 </label>
               </div>
               <div className="mt-3 grid gap-4 md:grid-cols-3">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={method.underCover}
-                    onChange={(event) => {
-                      const next = [...values.sowingMethods];
-                      next[index] = {
-                        ...next[index],
-                        underCover: event.target.checked,
-                      };
-                      updateValue("sowingMethods", next);
-                    }}
-                  />
-                  Under cover
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Pod osłonami</span>
+                  <span className="text-xs text-zinc-500">
+                    Czy wysiew odbywa się pod osłonami (dom, inspekt, tunel).
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={method.underCover}
+                      onChange={(event) => {
+                        const next = [...values.sowingMethods];
+                        next[index] = {
+                          ...next[index],
+                          underCover: event.target.checked,
+                        };
+                        updateValue("sowingMethods", next);
+                      }}
+                    />
+                    Pod osłonami
+                  </div>
                 </label>
-                <label className="flex flex-col gap-2 text-sm">
-                  Germination days min
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Dni kiełkowania min</span>
+                  <span className="text-xs text-zinc-500">
+                    Zakres dni kiełkowania (opcjonalnie). Jeśli podajesz zakres,
+                    min nie może być większe niż max.
+                  </span>
                   <input
                     className="rounded-lg border border-zinc-200 px-3 py-2"
                     type="number"
@@ -598,8 +706,12 @@ export const VegetableForm = ({
                     }}
                   />
                 </label>
-                <label className="flex flex-col gap-2 text-sm">
-                  Germination days max
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Dni kiełkowania max</span>
+                  <span className="text-xs text-zinc-500">
+                    Zakres dni kiełkowania (opcjonalnie). Jeśli podajesz zakres,
+                    min nie może być większe niż max.
+                  </span>
                   <input
                     className="rounded-lg border border-zinc-200 px-3 py-2"
                     type="number"
@@ -616,8 +728,11 @@ export const VegetableForm = ({
                 </label>
               </div>
               <div className="mt-3 grid gap-4 md:grid-cols-3">
-                <label className="flex flex-col gap-2 text-sm">
-                  Seed depth (cm)
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Głębokość siewu (cm)</span>
+                  <span className="text-xs text-zinc-500">
+                    Głębokość siewu w cm (opcjonalnie).
+                  </span>
                   <input
                     className="rounded-lg border border-zinc-200 px-3 py-2"
                     type="number"
@@ -632,8 +747,11 @@ export const VegetableForm = ({
                     }}
                   />
                 </label>
-                <label className="flex flex-col gap-2 text-sm">
-                  Row spacing (cm)
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Rozstaw rzędów (cm)</span>
+                  <span className="text-xs text-zinc-500">
+                    Odległość między rzędami w cm (opcjonalnie).
+                  </span>
                   <input
                     className="rounded-lg border border-zinc-200 px-3 py-2"
                     type="number"
@@ -648,8 +766,11 @@ export const VegetableForm = ({
                     }}
                   />
                 </label>
-                <label className="flex flex-col gap-2 text-sm">
-                  Plant spacing (cm)
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Rozstaw roślin (cm)</span>
+                  <span className="text-xs text-zinc-500">
+                    Odległość między roślinami w rzędzie w cm (opcjonalnie).
+                  </span>
                   <input
                     className="rounded-lg border border-zinc-200 px-3 py-2"
                     type="number"
@@ -666,8 +787,11 @@ export const VegetableForm = ({
                 </label>
               </div>
               <div className="mt-3 grid gap-4 md:grid-cols-2">
-                <label className="flex flex-col gap-2 text-sm">
-                  Transplant start
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Początek przesadzania</span>
+                  <span className="text-xs text-zinc-500">
+                    Zakres miesięcy przesadzania rozsady (tylko dla seedlings).
+                  </span>
                   <select
                     className="rounded-lg border border-zinc-200 px-3 py-2"
                     value={method.transplantingStartMonth ?? ""}
@@ -685,13 +809,16 @@ export const VegetableForm = ({
                     <option value="">Brak</option>
                     {monthOptions.map((option) => (
                       <option key={option} value={option}>
-                        {option}
+                        {monthLabels[option]}
                       </option>
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-2 text-sm">
-                  Transplant end
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Koniec przesadzania</span>
+                  <span className="text-xs text-zinc-500">
+                    Zakres miesięcy przesadzania rozsady (tylko dla seedlings).
+                  </span>
                   <select
                     className="rounded-lg border border-zinc-200 px-3 py-2"
                     value={method.transplantingEndMonth ?? ""}
@@ -709,7 +836,7 @@ export const VegetableForm = ({
                     <option value="">Brak</option>
                     {monthOptions.map((option) => (
                       <option key={option} value={option}>
-                        {option}
+                        {monthLabels[option]}
                       </option>
                     ))}
                   </select>
@@ -721,10 +848,13 @@ export const VegetableForm = ({
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Harvest</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">Zbiory</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <label className="flex flex-col gap-2 text-sm">
-            Start month
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Miesiąc startu</span>
+            <span className="text-xs text-zinc-500">
+              Typowy zakres miesięcy zbioru (opcjonalnie).
+            </span>
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.harvestStartMonth}
@@ -738,13 +868,16 @@ export const VegetableForm = ({
               <option value="">Brak</option>
               {monthOptions.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {monthLabels[option]}
                 </option>
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-2 text-sm">
-            End month
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Miesiąc końca</span>
+            <span className="text-xs text-zinc-500">
+              Typowy zakres miesięcy zbioru (opcjonalnie).
+            </span>
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.harvestEndMonth}
@@ -755,13 +888,16 @@ export const VegetableForm = ({
               <option value="">Brak</option>
               {monthOptions.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {monthLabels[option]}
                 </option>
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-2 text-sm">
-            Harvest signs
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Oznaki zbioru</span>
+            <span className="text-xs text-zinc-500">
+              Po czym poznać, że warzywo jest gotowe do zbioru (opcjonalnie).
+            </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.harvestSigns}
@@ -772,8 +908,11 @@ export const VegetableForm = ({
           </label>
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-2 text-sm">
-            Time to harvest min (days)
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Czas do zbioru min (dni)</span>
+            <span className="text-xs text-zinc-500">
+              Przybliżony zakres dni do pierwszych zbiorów (opcjonalnie).
+            </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
               type="number"
@@ -783,8 +922,11 @@ export const VegetableForm = ({
               }
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm">
-            Time to harvest max (days)
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Czas do zbioru max (dni)</span>
+            <span className="text-xs text-zinc-500">
+              Przybliżony zakres dni do pierwszych zbiorów (opcjonalnie).
+            </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
               type="number"
@@ -798,22 +940,29 @@ export const VegetableForm = ({
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">
-          Succession sowing
-        </h2>
+        <h2 className="text-lg font-semibold text-zinc-900">Siew sukcesywny</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={values.successionSowing}
-              onChange={(event) =>
-                updateValue("successionSowing", event.target.checked)
-              }
-            />
-            Włącz siew sukcesywny
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Siew sukcesywny</span>
+            <span className="text-xs text-zinc-500">
+              Czy warto siać partiami, aby mieć ciągłe zbiory.
+            </span>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={values.successionSowing}
+                onChange={(event) =>
+                  updateValue("successionSowing", event.target.checked)
+                }
+              />
+              Włącz siew sukcesywny
+            </div>
           </label>
-          <label className="flex flex-col gap-2 text-sm">
-            Interval (days)
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Interwał (dni)</span>
+            <span className="text-xs text-zinc-500">
+              Co ile dni powtarzać siew, gdy successionSowing=true.
+            </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
               type="number"
@@ -830,7 +979,7 @@ export const VegetableForm = ({
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-zinc-900">
-            Fertilization stages
+            Etapy nawożenia
           </h2>
           <button
             type="button"
@@ -872,8 +1021,11 @@ export const VegetableForm = ({
                 </button>
               </div>
               <div className="mt-3 grid gap-4 md:grid-cols-2">
-                <label className="flex flex-col gap-2 text-sm">
-                  Nazwa
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Nazwa</span>
+                  <span className="text-xs text-zinc-500">
+                    Nazwa etapu (np. „Start”, „Owocowanie”).
+                  </span>
                   <input
                     className="rounded-lg border border-zinc-200 px-3 py-2"
                     value={stage.name}
@@ -887,8 +1039,12 @@ export const VegetableForm = ({
                     }}
                   />
                 </label>
-                <label className="flex flex-col gap-2 text-sm">
-                  Timing
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Kiedy</span>
+                  <span className="text-xs text-zinc-500">
+                    Kiedy wykonać etap (tekstowo), np. „2 tygodnie po
+                    wysadzeniu” (opcjonalnie).
+                  </span>
                   <input
                     className="rounded-lg border border-zinc-200 px-3 py-2"
                     value={stage.timing}
@@ -903,8 +1059,11 @@ export const VegetableForm = ({
                   />
                 </label>
               </div>
-              <label className="mt-3 flex flex-col gap-2 text-sm">
-                Opis
+              <label className="mt-3 flex flex-col gap-1 text-sm">
+                <span className="font-medium">Opis</span>
+                <span className="text-xs text-zinc-500">
+                  Dokładny opis zaleceń w danym etapie.
+                </span>
                 <textarea
                   className="min-h-20 rounded-lg border border-zinc-200 px-3 py-2"
                   value={stage.description}
@@ -924,10 +1083,14 @@ export const VegetableForm = ({
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Relations</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">Relacje</h2>
         <div className="mt-4 grid gap-6 md:grid-cols-2">
           <div>
             <p className="text-sm font-medium text-zinc-700">Common pests</p>
+            <p className="text-xs text-zinc-500">
+              Typowe szkodniki atakujące to warzywo. Wybierane ze słownika
+              Pests.
+            </p>
             <div className="mt-2 space-y-2">
               {(pestsData?.items ?? []).map((pest) => (
                 <label
@@ -954,6 +1117,10 @@ export const VegetableForm = ({
           </div>
           <div>
             <p className="text-sm font-medium text-zinc-700">Common diseases</p>
+            <p className="text-xs text-zinc-500">
+              Typowe choroby dotyczące tego warzywa. Wybierane ze słownika
+              Diseases.
+            </p>
             <div className="mt-2 space-y-2">
               {(diseasesData?.items ?? []).map((disease) => (
                 <label
@@ -980,6 +1147,9 @@ export const VegetableForm = ({
           </div>
           <div>
             <p className="text-sm font-medium text-zinc-700">Good companions</p>
+            <p className="text-xs text-zinc-500">
+              Warzywa, które zwykle dobrze rosną obok.
+            </p>
             <div className="mt-2 space-y-2">
               {companionOptions.map((companion) => (
                 <label
@@ -1003,6 +1173,9 @@ export const VegetableForm = ({
           </div>
           <div>
             <p className="text-sm font-medium text-zinc-700">Bad companions</p>
+            <p className="text-xs text-zinc-500">
+              Warzywa, których zwykle nie sadzi się obok.
+            </p>
             <div className="mt-2 space-y-2">
               {companionOptions.map((companion) => (
                 <label

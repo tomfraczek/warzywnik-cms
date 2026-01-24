@@ -16,7 +16,7 @@ export default function NewVegetablePage() {
     setErrorMessage(null);
     try {
       const result = await createMutation.mutateAsync(payload);
-      router.push(`/vegetables/${result.slug || result.id}`);
+      router.push(`/vegetables/${result.id}`);
     } catch (error) {
       if (error instanceof AxiosError && error.response) {
         if (error.response.status === 409) {
