@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AxiosError } from "axios";
 import { ReferenceForm } from "@/app/components/ReferenceForm";
@@ -18,14 +18,11 @@ const mapDiseaseToFormValues = (data: Disease): ReferenceFormValues => ({
   treatment: data.treatment || "",
 });
 
-export default function EditDiseasePage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function EditDiseasePage() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { data, isLoading, error } = useGetDisease(params.id);
+  const { data, isLoading, error } = useGetDisease(params?.id);
   const updateMutation = useUpdateDisease();
 
   const initialValues = useMemo(

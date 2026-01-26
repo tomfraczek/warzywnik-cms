@@ -1,18 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import { useGetPest } from "@/app/api/queries/pests/useGetPest";
 import { useDeletePest } from "@/app/api/mutations/pests/useDeletePest";
 
-export default function PestDetailsPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function PestDetailsPage() {
   const router = useRouter();
-  const { data, isLoading, error } = useGetPest(params.id);
+  const params = useParams<{ id: string }>();
+  const { data, isLoading, error } = useGetPest(params?.id);
   const deleteMutation = useDeletePest();
 
   const handleDelete = async () => {

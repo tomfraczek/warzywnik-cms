@@ -5,17 +5,30 @@ import { useState } from "react";
 import { AxiosError } from "axios";
 import { VegetableForm } from "@/app/components/VegetableForm";
 import { useCreateVegetable } from "@/app/api/mutations/vegetables/useCreateVegetable";
+import { useUploadVegetableImage } from "@/app/api/mutations/vegetables/useUploadVegetableImage";
 import type { CreateVegetablePayload } from "@/app/api/api.types";
 
 export default function NewVegetablePage() {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const createMutation = useCreateVegetable();
+  const uploadMutation = useUploadVegetableImage();
+  const adminToken = process.env.NEXT_PUBLIC_ADMIN_TOKEN;
 
-  const handleSubmit = async (payload: CreateVegetablePayload) => {
+  const handleSubmit = async (
+    payload: CreateVegetablePayload,
+    imageFile: File | null,
+  ) => {
     setErrorMessage(null);
     try {
       const result = await createMutation.mutateAsync(payload);
+      if (imageFile) {
+        await uploadMutation.mutateAsync({
+          id: result.id,
+          file: imageFile,
+          adminToken,
+        });
+      }
       router.push(`/vegetables/${result.id}`);
     } catch (error) {
       if (error instanceof AxiosError && error.response) {
@@ -46,7 +59,7 @@ export default function NewVegetablePage() {
       <VegetableForm
         submitLabel="Utwórz warzywo"
         onSubmit={handleSubmit}
-        isSubmitting={createMutation.isPending}
+        isSubmitting={createMutation.isPending || uploadMutation.isPending}
         errorMessage={errorMessage}
       />
     </section>

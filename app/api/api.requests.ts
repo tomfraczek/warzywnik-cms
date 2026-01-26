@@ -38,10 +38,33 @@ export const getVegetable = async (id: string): Promise<Vegetable> => {
   return data;
 };
 
+const normalizeVegetablePayload = (
+  payload: CreateVegetablePayload | UpdateVegetablePayload,
+) => {
+  const cleaned: Record<string, unknown> = {};
+
+  Object.entries(payload).forEach(([key, value]) => {
+    if (
+      value === null ||
+      value === undefined ||
+      (typeof value === "string" && value === "")
+    ) {
+      return;
+    }
+    cleaned[key] = value;
+  });
+
+  return cleaned;
+};
+
 export const createVegetable = async (
   payload: CreateVegetablePayload,
 ): Promise<Vegetable> => {
-  const { data } = await apiClient.post<Vegetable>("/vegetables", payload);
+  const normalizedPayload = normalizeVegetablePayload(payload);
+  const { data } = await apiClient.post<Vegetable>(
+    "/vegetables",
+    normalizedPayload,
+  );
   return data;
 };
 
@@ -49,15 +72,55 @@ export const updateVegetable = async (
   id: string,
   payload: UpdateVegetablePayload,
 ): Promise<Vegetable> => {
+  const normalizedPayload = normalizeVegetablePayload(payload);
+
   const { data } = await apiClient.patch<Vegetable>(
     `/vegetables/${id}`,
-    payload,
+    JSON.stringify(normalizedPayload),
+    { headers: { "Content-Type": "application/json" } },
   );
+
   return data;
 };
 
 export const deleteVegetable = async (id: string): Promise<void> => {
   await apiClient.delete(`/vegetables/${id}`);
+};
+
+export const uploadVegetableImage = async (
+  id: string,
+  file: File,
+  adminToken?: string,
+): Promise<Vegetable> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const headers: Record<string, string> = {};
+  if (adminToken) {
+    headers["X-Admin-Token"] = adminToken;
+  }
+
+  const { data } = await apiClient.post<Vegetable>(
+    `/uploads/vegetables/${id}/image`,
+    formData,
+    {
+      headers,
+    },
+  );
+  return data;
+};
+
+export const deleteVegetableImage = async (
+  id: string,
+  adminToken?: string,
+): Promise<void> => {
+  const headers: Record<string, string> = {};
+  if (adminToken) {
+    headers["X-Admin-Token"] = adminToken;
+  }
+
+  await apiClient.delete(`/uploads/vegetables/${id}/image`, {
+    headers,
+  });
 };
 
 export const getPests = async (

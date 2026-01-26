@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AxiosError } from "axios";
 import { ReferenceForm } from "@/app/components/ReferenceForm";
@@ -18,10 +18,11 @@ const mapPestToFormValues = (data: Pest): ReferenceFormValues => ({
   treatment: data.treatment || "",
 });
 
-export default function EditPestPage({ params }: { params: { id: string } }) {
+export default function EditPestPage() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { data, isLoading, error } = useGetPest(params.id);
+  const { data, isLoading, error } = useGetPest(params?.id);
   const updateMutation = useUpdatePest();
 
   const initialValues = useMemo(

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import type {
   CreateVegetablePayload,
   FertilizationStage,
@@ -28,8 +29,8 @@ export type VegetableFormValues = {
   sunExposure: "" | CreateVegetablePayload["sunExposure"];
   waterDemand: "" | CreateVegetablePayload["waterDemand"];
   soilType: "" | CreateVegetablePayload["soilType"];
-  soil_ph_min: string;
-  soil_ph_max: string;
+  soilPHMin: string;
+  soilPHMax: string;
   nutrientDemand: "" | CreateVegetablePayload["nutrientDemand"];
   sowingMethods: Array<
     Omit<
@@ -158,8 +159,8 @@ const defaultValues: VegetableFormValues = {
   sunExposure: "",
   waterDemand: "",
   soilType: "",
-  soil_ph_min: "",
-  soil_ph_max: "",
+  soilPHMin: "",
+  soilPHMax: "",
   nutrientDemand: "",
   sowingMethods: [],
   timeToHarvestDaysMin: "",
@@ -178,11 +179,13 @@ const defaultValues: VegetableFormValues = {
 
 export type VegetableFormProps = {
   initialValues?: Partial<VegetableFormValues>;
-  onSubmit: (payload: CreateVegetablePayload) => void;
+  onSubmit: (payload: CreateVegetablePayload, imageFile: File | null) => void;
   submitLabel: string;
   isSubmitting?: boolean;
   errorMessage?: string | null;
   excludeCompanionId?: string | null;
+  onDeleteImage?: () => Promise<void>;
+  isDeletingImage?: boolean;
 };
 
 export const VegetableForm = ({
@@ -192,12 +195,26 @@ export const VegetableForm = ({
   isSubmitting,
   errorMessage,
   excludeCompanionId,
+  onDeleteImage,
+  isDeletingImage,
 }: VegetableFormProps) => {
   const [values, setValues] = useState<VegetableFormValues>({
     ...defaultValues,
     ...initialValues,
   });
   const [clientError, setClientError] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [imageUrlValid, setImageUrlValid] = useState<boolean | null>(null);
+  const [imageUrlChecking, setImageUrlChecking] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
 
   const listParams = useMemo(() => ({ page: 1, limit: 100 }), []);
   const { data: pestsData } = useGetPests(listParams);
@@ -217,6 +234,40 @@ export const VegetableForm = ({
     value: VegetableFormValues[K],
   ) => {
     setValues((prev) => ({ ...prev, [key]: value }));
+    if (key === "imageUrl") {
+      setImageUrlValid(null);
+      if (typeof value === "string" && value.trim()) {
+        validateImageUrl(value.trim());
+      }
+    }
+  };
+
+  // Validate if string is a valid URL
+  const isValidUrl = (url: string) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // Check if URL points to an image
+  const validateImageUrl = async (url: string) => {
+    if (!isValidUrl(url)) {
+      setImageUrlValid(false);
+      return;
+    }
+    setImageUrlChecking(true);
+    try {
+      const res = await fetch(url, { method: "HEAD" });
+      const contentType = res.headers.get("content-type") || "";
+      setImageUrlValid(res.ok && contentType.startsWith("image/"));
+    } catch {
+      setImageUrlValid(false);
+    } finally {
+      setImageUrlChecking(false);
+    }
   };
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -236,8 +287,8 @@ export const VegetableForm = ({
       return;
     }
 
-    const soilPHMin = toNumberOrNull(values.soil_ph_min);
-    const soilPHMax = toNumberOrNull(values.soil_ph_max);
+    const soilPHMin = toNumberOrNull(values.soilPHMin);
+    const soilPHMax = toNumberOrNull(values.soilPHMax);
     if (soilPHMin !== null && (soilPHMin < 0 || soilPHMin > 14)) {
       setClientError("pH minimalne musi być w zakresie 0-14.");
       return;
@@ -307,8 +358,8 @@ export const VegetableForm = ({
       sunExposure: values.sunExposure || null,
       waterDemand: values.waterDemand || null,
       soilType: values.soilType || null,
-      soil_ph_min: soilPHMin,
-      soil_ph_max: soilPHMax,
+      soilPHMin,
+      soilPHMax,
       nutrientDemand: values.nutrientDemand || null,
       sowingMethods,
       timeToHarvestDaysMin,
@@ -327,7 +378,52 @@ export const VegetableForm = ({
       badCompanionIds: values.badCompanionIds,
     };
 
-    onSubmit(payload);
+    onSubmit(payload, imageFile);
+  };
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setClientError(null);
+
+    if (!file) {
+      setImageFile(null);
+      setImagePreviewUrl(null);
+      return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setClientError("Dozwolone formaty: JPG, PNG, WEBP.");
+      event.target.value = "";
+      setImageFile(null);
+      setImagePreviewUrl(null);
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setClientError("Maksymalny rozmiar pliku to 5 MB.");
+      event.target.value = "";
+      setImageFile(null);
+      setImagePreviewUrl(null);
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleDeleteImage = async () => {
+    if (!onDeleteImage) return;
+    setClientError(null);
+    try {
+      await onDeleteImage();
+      updateValue("imageUrl", "");
+      setImageFile(null);
+      setImagePreviewUrl(null);
+    } catch {
+      setClientError("Nie udało się usunąć zdjęcia.");
+    }
   };
 
   const toggleSelection = (current: string[], value: string) => {
@@ -383,13 +479,78 @@ export const VegetableForm = ({
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">URL zdjęcia</span>
             <span className="text-xs text-zinc-500">
-              Link do jednego zdjęcia warzywa (opcjonalnie).
+              Link do jednego zdjęcia warzywa (opcjonalnie). Musi być poprawnym
+              adresem URL prowadzącym do pliku graficznego.
             </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.imageUrl}
               onChange={(event) => updateValue("imageUrl", event.target.value)}
+              onBlur={(event) => {
+                if (event.target.value.trim())
+                  validateImageUrl(event.target.value.trim());
+              }}
             />
+            {imageUrlChecking && (
+              <span className="text-xs text-zinc-500">
+                Sprawdzanie adresu...
+              </span>
+            )}
+            {imageUrlValid === false && (
+              <span className="text-xs text-red-500">
+                Podany adres nie jest poprawnym linkiem do obrazka.
+              </span>
+            )}
+            {imageUrlValid === true && (
+              <span className="text-xs text-green-600">
+                Adres prowadzi do obrazka.
+              </span>
+            )}
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Plik graficzny</span>
+            <span className="text-xs text-zinc-500">
+              Dodaj jeden obraz (JPG/PNG/WEBP), maks. 5 MB.
+            </span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              onChange={handleImageChange}
+            />
+            {(imagePreviewUrl || (values.imageUrl && imageUrlValid)) && (
+              <div className="mt-2 space-y-2">
+                <div
+                  style={{ maxHeight: 128, width: "auto", display: "block" }}
+                >
+                  <Image
+                    src={imagePreviewUrl ?? values.imageUrl}
+                    alt="Podgląd zdjęcia warzywa"
+                    width={256}
+                    height={128}
+                    style={{
+                      maxHeight: 128,
+                      width: "auto",
+                      height: "auto",
+                      objectFit: "contain",
+                      display: "block",
+                    }}
+                    className="rounded-lg border border-zinc-200"
+                    unoptimized
+                  />
+                </div>
+                {onDeleteImage && values.imageUrl && !imagePreviewUrl && (
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-red-600"
+                    onClick={handleDeleteImage}
+                    disabled={isDeletingImage}
+                  >
+                    {isDeletingImage ? "Usuwanie..." : "Usuń zdjęcie"}
+                  </button>
+                )}
+              </div>
+            )}
           </label>
         </div>
         <label className="mt-4 flex flex-col gap-1 text-sm">
@@ -522,10 +683,8 @@ export const VegetableForm = ({
               min={0}
               max={14}
               step="0.1"
-              value={values.soil_ph_min}
-              onChange={(event) =>
-                updateValue("soil_ph_min", event.target.value)
-              }
+              value={values.soilPHMin}
+              onChange={(event) => updateValue("soilPHMin", event.target.value)}
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -540,10 +699,8 @@ export const VegetableForm = ({
               min={0}
               max={14}
               step="0.1"
-              value={values.soil_ph_max}
-              onChange={(event) =>
-                updateValue("soil_ph_max", event.target.value)
-              }
+              value={values.soilPHMax}
+              onChange={(event) => updateValue("soilPHMax", event.target.value)}
             />
           </label>
         </div>

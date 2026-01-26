@@ -1,18 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import { useGetDisease } from "@/app/api/queries/diseases/useGetDisease";
 import { useDeleteDisease } from "@/app/api/mutations/diseases/useDeleteDisease";
 
-export default function DiseaseDetailsPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function DiseaseDetailsPage() {
   const router = useRouter();
-  const { data, isLoading, error } = useGetDisease(params.id);
+  const params = useParams<{ id: string }>();
+  const { data, isLoading, error } = useGetDisease(params?.id);
   const deleteMutation = useDeleteDisease();
 
   const handleDelete = async () => {

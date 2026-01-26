@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AxiosError } from "axios";
 import { SoilForm } from "@/app/components/SoilForm";
@@ -25,10 +25,11 @@ const mapSoilToFormValues = (data: Soil): SoilFormValues => ({
   improvementTips: data.improvementTips,
 });
 
-export default function EditSoilPage({ params }: { params: { id: string } }) {
+export default function EditSoilPage() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { data, isLoading, error } = useGetSoil(params.id);
+  const { data, isLoading, error } = useGetSoil(params?.id);
   const updateMutation = useUpdateSoil();
 
   const initialValues = useMemo(

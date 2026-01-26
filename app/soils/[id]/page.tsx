@@ -1,18 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import { useGetSoil } from "@/app/api/queries/soils/useGetSoil";
 import { useDeleteSoil } from "@/app/api/mutations/soils/useDeleteSoil";
 
-export default function SoilDetailsPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function SoilDetailsPage() {
   const router = useRouter();
-  const { data, isLoading, error } = useGetSoil(params.id);
+  const params = useParams<{ id: string }>();
+  const { data, isLoading, error } = useGetSoil(params?.id);
   const deleteMutation = useDeleteSoil();
 
   const handleDelete = async () => {
