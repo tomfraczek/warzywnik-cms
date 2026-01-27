@@ -31,7 +31,7 @@ import {
   demandLevelLabels,
   sowingMethodLabels,
   monthLabels,
-} from "../vegetables/labels";
+} from "../utils/labels";
 
 export type VegetableFormValues = {
   slug: string;

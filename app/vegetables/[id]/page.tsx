@@ -15,11 +15,10 @@ import {
   soilDrainageLabels,
   soilFertilityLabels,
   soilStructureLabels,
-  soilTypeLabels,
   soilWaterRetentionLabels,
   sowingMethodLabels,
   sunExposureLabels,
-} from "../labels";
+} from "../../utils/labels";
 
 export default function VegetableDetailsPage() {
   const router = useRouter();
