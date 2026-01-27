@@ -1,11 +1,25 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import { useGetVegetable } from "@/app/api/queries/vegetables/useGetVegetable";
 import { useDeleteVegetable } from "@/app/api/mutations/vegetables/useDeleteVegetable";
 import { useState } from "react";
+import { useGetSoil } from "@/app/api/queries/soils/useGetSoil";
+import {
+  demandLevelLabels,
+  labelOrDash,
+  monthLabels,
+  soilDrainageLabels,
+  soilFertilityLabels,
+  soilStructureLabels,
+  soilTypeLabels,
+  soilWaterRetentionLabels,
+  sowingMethodLabels,
+  sunExposureLabels,
+} from "../labels";
 
 export default function VegetableDetailsPage() {
   const router = useRouter();
@@ -13,6 +27,9 @@ export default function VegetableDetailsPage() {
   const { data, isLoading, error } = useGetVegetable(params?.id);
   const deleteMutation = useDeleteVegetable();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const soilId = data?.soilId ?? undefined;
+  const { data: soil, isLoading: soilLoading } = useGetSoil(soilId);
 
   const handleDelete = async () => {
     if (!data) return;
@@ -51,18 +68,18 @@ export default function VegetableDetailsPage() {
     <>
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
-            <h2 className="text-lg font-semibold mb-4">Potwierdź usunięcie</h2>
+          <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
+            <h2 className="mb-4 text-lg font-semibold">Potwierdź usunięcie</h2>
             <p className="mb-6">Czy na pewno usunąć warzywo?</p>
             <div className="flex justify-end gap-2">
               <button
-                className="px-4 py-2 rounded bg-zinc-200 text-zinc-700"
+                className="rounded bg-zinc-200 px-4 py-2 text-zinc-700"
                 onClick={cancelDelete}
               >
                 Anuluj
               </button>
               <button
-                className="px-4 py-2 rounded bg-red-600 text-white"
+                className="rounded bg-red-600 px-4 py-2 text-white"
                 onClick={confirmDelete}
                 disabled={deleteMutation.isPending}
               >
@@ -101,10 +118,36 @@ export default function VegetableDetailsPage() {
           <p className="text-base text-zinc-600">Slug: {data.slug}</p>
         </header>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <section className="rounded-xl border border-zinc-200 bg-white p-6">
-            <h2 className="text-lg font-semibold text-zinc-900">Podstawy</h2>
-            <div className="mt-4 space-y-2 text-sm text-zinc-600">
+        {/* PODSTAWY - pełna szerokość */}
+        <section className="rounded-xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-zinc-900">Podstawy</h2>
+          <div className="mt-4 grid gap-6 md:grid-cols-[220px_1fr]">
+            <div className="space-y-3">
+              {data.imageUrl ? (
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+                  <Image
+                    src={data.imageUrl}
+                    alt={data.name || "Zdjęcie warzywa"}
+                    height={160}
+                    width={240}
+                    style={{
+                      height: 160,
+                      width: "100%",
+                      objectFit: "contain",
+                      display: "block",
+                    }}
+                    className="rounded-md"
+                    unoptimized
+                  />
+                </div>
+              ) : (
+                <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500">
+                  Brak zdjęcia
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3 text-sm text-zinc-600">
               <p>
                 <span className="font-medium text-zinc-900">
                   Nazwa łacińska:
@@ -112,48 +155,132 @@ export default function VegetableDetailsPage() {
                 {data.latinName || "-"}
               </p>
               <p>
-                <span className="font-medium text-zinc-900">URL zdjęcia:</span>{" "}
-                {data.imageUrl || "-"}
-              </p>
-              <p>
                 <span className="font-medium text-zinc-900">Opis:</span>{" "}
                 {data.description}
               </p>
             </div>
-          </section>
+          </div>
+        </section>
 
-          <section className="rounded-xl border border-zinc-200 bg-white p-6">
-            <h2 className="text-lg font-semibold text-zinc-900">Wymagania</h2>
-            <div className="mt-4 space-y-2 text-sm text-zinc-600">
-              <p>
-                <span className="font-medium text-zinc-900">
-                  Nasłonecznienie:
-                </span>{" "}
-                {data.sunExposure || "-"}
+        {/* WYMAGANIA - pełna szerokość + szczegóły gleby w stylu sekcji */}
+        <section className="rounded-xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-zinc-900">Wymagania</h2>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Nasłonecznienie
               </p>
-              <p>
-                <span className="font-medium text-zinc-900">
-                  Zapotrzebowanie na wodę:
-                </span>{" "}
-                {data.waterDemand || "-"}
-              </p>
-              <p>
-                <span className="font-medium text-zinc-900">Typ gleby:</span>{" "}
-                {data.soilType || "-"}
-              </p>
-              <p>
-                <span className="font-medium text-zinc-900">pH gleby:</span>{" "}
-                {data.soilPHMin ?? "-"} - {data.soilPHMax ?? "-"}
-              </p>
-              <p>
-                <span className="font-medium text-zinc-900">
-                  Zapotrzebowanie na składniki:
-                </span>{" "}
-                {data.nutrientDemand || "-"}
+              <p className="mt-1 text-sm font-medium text-zinc-900">
+                {data.sunExposure ? sunExposureLabels[data.sunExposure] : "-"}
               </p>
             </div>
-          </section>
-        </div>
+
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Woda
+              </p>
+              <p className="mt-1 text-sm font-medium text-zinc-900">
+                {data.waterDemand ? demandLevelLabels[data.waterDemand] : "-"}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Składniki
+              </p>
+              <p className="mt-1 text-sm font-medium text-zinc-900">
+                {data.nutrientDemand
+                  ? demandLevelLabels[data.nutrientDemand]
+                  : "-"}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-lg border border-zinc-200 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                  Gleba
+                </p>
+                <p className="mt-1 text-sm font-medium text-zinc-900">
+                  {soilLoading
+                    ? "Ładowanie..."
+                    : soil
+                      ? soil.name
+                      : data.soilId
+                        ? "Nie znaleziono gleby"
+                        : "-"}
+                </p>
+              </div>
+
+              {soil && (
+                <div className="text-xs text-zinc-500">
+                  <span className="font-medium text-zinc-700">Typ:</span>{" "}
+                  {labelOrDash(soil.soilType, demandLevelLabels)}
+                </div>
+              )}
+            </div>
+
+            {soil && (
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    Struktura
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-zinc-900">
+                    {labelOrDash(soil.structure, soilStructureLabels)}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    Retencja wody
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-zinc-900">
+                    {labelOrDash(soil.waterRetention, soilWaterRetentionLabels)}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    Drenaż
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-zinc-900">
+                    {labelOrDash(soil.drainage, soilDrainageLabels)}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    pH
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-zinc-900">
+                    {soil.phMin ?? "-"} – {soil.phMax ?? "-"}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    Żyzność
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-zinc-900">
+                    {labelOrDash(soil.fertilityLevel, soilFertilityLabels)}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 md:col-span-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    Opis gleby
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-700">
+                    {soil.description || "-"}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
 
         <section className="rounded-xl border border-zinc-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-zinc-900">Metody siewu</h2>
@@ -166,11 +293,12 @@ export default function VegetableDetailsPage() {
                 >
                   <p>
                     <span className="font-medium text-zinc-900">Metoda:</span>{" "}
-                    {method.method}
+                    {method.method ? sowingMethodLabels[method.method] : "-"}
                   </p>
                   <p>
                     <span className="font-medium text-zinc-900">Okno:</span>{" "}
-                    {method.startMonth} - {method.endMonth}
+                    {method.startMonth ? monthLabels[method.startMonth] : "-"} -{" "}
+                    {method.endMonth ? monthLabels[method.endMonth] : "-"}
                   </p>
                   <p>
                     <span className="font-medium text-zinc-900">
@@ -191,7 +319,10 @@ export default function VegetableDetailsPage() {
           <div className="mt-4 space-y-2 text-sm text-zinc-600">
             <p>
               <span className="font-medium text-zinc-900">Okno zbioru:</span>{" "}
-              {data.harvestStartMonth || "-"} - {data.harvestEndMonth || "-"}
+              {data.harvestStartMonth
+                ? monthLabels[data.harvestStartMonth]
+                : "-"}{" "}
+              - {data.harvestEndMonth ? monthLabels[data.harvestEndMonth] : "-"}
             </p>
             <p>
               <span className="font-medium text-zinc-900">Oznaki:</span>{" "}

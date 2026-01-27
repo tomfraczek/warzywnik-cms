@@ -52,9 +52,7 @@ export type Vegetable = {
   description: string;
   sunExposure: SunExposure | null;
   waterDemand: DemandLevel | null;
-  soilType: SoilType | null;
-  soilPHMin: number | null;
-  soilPHMax: number | null;
+  soilId: string | null;
   nutrientDemand: DemandLevel | null;
   sowingMethods: SowingMethod[] | null;
   timeToHarvestDaysMin: number | null;
@@ -130,9 +128,7 @@ export type CreateVegetablePayload = {
   imageUrl?: string | null;
   sunExposure?: SunExposure | null;
   waterDemand?: DemandLevel | null;
-  soilType?: SoilType | null;
-  soilPHMin?: number | null;
-  soilPHMax?: number | null;
+  soilId?: string | null;
   nutrientDemand?: DemandLevel | null;
   sowingMethods?: SowingMethod[] | null;
   timeToHarvestDaysMin?: number | null;

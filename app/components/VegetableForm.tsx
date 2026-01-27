@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import Image from "next/image";
 import type {
   CreateVegetablePayload,
@@ -12,13 +18,20 @@ import type {
 import {
   demandLevelOptions,
   monthOptions,
-  soilTypeOptions,
-  sunExposureOptions,
   sowingMethodOptions,
+  sunExposureOptions,
 } from "@/app/api/api.types";
 import { useGetPests } from "@/app/api/queries/pests/useGetPests";
 import { useGetDiseases } from "@/app/api/queries/diseases/useGetDiseases";
 import { useGetVegetables } from "@/app/api/queries/vegetables/useGetVegetables";
+import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
+
+import {
+  sunExposureLabels,
+  demandLevelLabels,
+  sowingMethodLabels,
+  monthLabels,
+} from "../vegetables/labels";
 
 export type VegetableFormValues = {
   slug: string;
@@ -28,9 +41,7 @@ export type VegetableFormValues = {
   imageUrl: string;
   sunExposure: "" | CreateVegetablePayload["sunExposure"];
   waterDemand: "" | CreateVegetablePayload["waterDemand"];
-  soilType: "" | CreateVegetablePayload["soilType"];
-  soilPHMin: string;
-  soilPHMax: string;
+  soilId: string; // dynamiczna gleba
   nutrientDemand: "" | CreateVegetablePayload["nutrientDemand"];
   sowingMethods: Array<
     Omit<
@@ -64,53 +75,6 @@ export type VegetableFormValues = {
   badCompanionIds: string[];
 };
 
-const sunExposureLabels: Record<
-  NonNullable<CreateVegetablePayload["sunExposure"]>,
-  string
-> = {
-  full_sun: "Pełne słońce",
-  partial_shade: "Półcień",
-  shade: "Cień",
-};
-
-const demandLevelLabels: Record<
-  NonNullable<CreateVegetablePayload["waterDemand"]>,
-  string
-> = {
-  low: "Niskie",
-  medium: "Średnie",
-  high: "Wysokie",
-};
-
-const soilTypeLabels: Record<
-  NonNullable<CreateVegetablePayload["soilType"]>,
-  string
-> = {
-  light: "Lekka",
-  medium: "Średnia",
-  heavy: "Ciężka",
-};
-
-const sowingMethodLabels: Record<NonNullable<SowingMethodType>, string> = {
-  direct_sow: "Siew do gruntu",
-  seedlings: "Rozsada",
-};
-
-const monthLabels: Record<Month, string> = {
-  january: "Styczeń",
-  february: "Luty",
-  march: "Marzec",
-  april: "Kwiecień",
-  may: "Maj",
-  june: "Czerwiec",
-  july: "Lipiec",
-  august: "Sierpień",
-  september: "Wrzesień",
-  october: "Październik",
-  november: "Listopad",
-  december: "Grudzień",
-};
-
 const createEmptySowingMethod =
   (): VegetableFormValues["sowingMethods"][number] => ({
     method: "direct_sow",
@@ -137,6 +101,7 @@ const toNumberOrNull = (value: string) => {
   if (value.trim() === "") {
     return null;
   }
+
   const parsed = Number(value);
   return Number.isNaN(parsed) ? null : parsed;
 };
@@ -158,9 +123,7 @@ const defaultValues: VegetableFormValues = {
   imageUrl: "",
   sunExposure: "",
   waterDemand: "",
-  soilType: "",
-  soilPHMin: "",
-  soilPHMax: "",
+  soilId: "",
   nutrientDemand: "",
   sowingMethods: [],
   timeToHarvestDaysMin: "",
@@ -220,6 +183,7 @@ export const VegetableForm = ({
   const { data: pestsData } = useGetPests(listParams);
   const { data: diseasesData } = useGetDiseases(listParams);
   const { data: vegetablesData } = useGetVegetables(listParams);
+  const { data: soilsData, isLoading: soilsLoading } = useGetSoils(listParams);
 
   const companionOptions = useMemo(() => {
     const items = vegetablesData?.items ?? [];
@@ -229,20 +193,6 @@ export const VegetableForm = ({
     return items.filter((item) => item.id !== excludeCompanionId);
   }, [vegetablesData, excludeCompanionId]);
 
-  const updateValue = <K extends keyof VegetableFormValues>(
-    key: K,
-    value: VegetableFormValues[K],
-  ) => {
-    setValues((prev) => ({ ...prev, [key]: value }));
-    if (key === "imageUrl") {
-      setImageUrlValid(null);
-      if (typeof value === "string" && value.trim()) {
-        validateImageUrl(value.trim());
-      }
-    }
-  };
-
-  // Validate if string is a valid URL
   const isValidUrl = (url: string) => {
     try {
       new URL(url);
@@ -252,7 +202,6 @@ export const VegetableForm = ({
     }
   };
 
-  // Check if URL points to an image
   const validateImageUrl = async (url: string) => {
     if (!isValidUrl(url)) {
       setImageUrlValid(false);
@@ -270,7 +219,20 @@ export const VegetableForm = ({
     }
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const updateValue = <K extends keyof VegetableFormValues>(
+    key: K,
+    value: VegetableFormValues[K],
+  ) => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+    if (key === "imageUrl") {
+      setImageUrlValid(null);
+      if (typeof value === "string" && value.trim()) {
+        validateImageUrl(value.trim());
+      }
+    }
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setClientError(null);
 
@@ -287,23 +249,10 @@ export const VegetableForm = ({
       return;
     }
 
-    const soilPHMin = toNumberOrNull(values.soilPHMin);
-    const soilPHMax = toNumberOrNull(values.soilPHMax);
-    if (soilPHMin !== null && (soilPHMin < 0 || soilPHMin > 14)) {
-      setClientError("pH minimalne musi być w zakresie 0-14.");
-      return;
-    }
-    if (soilPHMax !== null && (soilPHMax < 0 || soilPHMax > 14)) {
-      setClientError("pH maksymalne musi być w zakresie 0-14.");
-      return;
-    }
-    if (soilPHMin !== null && soilPHMax !== null && soilPHMin > soilPHMax) {
-      setClientError("pH minimalne nie może być większe niż maksymalne.");
-      return;
-    }
-
-    const timeToHarvestDaysMin = toNumberOrNull(values.timeToHarvestDaysMin);
-    const timeToHarvestDaysMax = toNumberOrNull(values.timeToHarvestDaysMax);
+    let timeToHarvestDaysMin = toNumberOrNull(values.timeToHarvestDaysMin);
+    let timeToHarvestDaysMax = toNumberOrNull(values.timeToHarvestDaysMax);
+    if (typeof timeToHarvestDaysMin !== "number") timeToHarvestDaysMin = null;
+    if (typeof timeToHarvestDaysMax !== "number") timeToHarvestDaysMax = null;
     if (timeToHarvestDaysMin !== null && timeToHarvestDaysMin < 0) {
       setClientError("Minimalny czas zbioru nie może być ujemny.");
       return;
@@ -334,11 +283,11 @@ export const VegetableForm = ({
     const sowingMethods = values.sowingMethods.length
       ? values.sowingMethods.map((method) => ({
           ...method,
-          germinationDaysMin: toNumberOrNull(method.germinationDaysMin),
-          germinationDaysMax: toNumberOrNull(method.germinationDaysMax),
-          seedDepthCm: toNumberOrNull(method.seedDepthCm),
-          rowSpacingCm: toNumberOrNull(method.rowSpacingCm),
-          plantSpacingCm: toNumberOrNull(method.plantSpacingCm),
+          germinationDaysMin: toNumberOrNull(method.germinationDaysMin) ?? null,
+          germinationDaysMax: toNumberOrNull(method.germinationDaysMax) ?? null,
+          seedDepthCm: toNumberOrNull(method.seedDepthCm) ?? null,
+          rowSpacingCm: toNumberOrNull(method.rowSpacingCm) ?? null,
+          plantSpacingCm: toNumberOrNull(method.plantSpacingCm) ?? null,
         }))
       : null;
 
@@ -357,13 +306,11 @@ export const VegetableForm = ({
       imageUrl: toOptionalString(values.imageUrl),
       sunExposure: values.sunExposure || null,
       waterDemand: values.waterDemand || null,
-      soilType: values.soilType || null,
-      soilPHMin,
-      soilPHMax,
+      soilId: values.soilId || null,
       nutrientDemand: values.nutrientDemand || null,
       sowingMethods,
-      timeToHarvestDaysMin,
-      timeToHarvestDaysMax,
+      timeToHarvestDaysMin: timeToHarvestDaysMin ?? null,
+      timeToHarvestDaysMax: timeToHarvestDaysMax ?? null,
       successionSowing: values.successionSowing,
       successionIntervalDays: values.successionSowing
         ? toNumberOrNull(values.successionIntervalDays)
@@ -381,7 +328,7 @@ export const VegetableForm = ({
     onSubmit(payload, imageFile);
   };
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
     setClientError(null);
 
@@ -442,7 +389,7 @@ export const VegetableForm = ({
             <span className="font-medium">Slug</span>
             <span className="text-xs text-zinc-500">
               Unikalny identyfikator techniczny używany w URL i jako klucz w
-              API. Tylko małe litery, cyfry i myślniki (np. „pomidor”).
+              API. Tylko małe litery, cyfry i myślniki.
             </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
@@ -451,11 +398,11 @@ export const VegetableForm = ({
               required
             />
           </label>
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Nazwa</span>
             <span className="text-xs text-zinc-500">
-              Nazwa warzywa w języku polskim, wyświetlana w aplikacji mobilnej
-              (np. „Pomidor”).
+              Nazwa warzywa w języku polskim, wyświetlana w aplikacji mobilnej.
             </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
@@ -464,11 +411,11 @@ export const VegetableForm = ({
               required
             />
           </label>
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Nazwa łacińska</span>
             <span className="text-xs text-zinc-500">
-              Nazwa łacińska gatunku (opcjonalnie), pomaga jednoznacznie
-              zidentyfikować roślinę.
+              Nazwa łacińska gatunku (opcjonalnie).
             </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
@@ -476,11 +423,12 @@ export const VegetableForm = ({
               onChange={(event) => updateValue("latinName", event.target.value)}
             />
           </label>
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">URL zdjęcia</span>
             <span className="text-xs text-zinc-500">
               Link do jednego zdjęcia warzywa (opcjonalnie). Musi być poprawnym
-              adresem URL prowadzącym do pliku graficznego.
+              URL prowadzącym do pliku graficznego.
             </span>
             <input
               className="rounded-lg border border-zinc-200 px-3 py-2"
@@ -507,6 +455,7 @@ export const VegetableForm = ({
               </span>
             )}
           </label>
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Plik graficzny</span>
             <span className="text-xs text-zinc-500">
@@ -518,6 +467,7 @@ export const VegetableForm = ({
               className="rounded-lg border border-zinc-200 px-3 py-2"
               onChange={handleImageChange}
             />
+
             {(imagePreviewUrl || (values.imageUrl && imageUrlValid)) && (
               <div className="mt-2 space-y-2">
                 <div
@@ -539,6 +489,7 @@ export const VegetableForm = ({
                     unoptimized
                   />
                 </div>
+
                 {onDeleteImage && values.imageUrl && !imagePreviewUrl && (
                   <button
                     type="button"
@@ -553,6 +504,7 @@ export const VegetableForm = ({
             )}
           </label>
         </div>
+
         <label className="mt-4 flex flex-col gap-1 text-sm">
           <span className="font-medium">Opis</span>
           <span className="text-xs text-zinc-500">
@@ -595,6 +547,7 @@ export const VegetableForm = ({
               ))}
             </select>
           </label>
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Zapotrzebowanie na wodę</span>
             <span className="text-xs text-zinc-500">
@@ -620,36 +573,34 @@ export const VegetableForm = ({
               ))}
             </select>
           </label>
+
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Typ gleby</span>
+            <span className="font-medium">Gleba</span>
             <span className="text-xs text-zinc-500">
-              Preferowany typ gleby (lekka/średnia/ciężka).
+              Wybierz glebę zdefiniowaną w słowniku gleb.
             </span>
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.soilType ?? ""}
-              onChange={(event) =>
-                updateValue(
-                  "soilType",
-                  event.target.value as "" | CreateVegetablePayload["soilType"],
-                )
-              }
+              value={values.soilId}
+              onChange={(event) => updateValue("soilId", event.target.value)}
+              required
+              disabled={soilsLoading}
             >
               <option value="">Brak</option>
-              {soilTypeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {soilTypeLabels[option]}
+              {soilsData?.items.map((soil) => (
+                <option key={soil.id} value={soil.id}>
+                  {soil.name}
                 </option>
               ))}
             </select>
           </label>
         </div>
+
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Zapotrzebowanie na składniki</span>
             <span className="text-xs text-zinc-500">
-              Zapotrzebowanie na składniki: low/medium/high. High oznacza, że
-              roślina mocno korzysta z żyznej gleby i dokarmiania.
+              Zapotrzebowanie na składniki: low/medium/high.
             </span>
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
@@ -671,41 +622,8 @@ export const VegetableForm = ({
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">pH gleby min</span>
-            <span className="text-xs text-zinc-500">
-              Zakres preferowanego pH (0–14). Jeśli podajesz oba, min nie może
-              być większe niż max.
-            </span>
-            <input
-              className="rounded-lg border border-zinc-200 px-3 py-2"
-              type="number"
-              min={0}
-              max={14}
-              step="0.1"
-              value={values.soilPHMin}
-              onChange={(event) => updateValue("soilPHMin", event.target.value)}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">pH gleby max</span>
-            <span className="text-xs text-zinc-500">
-              Zakres preferowanego pH (0–14). Jeśli podajesz oba, min nie może
-              być większe niż max.
-            </span>
-            <input
-              className="rounded-lg border border-zinc-200 px-3 py-2"
-              type="number"
-              min={0}
-              max={14}
-              step="0.1"
-              value={values.soilPHMax}
-              onChange={(event) => updateValue("soilPHMax", event.target.value)}
-            />
-          </label>
         </div>
       </section>
-
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-zinc-900">Metody siewu</h2>
@@ -722,128 +640,112 @@ export const VegetableForm = ({
             Dodaj metodę
           </button>
         </div>
+
         <div className="mt-4 space-y-4">
           {values.sowingMethods.length === 0 && (
             <p className="text-sm text-zinc-500">Brak metod siewu.</p>
           )}
-          {values.sowingMethods.map((method, index) => (
-            <div
-              key={`sowing-${index}`}
-              className="rounded-lg border border-zinc-200 p-4"
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Metoda #{index + 1}</p>
-                <button
-                  type="button"
-                  className="text-xs text-red-500"
-                  onClick={() =>
-                    updateValue(
-                      "sowingMethods",
-                      values.sowingMethods.filter((_, idx) => idx !== index),
-                    )
-                  }
-                >
-                  Usuń
-                </button>
-              </div>
-              <div className="mt-3 grid gap-4 md:grid-cols-3">
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Metoda</span>
-                  <span className="text-xs text-zinc-500">
-                    Metoda uprawy: direct_sow = siew do gruntu, seedlings =
-                    rozsada.
-                  </span>
-                  <select
-                    className="rounded-lg border border-zinc-200 px-3 py-2"
-                    value={method.method}
-                    onChange={(event) => {
-                      const next = [...values.sowingMethods];
-                      next[index] = {
-                        ...next[index],
-                        method: event.target.value as SowingMethodType,
-                      };
-                      updateValue("sowingMethods", next);
-                    }}
+
+          {values.sowingMethods.map((method, index) => {
+            return (
+              <div
+                key={`sowing-${index}`}
+                className="rounded-lg border border-zinc-200 p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Metoda #{index + 1}</p>
+                  <button
+                    type="button"
+                    className="text-xs text-red-500"
+                    onClick={() =>
+                      updateValue(
+                        "sowingMethods",
+                        values.sowingMethods.filter((_, idx) => idx !== index),
+                      )
+                    }
                   >
-                    {sowingMethodOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {sowingMethodLabels[option]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Miesiąc startu</span>
-                  <span className="text-xs text-zinc-500">
-                    Zakres miesięcy wysiewu dla tego wariantu.
-                  </span>
-                  <select
-                    className="rounded-lg border border-zinc-200 px-3 py-2"
-                    value={method.startMonth}
-                    onChange={(event) => {
-                      const next = [...values.sowingMethods];
-                      next[index] = {
-                        ...next[index],
-                        startMonth: event.target.value as Month,
-                      };
-                      updateValue("sowingMethods", next);
-                    }}
-                  >
-                    {monthOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {monthLabels[option]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Miesiąc końca</span>
-                  <span className="text-xs text-zinc-500">
-                    Zakres miesięcy wysiewu dla tego wariantu.
-                  </span>
-                  <select
-                    className="rounded-lg border border-zinc-200 px-3 py-2"
-                    value={method.endMonth}
-                    onChange={(event) => {
-                      const next = [...values.sowingMethods];
-                      next[index] = {
-                        ...next[index],
-                        endMonth: event.target.value as Month,
-                      };
-                      updateValue("sowingMethods", next);
-                    }}
-                  >
-                    {monthOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {monthLabels[option]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div className="mt-3 grid gap-4 md:grid-cols-3">
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Pod osłonami</span>
-                  <span className="text-xs text-zinc-500">
-                    Czy wysiew odbywa się pod osłonami (dom, inspekt, tunel).
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={method.underCover}
+                    Usuń
+                  </button>
+                </div>
+
+                <div className="mt-3 grid gap-4 md:grid-cols-3">
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="font-medium">Metoda</span>
+                    <span className="text-xs text-zinc-500">
+                      direct_sow = siew do gruntu, seedlings = rozsada.
+                    </span>
+                    <select
+                      className="rounded-lg border border-zinc-200 px-3 py-2"
+                      value={method.method}
                       onChange={(event) => {
                         const next = [...values.sowingMethods];
                         next[index] = {
                           ...next[index],
-                          underCover: event.target.checked,
+                          method: event.target.value as SowingMethodType,
                         };
                         updateValue("sowingMethods", next);
                       }}
-                    />
-                    Pod osłonami
-                  </div>
-                </label>
-                <label className="flex flex-col gap-1 text-sm">
+                    >
+                      {sowingMethodOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {sowingMethodLabels[option]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="font-medium">Miesiąc startu</span>
+                    <span className="text-xs text-zinc-500">
+                      Zakres miesięcy wysiewu dla tego wariantu.
+                    </span>
+                    <select
+                      className="rounded-lg border border-zinc-200 px-3 py-2"
+                      value={method.startMonth}
+                      onChange={(event) => {
+                        const next = [...values.sowingMethods];
+                        next[index] = {
+                          ...next[index],
+                          startMonth: event.target.value as Month,
+                        };
+                        updateValue("sowingMethods", next);
+                      }}
+                    >
+                      {monthOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {monthLabels[option]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="font-medium">Miesiąc końca</span>
+                    <span className="text-xs text-zinc-500">
+                      Zakres miesięcy wysiewu dla tego wariantu.
+                    </span>
+                    <select
+                      className="rounded-lg border border-zinc-200 px-3 py-2"
+                      value={method.endMonth}
+                      onChange={(event) => {
+                        const next = [...values.sowingMethods];
+                        next[index] = {
+                          ...next[index],
+                          endMonth: event.target.value as Month,
+                        };
+                        updateValue("sowingMethods", next);
+                      }}
+                    >
+                      {monthOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {monthLabels[option]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <label className="mt-3 flex flex-col gap-1 text-sm">
                   <span className="font-medium">Dni kiełkowania min</span>
                   <span className="text-xs text-zinc-500">
                     Zakres dni kiełkowania (opcjonalnie). Jeśli podajesz zakres,
@@ -863,7 +765,8 @@ export const VegetableForm = ({
                     }}
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-sm">
+
+                <label className="mt-3 flex flex-col gap-1 text-sm">
                   <span className="font-medium">Dni kiełkowania max</span>
                   <span className="text-xs text-zinc-500">
                     Zakres dni kiełkowania (opcjonalnie). Jeśli podajesz zakres,
@@ -883,124 +786,131 @@ export const VegetableForm = ({
                     }}
                   />
                 </label>
+
+                <div className="mt-3 grid gap-4 md:grid-cols-3">
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="font-medium">Głębokość siewu (cm)</span>
+                    <span className="text-xs text-zinc-500">
+                      Głębokość siewu w cm (opcjonalnie).
+                    </span>
+                    <input
+                      className="rounded-lg border border-zinc-200 px-3 py-2"
+                      type="number"
+                      value={method.seedDepthCm}
+                      onChange={(event) => {
+                        const next = [...values.sowingMethods];
+                        next[index] = {
+                          ...next[index],
+                          seedDepthCm: event.target.value,
+                        };
+                        updateValue("sowingMethods", next);
+                      }}
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="font-medium">Rozstaw rzędów (cm)</span>
+                    <span className="text-xs text-zinc-500">
+                      Odległość między rzędami w cm (opcjonalnie).
+                    </span>
+                    <input
+                      className="rounded-lg border border-zinc-200 px-3 py-2"
+                      type="number"
+                      value={method.rowSpacingCm}
+                      onChange={(event) => {
+                        const next = [...values.sowingMethods];
+                        next[index] = {
+                          ...next[index],
+                          rowSpacingCm: event.target.value,
+                        };
+                        updateValue("sowingMethods", next);
+                      }}
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="font-medium">Rozstaw roślin (cm)</span>
+                    <span className="text-xs text-zinc-500">
+                      Odległość między roślinami w rzędzie w cm (opcjonalnie).
+                    </span>
+                    <input
+                      className="rounded-lg border border-zinc-200 px-3 py-2"
+                      type="number"
+                      value={method.plantSpacingCm}
+                      onChange={(event) => {
+                        const next = [...values.sowingMethods];
+                        next[index] = {
+                          ...next[index],
+                          plantSpacingCm: event.target.value,
+                        };
+                        updateValue("sowingMethods", next);
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-3 grid gap-4 md:grid-cols-2">
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="font-medium">Początek przesadzania</span>
+                    <span className="text-xs text-zinc-500">
+                      Zakres miesięcy przesadzania rozsady (tylko dla
+                      seedlings).
+                    </span>
+                    <select
+                      className="rounded-lg border border-zinc-200 px-3 py-2"
+                      value={method.transplantingStartMonth ?? ""}
+                      onChange={(event) => {
+                        const next = [...values.sowingMethods];
+                        next[index] = {
+                          ...next[index],
+                          transplantingStartMonth: event.target.value
+                            ? (event.target.value as Month)
+                            : null,
+                        };
+                        updateValue("sowingMethods", next);
+                      }}
+                    >
+                      <option value="">Brak</option>
+                      {monthOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {monthLabels[option]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="font-medium">Koniec przesadzania</span>
+                    <span className="text-xs text-zinc-500">
+                      Zakres miesięcy przesadzania rozsady (tylko dla
+                      seedlings).
+                    </span>
+                    <select
+                      className="rounded-lg border border-zinc-200 px-3 py-2"
+                      value={method.transplantingEndMonth ?? ""}
+                      onChange={(event) => {
+                        const next = [...values.sowingMethods];
+                        next[index] = {
+                          ...next[index],
+                          transplantingEndMonth: event.target.value
+                            ? (event.target.value as Month)
+                            : null,
+                        };
+                        updateValue("sowingMethods", next);
+                      }}
+                    >
+                      <option value="">Brak</option>
+                      {monthOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {monthLabels[option]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
               </div>
-              <div className="mt-3 grid gap-4 md:grid-cols-3">
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Głębokość siewu (cm)</span>
-                  <span className="text-xs text-zinc-500">
-                    Głębokość siewu w cm (opcjonalnie).
-                  </span>
-                  <input
-                    className="rounded-lg border border-zinc-200 px-3 py-2"
-                    type="number"
-                    value={method.seedDepthCm}
-                    onChange={(event) => {
-                      const next = [...values.sowingMethods];
-                      next[index] = {
-                        ...next[index],
-                        seedDepthCm: event.target.value,
-                      };
-                      updateValue("sowingMethods", next);
-                    }}
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Rozstaw rzędów (cm)</span>
-                  <span className="text-xs text-zinc-500">
-                    Odległość między rzędami w cm (opcjonalnie).
-                  </span>
-                  <input
-                    className="rounded-lg border border-zinc-200 px-3 py-2"
-                    type="number"
-                    value={method.rowSpacingCm}
-                    onChange={(event) => {
-                      const next = [...values.sowingMethods];
-                      next[index] = {
-                        ...next[index],
-                        rowSpacingCm: event.target.value,
-                      };
-                      updateValue("sowingMethods", next);
-                    }}
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Rozstaw roślin (cm)</span>
-                  <span className="text-xs text-zinc-500">
-                    Odległość między roślinami w rzędzie w cm (opcjonalnie).
-                  </span>
-                  <input
-                    className="rounded-lg border border-zinc-200 px-3 py-2"
-                    type="number"
-                    value={method.plantSpacingCm}
-                    onChange={(event) => {
-                      const next = [...values.sowingMethods];
-                      next[index] = {
-                        ...next[index],
-                        plantSpacingCm: event.target.value,
-                      };
-                      updateValue("sowingMethods", next);
-                    }}
-                  />
-                </label>
-              </div>
-              <div className="mt-3 grid gap-4 md:grid-cols-2">
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Początek przesadzania</span>
-                  <span className="text-xs text-zinc-500">
-                    Zakres miesięcy przesadzania rozsady (tylko dla seedlings).
-                  </span>
-                  <select
-                    className="rounded-lg border border-zinc-200 px-3 py-2"
-                    value={method.transplantingStartMonth ?? ""}
-                    onChange={(event) => {
-                      const next = [...values.sowingMethods];
-                      next[index] = {
-                        ...next[index],
-                        transplantingStartMonth: event.target.value
-                          ? (event.target.value as Month)
-                          : null,
-                      };
-                      updateValue("sowingMethods", next);
-                    }}
-                  >
-                    <option value="">Brak</option>
-                    {monthOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {monthLabels[option]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">Koniec przesadzania</span>
-                  <span className="text-xs text-zinc-500">
-                    Zakres miesięcy przesadzania rozsady (tylko dla seedlings).
-                  </span>
-                  <select
-                    className="rounded-lg border border-zinc-200 px-3 py-2"
-                    value={method.transplantingEndMonth ?? ""}
-                    onChange={(event) => {
-                      const next = [...values.sowingMethods];
-                      next[index] = {
-                        ...next[index],
-                        transplantingEndMonth: event.target.value
-                          ? (event.target.value as Month)
-                          : null,
-                      };
-                      updateValue("sowingMethods", next);
-                    }}
-                  >
-                    <option value="">Brak</option>
-                    {monthOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {monthLabels[option]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -1030,6 +940,7 @@ export const VegetableForm = ({
               ))}
             </select>
           </label>
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Miesiąc końca</span>
             <span className="text-xs text-zinc-500">
@@ -1050,6 +961,7 @@ export const VegetableForm = ({
               ))}
             </select>
           </label>
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Oznaki zbioru</span>
             <span className="text-xs text-zinc-500">
@@ -1064,6 +976,7 @@ export const VegetableForm = ({
             />
           </label>
         </div>
+
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Czas do zbioru min (dni)</span>
@@ -1079,6 +992,7 @@ export const VegetableForm = ({
               }
             />
           </label>
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Czas do zbioru max (dni)</span>
             <span className="text-xs text-zinc-500">
@@ -1115,6 +1029,7 @@ export const VegetableForm = ({
               Włącz siew sukcesywny
             </div>
           </label>
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Interwał (dni)</span>
             <span className="text-xs text-zinc-500">
@@ -1151,10 +1066,12 @@ export const VegetableForm = ({
             Dodaj etap
           </button>
         </div>
+
         <div className="mt-4 space-y-4">
           {values.fertilizationStages.length === 0 && (
             <p className="text-sm text-zinc-500">Brak etapów nawożenia.</p>
           )}
+
           {values.fertilizationStages.map((stage, index) => (
             <div
               key={`fert-${index}`}
@@ -1177,6 +1094,7 @@ export const VegetableForm = ({
                   Usuń
                 </button>
               </div>
+
               <div className="mt-3 grid gap-4 md:grid-cols-2">
                 <label className="flex flex-col gap-1 text-sm">
                   <span className="font-medium">Nazwa</span>
@@ -1196,6 +1114,7 @@ export const VegetableForm = ({
                     }}
                   />
                 </label>
+
                 <label className="flex flex-col gap-1 text-sm">
                   <span className="font-medium">Kiedy</span>
                   <span className="text-xs text-zinc-500">
@@ -1216,6 +1135,7 @@ export const VegetableForm = ({
                   />
                 </label>
               </div>
+
               <label className="mt-3 flex flex-col gap-1 text-sm">
                 <span className="font-medium">Opis</span>
                 <span className="text-xs text-zinc-500">
@@ -1238,7 +1158,6 @@ export const VegetableForm = ({
           ))}
         </div>
       </section>
-
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Relacje</h2>
         <div className="mt-4 grid gap-6 md:grid-cols-2">
@@ -1267,11 +1186,13 @@ export const VegetableForm = ({
                   {pest.name}
                 </label>
               ))}
+
               {pestsData?.items?.length === 0 && (
                 <p className="text-sm text-zinc-500">Brak danych.</p>
               )}
             </div>
           </div>
+
           <div>
             <p className="text-sm font-medium text-zinc-700">Common diseases</p>
             <p className="text-xs text-zinc-500">
@@ -1297,11 +1218,13 @@ export const VegetableForm = ({
                   {disease.name}
                 </label>
               ))}
+
               {diseasesData?.items?.length === 0 && (
                 <p className="text-sm text-zinc-500">Brak danych.</p>
               )}
             </div>
           </div>
+
           <div>
             <p className="text-sm font-medium text-zinc-700">Good companions</p>
             <p className="text-xs text-zinc-500">
@@ -1328,6 +1251,7 @@ export const VegetableForm = ({
               ))}
             </div>
           </div>
+
           <div>
             <p className="text-sm font-medium text-zinc-700">Bad companions</p>
             <p className="text-xs text-zinc-500">
