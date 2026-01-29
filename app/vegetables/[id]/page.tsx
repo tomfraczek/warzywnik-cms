@@ -29,6 +29,7 @@ export default function VegetableDetailsPage() {
 
   const soilId = data?.soilId ?? undefined;
   const { data: soil, isLoading: soilLoading } = useGetSoil(soilId);
+  console.log("data", data);
 
   const handleDelete = async () => {
     if (!data) return;

@@ -38,8 +38,8 @@ export const getVegetable = async (id: string): Promise<Vegetable> => {
   return data;
 };
 
-const normalizeVegetablePayload = (
-  payload: CreateVegetablePayload | UpdateVegetablePayload,
+const normalizePatchPayload = <T extends Record<string, unknown>>(
+  payload: T,
 ) => {
   const cleaned: Record<string, unknown> = {};
 
@@ -54,8 +54,12 @@ const normalizeVegetablePayload = (
     cleaned[key] = value;
   });
 
-  return cleaned;
+  return cleaned as Partial<T>;
 };
+
+const normalizeVegetablePayload = (
+  payload: CreateVegetablePayload | UpdateVegetablePayload,
+) => normalizePatchPayload(payload);
 
 export const createVegetable = async (
   payload: CreateVegetablePayload,
@@ -76,8 +80,7 @@ export const updateVegetable = async (
 
   const { data } = await apiClient.patch<Vegetable>(
     `/vegetables/${id}`,
-    JSON.stringify(normalizedPayload),
-    { headers: { "Content-Type": "application/json" } },
+    normalizedPayload,
   );
 
   return data;
@@ -146,7 +149,11 @@ export const updatePest = async (
   id: string,
   payload: UpdatePestPayload,
 ): Promise<Pest> => {
-  const { data } = await apiClient.patch<Pest>(`/pests/${id}`, payload);
+  const normalizedPayload = normalizePatchPayload(payload);
+  const { data } = await apiClient.patch<Pest>(
+    `/pests/${id}`,
+    normalizedPayload,
+  );
   return data;
 };
 
@@ -179,7 +186,11 @@ export const updateDisease = async (
   id: string,
   payload: UpdateDiseasePayload,
 ): Promise<Disease> => {
-  const { data } = await apiClient.patch<Disease>(`/diseases/${id}`, payload);
+  const normalizedPayload = normalizePatchPayload(payload);
+  const { data } = await apiClient.patch<Disease>(
+    `/diseases/${id}`,
+    normalizedPayload,
+  );
   return data;
 };
 

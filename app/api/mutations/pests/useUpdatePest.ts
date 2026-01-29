@@ -1,6 +1,7 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updatePest } from "@/app/api/api.requests";
 import type { UpdatePestPayload, Pest } from "@/app/api/api.types";
+import { pestKeys } from "@/app/api/queries/pests/useGetPests";
 
 type UpdatePestInput = {
   id: string;
@@ -12,7 +13,14 @@ const updatePestMutation = async ({ id, payload }: UpdatePestInput) => {
 };
 
 export const useUpdatePest = () => {
+  const queryClient = useQueryClient();
+
   return useMutation<Pest, unknown, UpdatePestInput>({
     mutationFn: updatePestMutation,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: pestKeys.all,
+      });
+    },
   });
 };
