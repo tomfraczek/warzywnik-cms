@@ -26,9 +26,14 @@ export type SoilFormValues = {
 };
 
 const soilTypeLabels = {
-  light: "Lekka",
-  medium: "Średnia",
-  heavy: "Ciężka",
+  SANDY: "Piaszczysta",
+  LOAMY: "Gliniasta",
+  CLAY: "Ilasta",
+  SILT: "Pyłowa",
+  PEAT: "Torfowa",
+  CHALK: "Wapienna",
+  COMPOST_RICH: "Kompostowa",
+  OTHER: "Inna",
 } as const;
 
 const soilStructureLabels = {

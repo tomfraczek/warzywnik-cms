@@ -6,16 +6,11 @@ import { useParams, useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import { useGetVegetable } from "@/app/api/queries/vegetables/useGetVegetable";
 import { useDeleteVegetable } from "@/app/api/mutations/vegetables/useDeleteVegetable";
-import { useState } from "react";
-import { useGetSoil } from "@/app/api/queries/soils/useGetSoil";
+import { useMemo, useState } from "react";
+import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
 import {
   demandLevelLabels,
-  labelOrDash,
   monthLabels,
-  soilDrainageLabels,
-  soilFertilityLabels,
-  soilStructureLabels,
-  soilWaterRetentionLabels,
   sowingMethodLabels,
   sunExposureLabels,
 } from "../../utils/labels";
@@ -27,9 +22,29 @@ export default function VegetableDetailsPage() {
   const deleteMutation = useDeleteVegetable();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const soilId = data?.soilId ?? undefined;
-  const { data: soil, isLoading: soilLoading } = useGetSoil(soilId);
-  console.log("data", data);
+  const listParams = useMemo(() => ({ page: 1, limit: 100 }), []);
+  const { data: soilsData, isLoading: soilsLoading } = useGetSoils(listParams);
+
+  const soilNameById = useMemo(() => {
+    return new Map(
+      (soilsData?.items ?? []).map((soil) => [soil.id, soil.name]),
+    );
+  }, [soilsData]);
+
+  console.log("soilsData", soilsData);
+
+  const recommendedSoilNames = useMemo(() => {
+    const ids = data?.recommendedSoilIds ?? [];
+    return ids
+      .map((id) => soilNameById.get(id))
+      .filter((name): name is string => Boolean(name));
+  }, [data?.recommendedSoilIds, soilNameById]);
+
+  const recommendedSoilsLabel = soilsLoading
+    ? "Ładowanie..."
+    : recommendedSoilNames.length
+      ? recommendedSoilNames.join(", ")
+      : "-";
 
   const handleDelete = async () => {
     if (!data) return;
@@ -197,88 +212,34 @@ export default function VegetableDetailsPage() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-lg border border-zinc-200 p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                  Gleba
-                </p>
-                <p className="mt-1 text-sm font-medium text-zinc-900">
-                  {soilLoading
-                    ? "Ładowanie..."
-                    : soil
-                      ? soil.name
-                      : data.soilId
-                        ? "Nie znaleziono gleby"
-                        : "-"}
-                </p>
-              </div>
-
-              {soil && (
-                <div className="text-xs text-zinc-500">
-                  <span className="font-medium text-zinc-700">Typ:</span>{" "}
-                  {labelOrDash(soil.soilType, demandLevelLabels)}
-                </div>
-              )}
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Rekomendowane gleby
+              </p>
+              <p className="mt-1 text-sm font-medium text-zinc-900">
+                {recommendedSoilsLabel}
+              </p>
             </div>
-
-            {soil && (
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                    Struktura
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-zinc-900">
-                    {labelOrDash(soil.structure, soilStructureLabels)}
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                    Retencja wody
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-zinc-900">
-                    {labelOrDash(soil.waterRetention, soilWaterRetentionLabels)}
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                    Drenaż
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-zinc-900">
-                    {labelOrDash(soil.drainage, soilDrainageLabels)}
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                    pH
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-zinc-900">
-                    {soil.phMin ?? "-"} – {soil.phMax ?? "-"}
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                    Żyzność
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-zinc-900">
-                    {labelOrDash(soil.fertilityLevel, soilFertilityLabels)}
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 md:col-span-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                    Opis gleby
-                  </p>
-                  <p className="mt-1 text-sm text-zinc-700">
-                    {soil.description || "-"}
-                  </p>
-                </div>
-              </div>
-            )}
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Min. głębokość gleby
+              </p>
+              <p className="mt-1 text-sm font-medium text-zinc-900">
+                {data.minSoilDepthCm !== null &&
+                data.minSoilDepthCm !== undefined
+                  ? `${data.minSoilDepthCm} cm`
+                  : "-"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Dominujący składnik
+              </p>
+              <p className="mt-1 text-sm font-medium text-zinc-900">
+                {data.dominantNutrientDemand || "-"}
+              </p>
+            </div>
           </div>
         </section>
 

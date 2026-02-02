@@ -1,4 +1,12 @@
-export type SoilType = "light" | "medium" | "heavy";
+export type SoilType =
+  | "SANDY"
+  | "LOAMY"
+  | "CLAY"
+  | "SILT"
+  | "PEAT"
+  | "CHALK"
+  | "COMPOST_RICH"
+  | "OTHER";
 export type SoilStructure = "loose" | "crumbly" | "compact";
 export type DemandLevel = "low" | "medium" | "high";
 export type DrainageLevel = "poor" | "medium" | "good";
@@ -54,7 +62,16 @@ export type CreateSoilPayload = {
 
 export type UpdateSoilPayload = Partial<CreateSoilPayload>;
 
-export const soilTypeOptions: SoilType[] = ["light", "medium", "heavy"];
+export const soilTypeOptions: SoilType[] = [
+  "SANDY",
+  "LOAMY",
+  "CLAY",
+  "SILT",
+  "PEAT",
+  "CHALK",
+  "COMPOST_RICH",
+  "OTHER",
+];
 export const soilStructureOptions: SoilStructure[] = [
   "loose",
   "crumbly",

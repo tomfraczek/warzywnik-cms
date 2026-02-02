@@ -17,6 +17,7 @@ import type {
 } from "@/app/api/api.types";
 import {
   demandLevelOptions,
+  dominantNutrientDemandOptions,
   monthOptions,
   sowingMethodOptions,
   sunExposureOptions,
@@ -41,8 +42,12 @@ export type VegetableFormValues = {
   imageUrl: string;
   sunExposure: "" | CreateVegetablePayload["sunExposure"];
   waterDemand: "" | CreateVegetablePayload["waterDemand"];
-  soilId: string; // dynamiczna gleba
   nutrientDemand: "" | CreateVegetablePayload["nutrientDemand"];
+  recommendedSoilIds: string[];
+  minSoilDepthCm: string;
+  dominantNutrientDemand:
+    | ""
+    | NonNullable<CreateVegetablePayload["dominantNutrientDemand"]>;
   sowingMethods: Array<
     Omit<
       SowingMethod,
@@ -113,6 +118,11 @@ const toOptionalString = (value: string) => {
   return value;
 };
 
+const isUuid = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+
 const isLowercaseSlug = (value: string) => /^[a-z0-9-]{2,}$/.test(value);
 
 const defaultValues: VegetableFormValues = {
@@ -123,8 +133,10 @@ const defaultValues: VegetableFormValues = {
   imageUrl: "",
   sunExposure: "",
   waterDemand: "",
-  soilId: "",
   nutrientDemand: "",
+  recommendedSoilIds: [],
+  minSoilDepthCm: "",
+  dominantNutrientDemand: "",
   sowingMethods: [],
   timeToHarvestDaysMin: "",
   timeToHarvestDaysMax: "",
@@ -280,6 +292,17 @@ export const VegetableForm = ({
       }
     }
 
+    if (values.recommendedSoilIds.some((soilId) => !isUuid(soilId))) {
+      setClientError("Każda rekomendowana gleba musi mieć poprawny UUID.");
+      return;
+    }
+
+    const minSoilDepthCm = toNumberOrNull(values.minSoilDepthCm);
+    if (minSoilDepthCm !== null && minSoilDepthCm < 0) {
+      setClientError("Minimalna głębokość gleby nie może być ujemna.");
+      return;
+    }
+
     const sowingMethods = values.sowingMethods.length
       ? values.sowingMethods.map((method) => ({
           ...method,
@@ -306,8 +329,10 @@ export const VegetableForm = ({
       imageUrl: toOptionalString(values.imageUrl),
       sunExposure: values.sunExposure || null,
       waterDemand: values.waterDemand || null,
-      soilId: values.soilId || null,
       nutrientDemand: values.nutrientDemand || null,
+      recommendedSoilIds: values.recommendedSoilIds,
+      minSoilDepthCm,
+      dominantNutrientDemand: values.dominantNutrientDemand || null,
       sowingMethods,
       timeToHarvestDaysMin: timeToHarvestDaysMin ?? null,
       timeToHarvestDaysMax: timeToHarvestDaysMax ?? null,
@@ -575,29 +600,6 @@ export const VegetableForm = ({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Gleba</span>
-            <span className="text-xs text-zinc-500">
-              Wybierz glebę zdefiniowaną w słowniku gleb.
-            </span>
-            <select
-              className="rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.soilId}
-              onChange={(event) => updateValue("soilId", event.target.value)}
-              required
-              disabled={soilsLoading}
-            >
-              <option value="">Brak</option>
-              {soilsData?.items.map((soil) => (
-                <option key={soil.id} value={soil.id}>
-                  {soil.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Zapotrzebowanie na składniki</span>
             <span className="text-xs text-zinc-500">
               Zapotrzebowanie na składniki: low/medium/high.
@@ -618,6 +620,80 @@ export const VegetableForm = ({
               {demandLevelOptions.map((option) => (
                 <option key={option} value={option}>
                   {demandLevelLabels[option]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Rekomendowane gleby</span>
+            <span className="text-xs text-zinc-500">
+              Wybierz jedną lub więcej gleb zdefiniowanych w słowniku.
+            </span>
+            <select
+              multiple
+              className="min-h-28 rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.recommendedSoilIds}
+              onChange={(event) =>
+                updateValue(
+                  "recommendedSoilIds",
+                  Array.from(event.target.selectedOptions, (option) =>
+                    option.value.trim(),
+                  ).filter(Boolean),
+                )
+              }
+              disabled={soilsLoading}
+            >
+              {soilsData?.items.map((soil) => (
+                <option key={soil.id} value={soil.id}>
+                  {soil.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Min. głębokość gleby (cm)</span>
+            <span className="text-xs text-zinc-500">
+              Minimalna głębokość profilu glebowego, w cm.
+            </span>
+            <input
+              type="number"
+              min={0}
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.minSoilDepthCm}
+              onChange={(event) =>
+                updateValue("minSoilDepthCm", event.target.value)
+              }
+              placeholder="np. 30"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Dominujący składnik</span>
+            <span className="text-xs text-zinc-500">
+              Dominujący składnik pokarmowy: N, P, K lub zbilansowane.
+            </span>
+            <select
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.dominantNutrientDemand ?? ""}
+              onChange={(event) =>
+                updateValue(
+                  "dominantNutrientDemand",
+                  event.target.value as
+                    | ""
+                    | NonNullable<
+                        CreateVegetablePayload["dominantNutrientDemand"]
+                      >,
+                )
+              }
+            >
+              <option value="">Brak</option>
+              {dominantNutrientDemandOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
                 </option>
               ))}
             </select>

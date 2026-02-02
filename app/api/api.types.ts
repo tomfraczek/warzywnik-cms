@@ -14,8 +14,17 @@ export type Month =
 
 export type DemandLevel = "low" | "medium" | "high";
 export type SunExposure = "full_sun" | "partial_shade" | "shade";
-export type SoilType = "light" | "medium" | "heavy";
+export type SoilType =
+  | "SANDY"
+  | "LOAMY"
+  | "CLAY"
+  | "SILT"
+  | "PEAT"
+  | "CHALK"
+  | "COMPOST_RICH"
+  | "OTHER";
 export type SowingMethodType = "direct_sow" | "seedlings";
+export type DominantNutrientDemand = "N" | "P" | "K" | "BALANCED";
 
 export type SowingMethod = {
   method: SowingMethodType;
@@ -52,8 +61,10 @@ export type Vegetable = {
   description: string;
   sunExposure: SunExposure | null;
   waterDemand: DemandLevel | null;
-  soilId: string | null;
   nutrientDemand: DemandLevel | null;
+  recommendedSoilIds: string[];
+  minSoilDepthCm: number | null;
+  dominantNutrientDemand: DominantNutrientDemand | null;
   sowingMethods: SowingMethod[] | null;
   timeToHarvestDaysMin: number | null;
   timeToHarvestDaysMax: number | null;
@@ -128,8 +139,10 @@ export type CreateVegetablePayload = {
   imageUrl?: string | null;
   sunExposure?: SunExposure | null;
   waterDemand?: DemandLevel | null;
-  soilId?: string | null;
   nutrientDemand?: DemandLevel | null;
+  recommendedSoilIds?: string[];
+  minSoilDepthCm?: number | null;
+  dominantNutrientDemand?: DominantNutrientDemand | null;
   sowingMethods?: SowingMethod[] | null;
   timeToHarvestDaysMin?: number | null;
   timeToHarvestDaysMax?: number | null;
@@ -190,8 +203,23 @@ export const sunExposureOptions: SunExposure[] = [
   "partial_shade",
   "shade",
 ];
-export const soilTypeOptions: SoilType[] = ["light", "medium", "heavy"];
+export const soilTypeOptions: SoilType[] = [
+  "SANDY",
+  "LOAMY",
+  "CLAY",
+  "SILT",
+  "PEAT",
+  "CHALK",
+  "COMPOST_RICH",
+  "OTHER",
+];
 export const sowingMethodOptions: SowingMethodType[] = [
   "direct_sow",
   "seedlings",
+];
+export const dominantNutrientDemandOptions: DominantNutrientDemand[] = [
+  "N",
+  "P",
+  "K",
+  "BALANCED",
 ];

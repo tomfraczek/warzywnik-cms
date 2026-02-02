@@ -19,8 +19,10 @@ const mapVegetableToFormValues = (data: Vegetable): VegetableFormValues => ({
   imageUrl: data.imageUrl || "",
   sunExposure: data.sunExposure || "",
   waterDemand: data.waterDemand || "",
-  soilId: data.soilId || "",
   nutrientDemand: data.nutrientDemand || "",
+  recommendedSoilIds: data.recommendedSoilIds ?? [],
+  minSoilDepthCm: data.minSoilDepthCm?.toString() ?? "",
+  dominantNutrientDemand: data.dominantNutrientDemand || "",
   sowingMethods:
     data.sowingMethods?.map((method) => ({
       ...method,

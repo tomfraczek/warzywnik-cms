@@ -53,9 +53,14 @@ export const monthLabels: Record<Month, string> = {
 
 // ---------- soil ----------
 export const soilTypeLabels: Record<SoilType, string> = {
-  light: "Lekka",
-  medium: "Średnia",
-  heavy: "Ciężka",
+  SANDY: "Piaszczysta",
+  LOAMY: "Gliniasta",
+  CLAY: "Ilasta",
+  SILT: "Pyłowa",
+  PEAT: "Torfowa",
+  CHALK: "Wapienna",
+  COMPOST_RICH: "Kompostowa",
+  OTHER: "Inna",
 };
 
 export const soilStructureLabels: Record<SoilStructure, string> = {
