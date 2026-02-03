@@ -1,19 +1,19 @@
 "use client";
-
-import Link from "next/link";
-import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
-import { AxiosError } from "axios";
-import { useGetVegetable } from "@/app/api/queries/vegetables/useGetVegetable";
 import { useDeleteVegetable } from "@/app/api/mutations/vegetables/useDeleteVegetable";
-import { useMemo, useState } from "react";
 import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
+import { useGetVegetable } from "@/app/api/queries/vegetables/useGetVegetable";
+import { SoilDrawer } from "@/app/components/SoilDrawer";
 import {
-  demandLevelLabels,
-  monthLabels,
-  sowingMethodLabels,
   sunExposureLabels,
-} from "../../utils/labels";
+  demandLevelLabels,
+  sowingMethodLabels,
+  monthLabels,
+} from "@/app/utils/labels";
+import { AxiosError } from "axios";
+import Link from "next/link";
+import { useRouter, useParams } from "next/navigation";
+import { useState, useMemo } from "react";
+import NextImage from "next/image";
 
 export default function VegetableDetailsPage() {
   const router = useRouter();
@@ -31,20 +31,14 @@ export default function VegetableDetailsPage() {
     );
   }, [soilsData]);
 
-  console.log("soilsData", soilsData);
-
-  const recommendedSoilNames = useMemo(() => {
+  const recommendedSoilsForUi = useMemo(() => {
     const ids = data?.recommendedSoilIds ?? [];
     return ids
-      .map((id) => soilNameById.get(id))
-      .filter((name): name is string => Boolean(name));
+      .map((id) => ({ id, name: soilNameById.get(id) }))
+      .filter((x): x is { id: string; name: string } => Boolean(x.name));
   }, [data?.recommendedSoilIds, soilNameById]);
 
-  const recommendedSoilsLabel = soilsLoading
-    ? "Ładowanie..."
-    : recommendedSoilNames.length
-      ? recommendedSoilNames.join(", ")
-      : "-";
+  const [openSoilId, setOpenSoilId] = useState<string | null>(null);
 
   const handleDelete = async () => {
     if (!data) return;
@@ -81,6 +75,10 @@ export default function VegetableDetailsPage() {
 
   return (
     <>
+      {openSoilId ? (
+        <SoilDrawer soilId={openSoilId} onClose={() => setOpenSoilId(null)} />
+      ) : null}
+
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
@@ -133,14 +131,13 @@ export default function VegetableDetailsPage() {
           <p className="text-base text-zinc-600">Slug: {data.slug}</p>
         </header>
 
-        {/* PODSTAWY - pełna szerokość */}
         <section className="rounded-xl border border-zinc-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-zinc-900">Podstawy</h2>
           <div className="mt-4 grid gap-6 md:grid-cols-[220px_1fr]">
             <div className="space-y-3">
               {data.imageUrl ? (
                 <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2">
-                  <Image
+                  <NextImage
                     src={data.imageUrl}
                     alt={data.name || "Zdjęcie warzywa"}
                     height={160}
@@ -177,7 +174,7 @@ export default function VegetableDetailsPage() {
           </div>
         </section>
 
-        {/* WYMAGANIA - pełna szerokość + szczegóły gleby w stylu sekcji */}
+        {/* WYMAGANIA */}
         <section className="rounded-xl border border-zinc-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-zinc-900">Wymagania</h2>
 
@@ -217,10 +214,32 @@ export default function VegetableDetailsPage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                 Rekomendowane gleby
               </p>
-              <p className="mt-1 text-sm font-medium text-zinc-900">
-                {recommendedSoilsLabel}
-              </p>
+
+              <div className="mt-2">
+                {soilsLoading ? (
+                  <p className="text-sm font-medium text-zinc-900">
+                    Ładowanie...
+                  </p>
+                ) : recommendedSoilsForUi.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {recommendedSoilsForUi.map((soil) => (
+                      <button
+                        key={soil.id}
+                        type="button"
+                        onClick={() => setOpenSoilId(soil.id)}
+                        className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
+                        title="Pokaż szczegóły gleby"
+                      >
+                        {soil.name}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium text-zinc-900">-</p>
+                )}
+              </div>
             </div>
+
             <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                 Min. głębokość gleby
@@ -232,6 +251,7 @@ export default function VegetableDetailsPage() {
                   : "-"}
               </p>
             </div>
+
             <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                 Dominujący składnik
