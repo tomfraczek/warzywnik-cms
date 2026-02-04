@@ -6,6 +6,17 @@ import type {
   SowingMethodType,
 } from "@/app/api/api.types";
 import { DrainageLevel, SoilStructure } from "../soils/api/api.types";
+import type {
+  FertilizerApplicationMethod,
+  FertilizerCategory,
+  FertilizerEffectLevel,
+  FertilizerForm,
+  FertilizerPhEffect,
+  FertilizerRecommendedFrequency,
+  FertilizerRetentionEffect,
+  FertilizerRiskLevel,
+  FertilizerSoilStructureEffect,
+} from "../fertilizers/api/api.types";
 
 // ---------- wspólne enumy (jedna definicja) ----------
 export const demandLevelLabels: Record<DemandLevel, string> = {
@@ -73,6 +84,85 @@ export const soilDrainageLabels: Record<DrainageLevel, string> = {
   poor: "Słaby",
   medium: "Średni",
   good: "Dobry",
+};
+
+// ---------- fertilizer ----------
+export const fertilizerCategoryLabels: Record<FertilizerCategory, string> = {
+  ORGANIC: "Organiczny",
+  MINERAL: "Mineralny",
+  BIO_STIMULANT: "Biostymulator",
+  SOIL_AMENDMENT: "Polepszacz gleby",
+  PH_ADJUSTER: "Regulator pH",
+};
+
+export const fertilizerFormLabels: Record<FertilizerForm, string> = {
+  SOLID: "Stały",
+  LIQUID: "Płynny",
+};
+
+export const fertilizerApplicationMethodLabels: Record<
+  FertilizerApplicationMethod,
+  string
+> = {
+  TOP_DRESS: "Podsypowo",
+  INCORPORATE: "Wymieszanie z glebą",
+  WATERING: "Podlewanie",
+  FOLIAR: "Dolistnie",
+  COMPOST_TEA: "Herbata kompostowa",
+};
+
+export const fertilizerRiskLevelLabels: Record<FertilizerRiskLevel, string> = {
+  LOW: "Niskie",
+  MEDIUM: "Średnie",
+  HIGH: "Wysokie",
+};
+
+export const fertilizerEffectLevelLabels: Record<
+  FertilizerEffectLevel,
+  string
+> = {
+  NONE: "Brak",
+  LOW: "Niski",
+  MEDIUM: "Średni",
+  HIGH: "Wysoki",
+  VARIABLE: "Zmienny",
+};
+
+export const fertilizerPhEffectLabels: Record<FertilizerPhEffect, string> = {
+  LOWERS: "Obniża",
+  RAISES: "Podnosi",
+  NEUTRAL: "Neutralny",
+  VARIABLE: "Zmienny",
+};
+
+export const fertilizerSoilStructureEffectLabels: Record<
+  FertilizerSoilStructureEffect,
+  string
+> = {
+  IMPROVES: "Poprawia",
+  NEUTRAL: "Neutralny",
+  MAY_WORSEN: "Może pogorszyć",
+};
+
+export const fertilizerRetentionEffectLabels: Record<
+  FertilizerRetentionEffect,
+  string
+> = {
+  DECREASES: "Zmniejsza",
+  NEUTRAL: "Neutralny",
+  INCREASES: "Zwiększa",
+};
+
+export const fertilizerRecommendedFrequencyLabels: Record<
+  FertilizerRecommendedFrequency,
+  string
+> = {
+  ONE_TIME: "Jednorazowo",
+  WEEKLY: "Co tydzień",
+  BIWEEKLY: "Co 2 tygodnie",
+  MONTHLY: "Co miesiąc",
+  SEASONAL: "Sezonowo",
+  AS_NEEDED: "W razie potrzeby",
 };
 
 // ---------- helper ----------

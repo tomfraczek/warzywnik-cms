@@ -58,6 +58,18 @@ export default function RootLayout({
                   </Link>
                   <Link
                     className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
+                    href="/fertilizers"
+                  >
+                    Nawozy
+                  </Link>
+                  <Link
+                    className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
+                    href="/warning-rules"
+                  >
+                    Warning rules
+                  </Link>
+                  <Link
+                    className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
                     href="/pests"
                   >
                     Szkodniki
