@@ -270,7 +270,8 @@ export default function ArticlesPage() {
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-zinc-500">
-          Strona {data?.page ?? page} z {data ? Math.ceil(data.total / data.limit) : 1}
+          Strona {data?.page ?? page} z{" "}
+          {data ? Math.ceil(data.total / data.limit) : 1}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -282,7 +283,9 @@ export default function ArticlesPage() {
           </button>
           <button
             className="rounded-lg border border-zinc-200 px-3 py-1 text-sm"
-            disabled={data ? data.page >= Math.ceil(data.total / data.limit) : false}
+            disabled={
+              data ? data.page >= Math.ceil(data.total / data.limit) : false
+            }
             onClick={() => setPage((prev) => prev + 1)}
           >
             Dalej
