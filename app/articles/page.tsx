@@ -63,11 +63,20 @@ const noticeLabels: Record<string, string> = {
 
 export default function ArticlesPage() {
   const searchParams = useSearchParams();
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState<ArticleStatus | "">("");
-  const [month, setMonth] = useState<number | "">("");
-  const [season, setSeason] = useState<ArticleSeason | "">("");
-  const [context, setContext] = useState<ArticleContext | "">("");
+  const [q, setQ] = useState(() => searchParams?.get("q") ?? "");
+  const [status, setStatus] = useState<ArticleStatus | "">(() =>
+    (searchParams?.get("status") as ArticleStatus | null) ?? "",
+  );
+  const [month, setMonth] = useState<number | "">(() => {
+    const value = searchParams?.get("month");
+    return value ? Number(value) : "";
+  });
+  const [season, setSeason] = useState<ArticleSeason | "">(() =>
+    (searchParams?.get("season") as ArticleSeason | null) ?? "",
+  );
+  const [context, setContext] = useState<ArticleContext | "">(() =>
+    (searchParams?.get("context") as ArticleContext | null) ?? "",
+  );
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [notice, setNotice] = useState<string | null>(null);
@@ -247,6 +256,12 @@ export default function ArticlesPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-3 text-xs font-medium">
+                    <Link
+                      className="text-zinc-600 hover:text-zinc-900"
+                      href={`/articles/${item.id}`}
+                    >
+                      Podgląd
+                    </Link>
                     <Link
                       className="text-zinc-600 hover:text-zinc-900"
                       href={`/articles/${item.id}/edit`}

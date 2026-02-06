@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   articleContextOptions,
   articleSeasonOptions,
@@ -10,11 +10,14 @@ import {
   type ArticleStatus,
   type CreateArticlePayload,
 } from "@/app/api/api.types";
+import { MediaLibraryModal } from "@/app/components/MediaLibraryModal";
+import { QuillEditor } from "@/app/components/richtext/QuillEditor";
 import { useGetVegetables } from "@/app/api/queries/vegetables/useGetVegetables";
 import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
 import { useGetFertilizers } from "@/app/api/queries/fertilizers/useGetFertilizers";
 import { useGetDiseases } from "@/app/api/queries/diseases/useGetDiseases";
 import { useGetPests } from "@/app/api/queries/pests/useGetPests";
+import { useUploadMedia } from "@/app/api/mutations/media/useUploadMedia";
 
 export type ArticleFormValues = {
   title: string;
@@ -112,6 +115,114 @@ const isValidUrl = (value: string) => {
   }
 };
 
+type TiptapNode = {
+  type?: string;
+  text?: string;
+  attrs?: Record<string, unknown>;
+  marks?: Array<{ type: string }>;
+  content?: TiptapNode[];
+};
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const applyMarks = (text: string, marks?: Array<{ type: string }>) => {
+  if (!marks?.length) return text;
+  return marks.reduce((acc, mark) => {
+    switch (mark.type) {
+      case "bold":
+        return `<strong>${acc}</strong>`;
+      case "italic":
+        return `<em>${acc}</em>`;
+      case "underline":
+        return `<u>${acc}</u>`;
+      case "strike":
+        return `<s>${acc}</s>`;
+      default:
+        return acc;
+    }
+  }, text);
+};
+
+const renderTiptapNode = (node: TiptapNode): string => {
+  const children = node.content?.map(renderTiptapNode).join("") ?? "";
+  switch (node.type) {
+    case "doc":
+      return children;
+    case "paragraph":
+      return `<p>${children || "<br />"}</p>`;
+    case "heading": {
+      const level = (node.attrs?.level as number) || 2;
+      const safeLevel = level === 1 || level === 2 || level === 3 ? level : 2;
+      return `<h${safeLevel}>${children}</h${safeLevel}>`;
+    }
+    case "bulletList":
+      return `<ul>${children}</ul>`;
+    case "orderedList":
+      return `<ol>${children}</ol>`;
+    case "listItem":
+      return `<li>${children}</li>`;
+    case "image": {
+      const src = String(node.attrs?.src ?? "");
+      if (!src) return "";
+      const alt = node.attrs?.alt
+        ? ` alt=\"${escapeHtml(String(node.attrs.alt))}\"`
+        : "";
+      const title = node.attrs?.title
+        ? ` title=\"${escapeHtml(String(node.attrs.title))}\"`
+        : "";
+      return `<img src=\"${escapeHtml(src)}\"${alt}${title} />`;
+    }
+    case "hardBreak":
+      return "<br />";
+    case "text": {
+      const text = escapeHtml(node.text ?? "");
+      return applyMarks(text, node.marks);
+    }
+    default:
+      return children;
+  }
+};
+
+const tiptapJsonToHtml = (data: TiptapNode): string => {
+  if (!data?.type) return "";
+  return renderTiptapNode(data);
+};
+
+const normalizeLegacyContent = (content: string) => {
+  if (!content) return { html: "", isLegacy: false };
+  if (content.trim().startsWith("{")) {
+    try {
+      const parsed = JSON.parse(content) as TiptapNode;
+      if (parsed?.type === "doc") {
+        return { html: tiptapJsonToHtml(parsed), isLegacy: true };
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return { html: content, isLegacy: false };
+};
+
+const stripHtmlToText = (html: string) =>
+  html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const isHtmlEmpty = (html: string) => {
+  if (!html) return true;
+  if (/<img\b/i.test(html)) return false;
+  return stripHtmlToText(html).length === 0;
+};
+
 export type ArticleFormProps = {
   initialValues?: Partial<ArticleFormValues>;
   onSubmit: (payload: CreateArticlePayload) => void;
@@ -127,12 +238,28 @@ export const ArticleForm = ({
   isSubmitting,
   errorMessage,
 }: ArticleFormProps) => {
+  const legacyContent = useMemo(
+    () => normalizeLegacyContent(initialValues?.content ?? ""),
+    [initialValues?.content],
+  );
   const [values, setValues] = useState<ArticleFormValues>({
     ...defaultValues,
     ...initialValues,
+    content: legacyContent.html,
   });
   const [clientError, setClientError] = useState<string | null>(null);
   const [slugTouched, setSlugTouched] = useState(false);
+  const [isCoverLibraryOpen, setIsCoverLibraryOpen] = useState(false);
+  const [isContentEmpty, setIsContentEmpty] = useState(() =>
+    isHtmlEmpty(legacyContent.html),
+  );
+  const [isContentLibraryOpen, setIsContentLibraryOpen] = useState(false);
+  const [isContentUploadOpen, setIsContentUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const uploadResolveRef = useRef<((url: string | null) => void) | null>(null);
+  const pickResolveRef = useRef<((url: string | null) => void) | null>(null);
+  const uploadMutation = useUploadMedia();
 
   const { data: vegetablesData, isLoading: vegetablesLoading } =
     useGetVegetables({ page: 1, limit: 100 });
@@ -188,7 +315,7 @@ export const ArticleForm = ({
       setClientError("Lead jest wymagany.");
       return;
     }
-    if (values.content.trim().length < 1) {
+    if (isHtmlEmpty(values.content) || isContentEmpty) {
       setClientError("Treść jest wymagana.");
       return;
     }
@@ -281,28 +408,78 @@ export const ArticleForm = ({
         <label className="mt-4 flex flex-col gap-1 text-sm">
           <span className="font-medium">Treść</span>
           <span className="text-xs text-zinc-500">
-            Treść artykułu (na start markdown/textarea).
+            Treść artykułu (rich text).
           </span>
-          <textarea
-            className="min-h-48 rounded-lg border border-zinc-200 px-3 py-2"
+          <QuillEditor
             value={values.content}
-            onChange={(event) => updateValue("content", event.target.value)}
-            required
+            onChange={(html) => {
+              updateValue("content", html);
+              setIsContentEmpty(isHtmlEmpty(html));
+            }}
+            onRequestImageUpload={async () => {
+              setUploadError(null);
+              setUploadFile(null);
+              setIsContentUploadOpen(true);
+              return new Promise((resolve) => {
+                uploadResolveRef.current = resolve;
+              });
+            }}
+            onRequestImagePick={async () => {
+              setIsContentLibraryOpen(true);
+              return new Promise((resolve) => {
+                pickResolveRef.current = resolve;
+              });
+            }}
           />
+          {legacyContent.isLegacy && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+              Treść jest w starym formacie. Otwórz i zapisz artykuł ponownie,
+              aby przekonwertować.
+            </div>
+          )}
         </label>
         <label className="mt-4 flex flex-col gap-1 text-sm">
           <span className="font-medium">Okładka (URL)</span>
           <span className="text-xs text-zinc-500">
             Opcjonalny link do obrazka okładki.
           </span>
-          <input
-            className="rounded-lg border border-zinc-200 px-3 py-2"
-            value={values.coverImageUrl}
-            onChange={(event) =>
-              updateValue("coverImageUrl", event.target.value)
-            }
-            placeholder="https://"
-          />
+          <div className="space-y-3">
+            <input
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.coverImageUrl}
+              onChange={(event) =>
+                updateValue("coverImageUrl", event.target.value)
+              }
+              placeholder="https://"
+            />
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+                onClick={() => setIsCoverLibraryOpen(true)}
+              >
+                Wybierz z biblioteki
+              </button>
+              {values.coverImageUrl && (
+                <button
+                  type="button"
+                  className="rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+                  onClick={() => updateValue("coverImageUrl", "")}
+                >
+                  Usuń okładkę
+                </button>
+              )}
+            </div>
+            {values.coverImageUrl && (
+              <div className="flex h-32 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
+                <img
+                  src={values.coverImageUrl}
+                  alt="Okładka artykułu"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+            )}
+          </div>
         </label>
       </section>
 
@@ -579,6 +756,111 @@ export const ArticleForm = ({
           {isSubmitting ? "Zapisywanie..." : submitLabel}
         </button>
       </div>
+
+      <MediaLibraryModal
+        isOpen={isCoverLibraryOpen}
+        onClose={() => setIsCoverLibraryOpen(false)}
+        onSelect={(url) => {
+          updateValue("coverImageUrl", url);
+        }}
+        title="Wybierz okładkę"
+      />
+
+      <MediaLibraryModal
+        isOpen={isContentLibraryOpen}
+        onClose={() => {
+          setIsContentLibraryOpen(false);
+          pickResolveRef.current?.(null);
+          pickResolveRef.current = null;
+        }}
+        onSelect={(url) => {
+          setIsContentLibraryOpen(false);
+          pickResolveRef.current?.(url);
+          pickResolveRef.current = null;
+        }}
+        title="Wybierz obraz do treści"
+      />
+
+      {isContentUploadOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
+            <h3 className="text-lg font-semibold text-zinc-900">Dodaj obraz</h3>
+            <p className="mt-1 text-sm text-zinc-500">
+              Wybierz plik graficzny (max 5 MB).
+            </p>
+            <div className="mt-4 space-y-3">
+              <input
+                type="file"
+                accept="image/*"
+                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  setUploadError(null);
+                  setUploadFile(file);
+                }}
+              />
+              {uploadError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {uploadError}
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-lg border border-zinc-200 px-4 py-2 text-sm"
+                onClick={() => {
+                  setIsContentUploadOpen(false);
+                  uploadResolveRef.current?.(null);
+                  uploadResolveRef.current = null;
+                }}
+              >
+                Anuluj
+              </button>
+              <button
+                type="button"
+                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                disabled={uploadMutation.isPending}
+                onClick={async () => {
+                  if (!uploadFile) {
+                    setUploadError("Wybierz plik do uploadu.");
+                    return;
+                  }
+                  if (!uploadFile.type.startsWith("image/")) {
+                    setUploadError("Dozwolone są wyłącznie pliki graficzne.");
+                    return;
+                  }
+                  const maxSize = 5 * 1024 * 1024;
+                  if (uploadFile.size > maxSize) {
+                    setUploadError("Maksymalny rozmiar pliku to 5 MB.");
+                    return;
+                  }
+                  try {
+                    const result = await uploadMutation.mutateAsync({
+                      file: uploadFile,
+                    });
+                    const url =
+                      result.url || result.publicUrl || result.cdnUrl || "";
+                    if (!url) {
+                      setUploadError(
+                        "Upload nie zwrócił poprawnego adresu URL.",
+                      );
+                      return;
+                    }
+                    setIsContentUploadOpen(false);
+                    uploadResolveRef.current?.(url);
+                    uploadResolveRef.current = null;
+                  } catch {
+                    setUploadError("Nie udało się przesłać obrazka.");
+                  }
+                }}
+              >
+                {uploadMutation.isPending ? "Wstawianie..." : "Wstaw obraz"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 };

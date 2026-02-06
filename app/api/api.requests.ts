@@ -5,6 +5,7 @@ import type {
   ArticleStatus,
   ArticleSeason,
   ArticleContext,
+  MediaItem,
   CreateDiseasePayload,
   CreatePestPayload,
   CreateVegetablePayload,
@@ -251,6 +252,39 @@ export const updateArticle = async (
 
 export const deleteArticle = async (id: string): Promise<void> => {
   await apiClient.delete(`/articles/${id}`);
+};
+
+export type GetMediaLibraryParams = {
+  page?: number;
+  limit?: number;
+  q?: string;
+};
+
+const mediaLibraryPath = "/media-library";
+
+export const getMediaLibrary = async (
+  params: GetMediaLibraryParams = {},
+): Promise<ListResponse<MediaItem>> => {
+  const { data } = await apiClient.get<ListResponse<MediaItem>>(
+    mediaLibraryPath,
+    { params },
+  );
+  return data;
+};
+
+export const uploadMedia = async (file: File): Promise<MediaItem> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await apiClient.post<MediaItem>(
+    `${mediaLibraryPath}/upload`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+  return data;
 };
 
 export const unwrap = unwrapData;

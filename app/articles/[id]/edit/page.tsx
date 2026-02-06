@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { AxiosError } from "axios";
 import { useParams, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArticleForm,
   type ArticleFormValues,
@@ -33,6 +34,7 @@ const mapArticleToFormValues = (data: Article): ArticleFormValues => ({
 export default function EditArticlePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { data, isLoading, error } = useGetArticle(params?.id);
   const updateMutation = useUpdateArticle();
@@ -47,7 +49,9 @@ export default function EditArticlePage() {
     setErrorMessage(null);
     try {
       await updateMutation.mutateAsync({ id: data.id, payload });
-      router.push("/articles?notice=updated");
+      await queryClient.invalidateQueries({ queryKey: ["articles"] });
+      const status = payload.status ? `&status=${payload.status}` : "";
+      router.push(`/articles?notice=updated${status}`);
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
         if (err.response.status === 409) {

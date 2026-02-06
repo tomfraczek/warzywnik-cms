@@ -16,7 +16,8 @@ export default function NewArticlePage() {
     setErrorMessage(null);
     try {
       await createMutation.mutateAsync(payload);
-      router.push("/articles?notice=created");
+      const status = payload.status ? `&status=${payload.status}` : "";
+      router.push(`/articles?notice=created${status}`);
     } catch (error) {
       if (error instanceof AxiosError && error.response) {
         if (error.response.status === 409) {

@@ -286,6 +286,16 @@ export type CreateArticlePayload = {
 
 export type UpdateArticlePayload = Partial<CreateArticlePayload>;
 
+export type MediaItem = {
+  id: string;
+  url?: string;
+  publicUrl?: string;
+  cdnUrl?: string;
+  fileName?: string;
+  name?: string;
+  createdAt?: string;
+};
+
 export const articleStatusOptions: ArticleStatus[] = ["DRAFT", "PUBLISHED"];
 export const articleSeasonOptions: ArticleSeason[] = [
   "winter",
