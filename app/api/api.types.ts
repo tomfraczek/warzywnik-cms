@@ -223,3 +223,81 @@ export const dominantNutrientDemandOptions: DominantNutrientDemand[] = [
   "K",
   "BALANCED",
 ];
+
+export type ArticleStatus = "DRAFT" | "PUBLISHED";
+export type ArticleSeason = "winter" | "spring" | "summer" | "autumn";
+export type ArticleContext =
+  | "planning"
+  | "soil_preparation"
+  | "sowing"
+  | "harvest"
+  | "problem_solving"
+  | "learning";
+
+export type ArticleListItem = {
+  id: string;
+  slug: string;
+  title: string;
+  status: ArticleStatus;
+  priority: number;
+  publishedAt: string | null;
+  updatedAt: string;
+};
+
+export type Article = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  coverImageUrl: string | null;
+  status: ArticleStatus;
+  priority: number;
+  months: number[];
+  seasons: ArticleSeason[];
+  contexts: ArticleContext[];
+  relatedVegetableIds: string[];
+  relatedSoilIds: string[];
+  relatedFertilizerIds: string[];
+  relatedDiseaseIds: string[];
+  relatedPestIds: string[];
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateArticlePayload = {
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  coverImageUrl?: string | null;
+  status: ArticleStatus;
+  priority: number;
+  months?: number[];
+  seasons?: ArticleSeason[];
+  contexts: ArticleContext[];
+  relatedVegetableIds?: string[];
+  relatedSoilIds?: string[];
+  relatedFertilizerIds?: string[];
+  relatedDiseaseIds?: string[];
+  relatedPestIds?: string[];
+};
+
+export type UpdateArticlePayload = Partial<CreateArticlePayload>;
+
+export const articleStatusOptions: ArticleStatus[] = ["DRAFT", "PUBLISHED"];
+export const articleSeasonOptions: ArticleSeason[] = [
+  "winter",
+  "spring",
+  "summer",
+  "autumn",
+];
+export const articleContextOptions: ArticleContext[] = [
+  "planning",
+  "soil_preparation",
+  "sowing",
+  "harvest",
+  "problem_solving",
+  "learning",
+];

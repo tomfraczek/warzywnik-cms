@@ -1,11 +1,18 @@
 import { apiClient, unwrapData } from "@/app/api/axios";
 import type {
+  Article,
+  ArticleListItem,
+  ArticleStatus,
+  ArticleSeason,
+  ArticleContext,
   CreateDiseasePayload,
   CreatePestPayload,
   CreateVegetablePayload,
   Disease,
   ListResponse,
   Pest,
+  CreateArticlePayload,
+  UpdateArticlePayload,
   UpdateDiseasePayload,
   UpdatePestPayload,
   UpdateVegetablePayload,
@@ -196,6 +203,54 @@ export const updateDisease = async (
 
 export const deleteDisease = async (id: string): Promise<void> => {
   await apiClient.delete(`/diseases/${id}`);
+};
+
+export type GetArticlesParams = {
+  page?: number;
+  limit?: number;
+  q?: string;
+  status?: ArticleStatus;
+  month?: number;
+  season?: ArticleSeason;
+  context?: ArticleContext;
+};
+
+export const getArticles = async (
+  params: GetArticlesParams = {},
+): Promise<ListResponse<ArticleListItem>> => {
+  const { data } = await apiClient.get<ListResponse<ArticleListItem>>(
+    "/articles",
+    { params },
+  );
+  return data;
+};
+
+export const getArticle = async (idOrSlug: string): Promise<Article> => {
+  const { data } = await apiClient.get<Article>(`/articles/${idOrSlug}`);
+  return data;
+};
+
+export const createArticle = async (
+  payload: CreateArticlePayload,
+): Promise<Article> => {
+  const { data } = await apiClient.post<Article>("/articles", payload);
+  return data;
+};
+
+export const updateArticle = async (
+  id: string,
+  payload: UpdateArticlePayload,
+): Promise<Article> => {
+  const normalizedPayload = normalizePatchPayload(payload);
+  const { data } = await apiClient.patch<Article>(
+    `/articles/${id}`,
+    normalizedPayload,
+  );
+  return data;
+};
+
+export const deleteArticle = async (id: string): Promise<void> => {
+  await apiClient.delete(`/articles/${id}`);
 };
 
 export const unwrap = unwrapData;
