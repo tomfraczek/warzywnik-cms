@@ -2,11 +2,15 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/nextjs";
-import { setClerkTokenGetter } from "@/app/api/clerkToken";
+import { useAuth, useClerk } from "@clerk/nextjs";
+import {
+  setAuthTokenProvider,
+  setUnauthorizedHandler,
+} from "@/app/api/restClient";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const { getToken } = useAuth();
+  const { signOut } = useClerk();
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -24,9 +28,13 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    setClerkTokenGetter(() => getToken());
-    return () => setClerkTokenGetter(null);
-  }, [getToken]);
+    setAuthTokenProvider(() => getToken());
+    setUnauthorizedHandler(() => signOut({ redirectUrl: "/sign-in" }));
+    return () => {
+      setAuthTokenProvider(null);
+      setUnauthorizedHandler(null);
+    };
+  }, [getToken, signOut]);
 
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

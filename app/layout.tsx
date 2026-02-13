@@ -40,7 +40,7 @@ export default function RootLayout({
                 <nav className="flex flex-col gap-2 px-4 pb-6">
                   <Link
                     className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
-                    href="/"
+                    href="/dashboard"
                   >
                     Dashboard
                   </Link>

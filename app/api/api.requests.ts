@@ -5,7 +5,6 @@ import type {
   ArticleStatus,
   ArticleSeason,
   ArticleContext,
-  MediaLibraryItem,
   MediaLibraryResponse,
   CreateDiseasePayload,
   CreatePestPayload,

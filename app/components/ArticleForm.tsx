@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useRef, useState } from "react";
 import {
   articleContextOptions,
@@ -17,7 +18,6 @@ import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
 import { useGetFertilizers } from "@/app/api/queries/fertilizers/useGetFertilizers";
 import { useGetDiseases } from "@/app/api/queries/diseases/useGetDiseases";
 import { useGetPests } from "@/app/api/queries/pests/useGetPests";
-import type { MediaLibraryItem } from "@/app/api/api.types";
 import { AxiosError } from "axios";
 
 export type ArticleFormValues = {
@@ -549,9 +549,11 @@ export const ArticleForm = ({
             )}
             {values.coverImageUrl && (
               <div className="flex h-32 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
-                <img
+                <Image
                   src={values.coverImageUrl}
                   alt="Okładka artykułu"
+                  width={512}
+                  height={128}
                   className="h-full w-full object-contain"
                 />
               </div>
