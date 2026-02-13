@@ -18,6 +18,7 @@ import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
 import { useGetFertilizers } from "@/app/api/queries/fertilizers/useGetFertilizers";
 import { useGetDiseases } from "@/app/api/queries/diseases/useGetDiseases";
 import { useGetPests } from "@/app/api/queries/pests/useGetPests";
+import type { MediaLibraryItem } from "@/app/api/api.types";
 import { AxiosError } from "axios";
 
 export type ArticleFormValues = {
