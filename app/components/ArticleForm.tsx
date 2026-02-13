@@ -17,7 +17,8 @@ import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
 import { useGetFertilizers } from "@/app/api/queries/fertilizers/useGetFertilizers";
 import { useGetDiseases } from "@/app/api/queries/diseases/useGetDiseases";
 import { useGetPests } from "@/app/api/queries/pests/useGetPests";
-import { useUploadMedia } from "@/app/api/mutations/media/useUploadMedia";
+import type { MediaLibraryItem } from "@/app/api/api.types";
+import { AxiosError } from "axios";
 
 export type ArticleFormValues = {
   title: string;
@@ -229,6 +230,10 @@ export type ArticleFormProps = {
   submitLabel: string;
   isSubmitting?: boolean;
   errorMessage?: string | null;
+  onUploadCover?: (file: File) => Promise<string | null>;
+  onDeleteCover?: () => Promise<void>;
+  onAssignCoverFromLibrary?: (url: string) => Promise<void> | void;
+  onUploadContentImage?: (file: File) => Promise<string | null>;
 };
 
 export const ArticleForm = ({
@@ -237,6 +242,10 @@ export const ArticleForm = ({
   submitLabel,
   isSubmitting,
   errorMessage,
+  onUploadCover,
+  onDeleteCover,
+  onAssignCoverFromLibrary,
+  onUploadContentImage,
 }: ArticleFormProps) => {
   const legacyContent = useMemo(
     () => normalizeLegacyContent(initialValues?.content ?? ""),
@@ -257,9 +266,10 @@ export const ArticleForm = ({
   const [isContentUploadOpen, setIsContentUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [coverUploadFile, setCoverUploadFile] = useState<File | null>(null);
+  const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
   const uploadResolveRef = useRef<((url: string | null) => void) | null>(null);
   const pickResolveRef = useRef<((url: string | null) => void) | null>(null);
-  const uploadMutation = useUploadMedia();
 
   const { data: vegetablesData, isLoading: vegetablesLoading } =
     useGetVegetables({ page: 1, limit: 100 });
@@ -460,16 +470,83 @@ export const ArticleForm = ({
               >
                 Wybierz z biblioteki
               </button>
+              {onUploadCover && (
+                <label className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-2 text-sm">
+                  Upload okładki
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      setCoverUploadError(null);
+                      setCoverUploadFile(file);
+                    }}
+                  />
+                </label>
+              )}
               {values.coverImageUrl && (
                 <button
                   type="button"
                   className="rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-                  onClick={() => updateValue("coverImageUrl", "")}
+                  onClick={async () => {
+                    setCoverUploadError(null);
+                    if (onDeleteCover) {
+                      await onDeleteCover();
+                    }
+                    updateValue("coverImageUrl", "");
+                  }}
                 >
                   Usuń okładkę
                 </button>
               )}
             </div>
+            {coverUploadFile && onUploadCover && (
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-zinc-600">
+                  Wybrano: {coverUploadFile.name}
+                </span>
+                <button
+                  type="button"
+                  className="rounded-lg bg-zinc-900 px-3 py-2 text-white"
+                  onClick={async () => {
+                    setCoverUploadError(null);
+                    if (!coverUploadFile) return;
+                    if (!coverUploadFile.type.match(/image\/(jpeg|png|webp)/)) {
+                      setCoverUploadError("Dozwolone formaty: JPG, PNG, WEBP.");
+                      return;
+                    }
+                    if (coverUploadFile.size > 5 * 1024 * 1024) {
+                      setCoverUploadError("Maksymalny rozmiar pliku to 5 MB.");
+                      return;
+                    }
+                    try {
+                      const url = await onUploadCover(coverUploadFile);
+                      if (url) {
+                        updateValue("coverImageUrl", url);
+                        setCoverUploadFile(null);
+                      }
+                    } catch (err) {
+                      if (
+                        err instanceof AxiosError &&
+                        err.response?.status === 401
+                      ) {
+                        setCoverUploadError("Wymagane zalogowanie.");
+                        return;
+                      }
+                      setCoverUploadError("Nie udało się wgrać okładki.");
+                    }
+                  }}
+                >
+                  Wgraj
+                </button>
+              </div>
+            )}
+            {coverUploadError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                {coverUploadError}
+              </div>
+            )}
             {values.coverImageUrl && (
               <div className="flex h-32 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
                 <img
@@ -760,10 +837,28 @@ export const ArticleForm = ({
       <MediaLibraryModal
         isOpen={isCoverLibraryOpen}
         onClose={() => setIsCoverLibraryOpen(false)}
-        onSelect={(url) => {
-          updateValue("coverImageUrl", url);
+        onSelect={async (item: MediaLibraryItem) => {
+          if (onAssignCoverFromLibrary) {
+            await onAssignCoverFromLibrary(item.publicUrl);
+          }
+          updateValue("coverImageUrl", item.publicUrl);
         }}
+        onUpload={
+          onUploadCover
+            ? async (file) => {
+                const url = await onUploadCover(file);
+                if (!url) return null;
+                updateValue("coverImageUrl", url);
+                return {
+                  key: url,
+                  publicUrl: url,
+                  fileName: file.name,
+                };
+              }
+            : undefined
+        }
         title="Wybierz okładkę"
+        initialTab="articles"
       />
 
       <MediaLibraryModal
@@ -773,12 +868,26 @@ export const ArticleForm = ({
           pickResolveRef.current?.(null);
           pickResolveRef.current = null;
         }}
-        onSelect={(url) => {
+        onSelect={(item: MediaLibraryItem) => {
           setIsContentLibraryOpen(false);
-          pickResolveRef.current?.(url);
+          pickResolveRef.current?.(item.publicUrl);
           pickResolveRef.current = null;
         }}
+        onUpload={
+          onUploadContentImage
+            ? async (file) => {
+                const url = await onUploadContentImage(file);
+                if (!url) return null;
+                return {
+                  key: url,
+                  publicUrl: url,
+                  fileName: file.name,
+                };
+              }
+            : undefined
+        }
         title="Wybierz obraz do treści"
+        initialTab="articles"
       />
 
       {isContentUploadOpen && (
@@ -820,14 +929,14 @@ export const ArticleForm = ({
               <button
                 type="button"
                 className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-                disabled={uploadMutation.isPending}
+                disabled={false}
                 onClick={async () => {
                   if (!uploadFile) {
                     setUploadError("Wybierz plik do uploadu.");
                     return;
                   }
-                  if (!uploadFile.type.startsWith("image/")) {
-                    setUploadError("Dozwolone są wyłącznie pliki graficzne.");
+                  if (!uploadFile.type.match(/image\/(jpeg|png|webp)/)) {
+                    setUploadError("Dozwolone formaty: JPG, PNG, WEBP.");
                     return;
                   }
                   const maxSize = 5 * 1024 * 1024;
@@ -836,11 +945,11 @@ export const ArticleForm = ({
                     return;
                   }
                   try {
-                    const result = await uploadMutation.mutateAsync({
-                      file: uploadFile,
-                    });
-                    const url =
-                      result.url || result.publicUrl || result.cdnUrl || "";
+                    if (!onUploadContentImage) {
+                      setUploadError("Zapisz artykuł, aby dodać obraz.");
+                      return;
+                    }
+                    const url = await onUploadContentImage(uploadFile);
                     if (!url) {
                       setUploadError(
                         "Upload nie zwrócił poprawnego adresu URL.",
@@ -850,12 +959,19 @@ export const ArticleForm = ({
                     setIsContentUploadOpen(false);
                     uploadResolveRef.current?.(url);
                     uploadResolveRef.current = null;
-                  } catch {
+                  } catch (err) {
+                    if (
+                      err instanceof AxiosError &&
+                      err.response?.status === 401
+                    ) {
+                      setUploadError("Wymagane zalogowanie.");
+                      return;
+                    }
                     setUploadError("Nie udało się przesłać obrazka.");
                   }
                 }}
               >
-                {uploadMutation.isPending ? "Wstawianie..." : "Wstaw obraz"}
+                Wstaw obraz
               </button>
             </div>
           </div>

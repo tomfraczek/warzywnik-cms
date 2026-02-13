@@ -2,44 +2,72 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import { useGetMediaLibrary } from "@/app/api/queries/media/useGetMediaLibrary";
-import type { MediaItem } from "@/app/api/api.types";
+import { AxiosError } from "axios";
+import type {
+  MediaLibraryItem,
+  MediaLibraryResponse,
+} from "@/app/api/api.types";
+import { useGetVegetablesMediaLibrary } from "@/app/api/queries/media/useGetVegetablesMediaLibrary";
+import { useGetArticlesMediaLibrary } from "@/app/api/queries/media/useGetArticlesMediaLibrary";
 
-const resolveMediaUrl = (item: MediaItem) =>
-  item.url || item.publicUrl || item.cdnUrl || "";
+type MediaLibraryTab = "vegetables" | "articles";
 
-const resolveMediaLabel = (item: MediaItem) =>
-  item.fileName || item.name || item.id;
+const resolveMediaUrl = (item: MediaLibraryItem) => {
+  const url = item.publicUrl;
+  if (url.endsWith("/") && item.fileName) {
+    return `${url}${item.fileName}`;
+  }
+  return url;
+};
 
 export type MediaLibraryModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (url: string) => void;
+  onSelect: (item: MediaLibraryItem, tab: MediaLibraryTab) => void;
+  onUpload?: (
+    file: File,
+    tab: MediaLibraryTab,
+  ) => Promise<MediaLibraryItem | null>;
   title?: string;
+  initialTab?: MediaLibraryTab;
 };
 
 export const MediaLibraryModal = ({
   isOpen,
   onClose,
   onSelect,
+  onUpload,
   title = "Biblioteka mediów",
+  initialTab = "articles",
 }: MediaLibraryModalProps) => {
-  const [page, setPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<MediaLibraryTab>(initialTab);
   const [limit, setLimit] = useState(24);
   const [q, setQ] = useState("");
-  const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
-
-  const params = useMemo(
-    () => ({ page, limit, q: q.trim() || undefined }),
-    [page, limit, q],
+  const [selectedItem, setSelectedItem] = useState<MediaLibraryItem | null>(
+    null,
   );
-  const { data, isLoading, error } = useGetMediaLibrary(params);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const params = useMemo(() => ({ limit }), [limit]);
+  const vegetablesQuery = useGetVegetablesMediaLibrary(params);
+  const articlesQuery = useGetArticlesMediaLibrary(params);
+  const currentQuery =
+    activeTab === "vegetables" ? vegetablesQuery : articlesQuery;
+
+  const items = useMemo(() => {
+    const pages = (currentQuery.data?.pages ?? []) as MediaLibraryResponse[];
+    const all = pages.flatMap((page) => page.items);
+    const term = q.trim().toLowerCase();
+    if (!term) return all;
+    return all.filter((item) => item.fileName.toLowerCase().includes(term));
+  }, [currentQuery.data, q]);
 
   if (!isOpen) return null;
 
   const handleSelect = () => {
-    if (!selectedUrl) return;
-    onSelect(selectedUrl);
+    if (!selectedItem) return;
+    onSelect(selectedItem, activeTab);
     onClose();
   };
 
@@ -58,6 +86,36 @@ export const MediaLibraryModal = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 px-6 py-4">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className={`rounded-lg px-3 py-1 text-sm ${
+                activeTab === "articles"
+                  ? "bg-zinc-900 text-white"
+                  : "border border-zinc-200"
+              }`}
+              onClick={() => {
+                setActiveTab("articles");
+                setSelectedItem(null);
+              }}
+            >
+              Artykuły
+            </button>
+            <button
+              type="button"
+              className={`rounded-lg px-3 py-1 text-sm ${
+                activeTab === "vegetables"
+                  ? "bg-zinc-900 text-white"
+                  : "border border-zinc-200"
+              }`}
+              onClick={() => {
+                setActiveTab("vegetables");
+                setSelectedItem(null);
+              }}
+            >
+              Warzywa
+            </button>
+          </div>
           <input
             className="flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm"
             placeholder="Szukaj po nazwie pliku"
@@ -75,36 +133,86 @@ export const MediaLibraryModal = ({
               </option>
             ))}
           </select>
+          {onUpload && (
+            <label className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-2 text-sm">
+              Dodaj obraz
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  if (!file) return;
+                  setUploadError(null);
+                  if (!file.type.match(/image\/(jpeg|png|webp)/)) {
+                    setUploadError("Dozwolone formaty: JPG, PNG, WEBP.");
+                    return;
+                  }
+                  if (file.size > 5 * 1024 * 1024) {
+                    setUploadError("Maksymalny rozmiar pliku to 5 MB.");
+                    return;
+                  }
+                  try {
+                    setIsUploading(true);
+                    const item = await onUpload(file, activeTab);
+                    if (item) {
+                      setSelectedItem(item);
+                      await currentQuery.refetch();
+                    }
+                  } catch (err) {
+                    if (
+                      err instanceof AxiosError &&
+                      err.response?.status === 401
+                    ) {
+                      setUploadError("Wymagane zalogowanie.");
+                    } else {
+                      setUploadError("Nie udało się wgrać pliku.");
+                    }
+                  } finally {
+                    setIsUploading(false);
+                  }
+                }}
+                disabled={isUploading}
+              />
+            </label>
+          )}
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
-          {isLoading && <p className="text-sm text-zinc-500">Ładowanie...</p>}
-          {error && (
-            <p className="text-sm text-red-500">Nie udało się pobrać mediów.</p>
+          {uploadError && <p className="text-sm text-red-500">{uploadError}</p>}
+          {currentQuery.isLoading && (
+            <p className="text-sm text-zinc-500">Ładowanie...</p>
           )}
-          {!isLoading && data?.items.length === 0 && (
+          {currentQuery.error && (
+            <p className="text-sm text-red-500">
+              {currentQuery.error instanceof AxiosError &&
+              currentQuery.error.response?.status === 401
+                ? "Wymagane zalogowanie."
+                : "Nie udało się pobrać mediów."}
+            </p>
+          )}
+          {!currentQuery.isLoading && items.length === 0 && (
             <p className="text-sm text-zinc-500">Brak plików w bibliotece.</p>
           )}
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {data?.items.map((item) => {
-              const url = resolveMediaUrl(item);
-              if (!url) return null;
-              const isSelected = selectedUrl === url;
+            {items.map((item) => {
+              const isSelected = selectedItem?.key === item.key;
+              const src = resolveMediaUrl(item);
               return (
                 <button
                   type="button"
-                  key={item.id}
+                  key={item.key}
                   className={`flex flex-col overflow-hidden rounded-lg border text-left ${
                     isSelected
                       ? "border-emerald-400 ring-2 ring-emerald-200"
                       : "border-zinc-200"
                   }`}
-                  onClick={() => setSelectedUrl(url)}
+                  onClick={() => setSelectedItem(item)}
                 >
                   <div className="aspect-square w-full overflow-hidden bg-zinc-50">
                     <Image
-                      src={url}
-                      alt={resolveMediaLabel(item)}
+                      src={src}
+                      alt={item.fileName}
                       className="h-full w-full object-cover"
                       width={240}
                       height={240}
@@ -114,48 +222,46 @@ export const MediaLibraryModal = ({
                   </div>
                   <div className="px-3 py-2">
                     <p className="truncate text-xs text-zinc-600">
-                      {resolveMediaLabel(item)}
+                      {item.fileName}
                     </p>
                   </div>
                 </button>
               );
             })}
           </div>
-        </div>
-
-        <div className="flex items-center justify-between border-t border-zinc-200 px-6 py-4">
-          <div className="text-sm text-zinc-500">
-            Strona {data?.page ?? page} z{" "}
-            {data ? Math.ceil(data.total / data.limit) : 1}
-          </div>
-          <div className="flex items-center gap-2">
+          <div className="mt-4 flex justify-center">
             <button
               type="button"
-              className="rounded-lg border border-zinc-200 px-3 py-1 text-sm"
-              disabled={(data?.page ?? page) <= 1}
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            >
-              Wstecz
-            </button>
-            <button
-              type="button"
-              className="rounded-lg border border-zinc-200 px-3 py-1 text-sm"
+              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm"
               disabled={
-                data ? data.page >= Math.ceil(data.total / data.limit) : false
+                !currentQuery.hasNextPage || currentQuery.isFetchingNextPage
               }
-              onClick={() => setPage((prev) => prev + 1)}
+              onClick={() => currentQuery.fetchNextPage()}
             >
-              Dalej
-            </button>
-            <button
-              type="button"
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-              disabled={!selectedUrl}
-              onClick={handleSelect}
-            >
-              Wybierz
+              {currentQuery.isFetchingNextPage
+                ? "Ładowanie..."
+                : currentQuery.hasNextPage
+                  ? "Załaduj więcej"
+                  : "Brak kolejnych"}
             </button>
           </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 border-t border-zinc-200 px-6 py-4">
+          <button
+            type="button"
+            className="rounded-lg border border-zinc-200 px-4 py-2 text-sm"
+            onClick={onClose}
+          >
+            Anuluj
+          </button>
+          <button
+            type="button"
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            disabled={!selectedItem}
+            onClick={handleSelect}
+          >
+            Wybierz
+          </button>
         </div>
       </div>
     </div>

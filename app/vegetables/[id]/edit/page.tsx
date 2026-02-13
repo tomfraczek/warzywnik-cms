@@ -8,6 +8,8 @@ import { useGetVegetable } from "@/app/api/queries/vegetables/useGetVegetable";
 import { useUpdateVegetable } from "@/app/api/mutations/vegetables/useUpdateVegetable";
 import { useUploadVegetableImage } from "@/app/api/mutations/vegetables/useUploadVegetableImage";
 import { useDeleteVegetableImage } from "@/app/api/mutations/vegetables/useDeleteVegetableImage";
+import { useQueryClient } from "@tanstack/react-query";
+import { vegetableKeys } from "@/app/api/queries/vegetables/useGetVegetables";
 import type { VegetableFormValues } from "@/app/components/VegetableForm";
 import type { CreateVegetablePayload, Vegetable } from "@/app/api/api.types";
 
@@ -53,12 +55,12 @@ const mapVegetableToFormValues = (data: Vegetable): VegetableFormValues => ({
 export default function EditVegetablePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { data, isLoading, error } = useGetVegetable(params?.id);
   const updateMutation = useUpdateVegetable();
   const uploadMutation = useUploadVegetableImage();
   const deleteImageMutation = useDeleteVegetableImage();
-  const adminToken = process.env.NEXT_PUBLIC_ADMIN_TOKEN;
 
   const initialValues = useMemo(
     () => (data ? mapVegetableToFormValues(data) : undefined),
@@ -77,9 +79,12 @@ export default function EditVegetablePage() {
         await uploadMutation.mutateAsync({
           id: data.id,
           file: imageFile,
-          adminToken,
+        });
+        await queryClient.invalidateQueries({
+          queryKey: vegetableKeys.detail(data.id),
         });
       }
+      await queryClient.invalidateQueries({ queryKey: ["vegetables"] });
       router.push(`/vegetables/${result.id}`);
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
@@ -102,7 +107,33 @@ export default function EditVegetablePage() {
 
   const handleDeleteImage = async () => {
     if (!data) return;
-    await deleteImageMutation.mutateAsync({ id: data.id, adminToken });
+    await deleteImageMutation.mutateAsync({ id: data.id });
+    await queryClient.invalidateQueries({
+      queryKey: vegetableKeys.detail(data.id),
+    });
+    await queryClient.invalidateQueries({ queryKey: ["vegetables"] });
+  };
+
+  const handleAssignImageFromLibrary = async (url: string) => {
+    if (!data) return;
+    await updateMutation.mutateAsync({
+      id: data.id,
+      payload: { imageUrl: url },
+    });
+    await queryClient.invalidateQueries({
+      queryKey: vegetableKeys.detail(data.id),
+    });
+    await queryClient.invalidateQueries({ queryKey: ["vegetables"] });
+  };
+
+  const handleUploadImage = async (file: File) => {
+    if (!data) return null;
+    const result = await uploadMutation.mutateAsync({ id: data.id, file });
+    await queryClient.invalidateQueries({
+      queryKey: vegetableKeys.detail(data.id),
+    });
+    await queryClient.invalidateQueries({ queryKey: ["vegetables"] });
+    return result.imageUrl ?? null;
   };
 
   if (isLoading) {
@@ -141,6 +172,8 @@ export default function EditVegetablePage() {
         excludeCompanionId={data.id}
         onDeleteImage={handleDeleteImage}
         isDeletingImage={deleteImageMutation.isPending}
+        onAssignImageFromLibrary={handleAssignImageFromLibrary}
+        onUploadImage={handleUploadImage}
       />
     </section>
   );

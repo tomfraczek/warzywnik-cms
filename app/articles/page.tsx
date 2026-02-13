@@ -64,18 +64,18 @@ const noticeLabels: Record<string, string> = {
 export default function ArticlesPage() {
   const searchParams = useSearchParams();
   const [q, setQ] = useState(() => searchParams?.get("q") ?? "");
-  const [status, setStatus] = useState<ArticleStatus | "">(() =>
-    (searchParams?.get("status") as ArticleStatus | null) ?? "",
+  const [status, setStatus] = useState<ArticleStatus | "">(
+    () => (searchParams?.get("status") as ArticleStatus | null) ?? "",
   );
   const [month, setMonth] = useState<number | "">(() => {
     const value = searchParams?.get("month");
     return value ? Number(value) : "";
   });
-  const [season, setSeason] = useState<ArticleSeason | "">(() =>
-    (searchParams?.get("season") as ArticleSeason | null) ?? "",
+  const [season, setSeason] = useState<ArticleSeason | "">(
+    () => (searchParams?.get("season") as ArticleSeason | null) ?? "",
   );
-  const [context, setContext] = useState<ArticleContext | "">(() =>
-    (searchParams?.get("context") as ArticleContext | null) ?? "",
+  const [context, setContext] = useState<ArticleContext | "">(
+    () => (searchParams?.get("context") as ArticleContext | null) ?? "",
   );
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);

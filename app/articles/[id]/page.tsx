@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { AxiosError } from "axios";
 import { useGetArticle } from "@/app/api/queries/articles/useGetArticle";
@@ -28,13 +29,23 @@ export default function ArticlePreviewPage() {
     return <p className="text-sm text-red-500">Nie udało się pobrać danych.</p>;
   }
 
+  console.log("data", data);
+
   return (
     <section className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
           Podgląd artykułu
         </p>
-        <h1 className="text-3xl font-semibold text-zinc-900">{data.title}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-3xl font-semibold text-zinc-900">{data.title}</h1>
+          <Link
+            className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-900"
+            href={`/articles/${data.id}/edit`}
+          >
+            Edytuj artykuł
+          </Link>
+        </div>
         <div className="text-sm text-zinc-500">
           <span>Status: {data.status}</span>
           <span className="mx-2">•</span>
@@ -58,7 +69,7 @@ export default function ArticlePreviewPage() {
       )}
 
       <article
-        className="prose max-w-none rounded-xl border border-zinc-200 bg-white px-6 py-6"
+        className="article-content max-w-none rounded-xl border border-zinc-200 bg-white px-6 py-6"
         dangerouslySetInnerHTML={{ __html: data.content }}
       />
     </section>

@@ -5,7 +5,8 @@ import type {
   ArticleStatus,
   ArticleSeason,
   ArticleContext,
-  MediaItem,
+  MediaLibraryItem,
+  MediaLibraryResponse,
   CreateDiseasePayload,
   CreatePestPayload,
   CreateVegetablePayload,
@@ -101,37 +102,18 @@ export const deleteVegetable = async (id: string): Promise<void> => {
 export const uploadVegetableImage = async (
   id: string,
   file: File,
-  adminToken?: string,
 ): Promise<Vegetable> => {
   const formData = new FormData();
   formData.append("file", file);
-  const headers: Record<string, string> = {};
-  if (adminToken) {
-    headers["X-Admin-Token"] = adminToken;
-  }
-
   const { data } = await apiClient.post<Vegetable>(
     `/uploads/vegetables/${id}/image`,
     formData,
-    {
-      headers,
-    },
   );
   return data;
 };
 
-export const deleteVegetableImage = async (
-  id: string,
-  adminToken?: string,
-): Promise<void> => {
-  const headers: Record<string, string> = {};
-  if (adminToken) {
-    headers["X-Admin-Token"] = adminToken;
-  }
-
-  await apiClient.delete(`/uploads/vegetables/${id}/image`, {
-    headers,
-  });
+export const deleteVegetableImage = async (id: string): Promise<void> => {
+  await apiClient.delete(`/uploads/vegetables/${id}/image`);
 };
 
 export const getPests = async (
@@ -254,35 +236,44 @@ export const deleteArticle = async (id: string): Promise<void> => {
   await apiClient.delete(`/articles/${id}`);
 };
 
-export type GetMediaLibraryParams = {
-  page?: number;
-  limit?: number;
-  q?: string;
+export const uploadArticleCover = async (
+  id: string,
+  file: File,
+): Promise<Article> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await apiClient.post<Article>(
+    `/uploads/articles/${id}/cover`,
+    formData,
+  );
+  return data;
 };
 
-const mediaLibraryPath = "/media-library";
+export const deleteArticleCover = async (id: string): Promise<void> => {
+  await apiClient.delete(`/uploads/articles/${id}/cover`);
+};
 
-export const getMediaLibrary = async (
+export type GetMediaLibraryParams = {
+  limit?: number;
+  cursor?: string | null;
+};
+
+export const getVegetablesMediaLibrary = async (
   params: GetMediaLibraryParams = {},
-): Promise<ListResponse<MediaItem>> => {
-  const { data } = await apiClient.get<ListResponse<MediaItem>>(
-    mediaLibraryPath,
+): Promise<MediaLibraryResponse> => {
+  const { data } = await apiClient.get<MediaLibraryResponse>(
+    "/media-library/vegetables",
     { params },
   );
   return data;
 };
 
-export const uploadMedia = async (file: File): Promise<MediaItem> => {
-  const formData = new FormData();
-  formData.append("file", file);
-  const { data } = await apiClient.post<MediaItem>(
-    `${mediaLibraryPath}/upload`,
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    },
+export const getArticlesMediaLibrary = async (
+  params: GetMediaLibraryParams = {},
+): Promise<MediaLibraryResponse> => {
+  const { data } = await apiClient.get<MediaLibraryResponse>(
+    "/media-library/articles",
+    { params },
   );
   return data;
 };

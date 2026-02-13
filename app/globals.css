@@ -48,3 +48,65 @@ body {
 .quill-editor .ql-editor {
   min-height: 600px;
 }
+
+.article-content {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #1f2937;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  max-width: 100%;
+}
+
+.article-content * {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.article-content h2 {
+  font-size: 2rem !important;
+  line-height: 1.3 !important;
+  font-weight: 700 !important;
+  margin: 1.25rem 0 0.75rem !important;
+}
+
+.article-content h3 {
+  font-size: 1.5rem !important;
+  line-height: 1.35 !important;
+  font-weight: 600 !important;
+  margin: 1rem 0 0.5rem !important;
+}
+
+.article-content p {
+  margin: 0.75rem 0 !important;
+}
+
+.article-content ul,
+.article-content ol {
+  margin: 0.75rem 0 0.75rem 1.25rem !important;
+  padding: 0 0 0 50px !important;
+  list-style-position: outside;
+}
+
+.article-content ul {
+  list-style: disc !important;
+}
+
+.article-content ol {
+  list-style: decimal !important;
+}
+
+.article-content li {
+  margin: 0.25rem 0 !important;
+}
+
+.article-content a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.article-content a:hover {
+  color: #1d4ed8;
+}

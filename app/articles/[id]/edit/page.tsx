@@ -10,6 +10,9 @@ import {
 } from "@/app/components/ArticleForm";
 import { useGetArticle } from "@/app/api/queries/articles/useGetArticle";
 import { useUpdateArticle } from "@/app/api/mutations/articles/useUpdateArticle";
+import { useUploadArticleCover } from "@/app/api/mutations/articles/useUploadArticleCover";
+import { useDeleteArticleCover } from "@/app/api/mutations/articles/useDeleteArticleCover";
+import { articleKeys } from "@/app/api/queries/articles/useGetArticles";
 import type { Article, CreateArticlePayload } from "@/app/api/api.types";
 
 const mapArticleToFormValues = (data: Article): ArticleFormValues => ({
@@ -38,6 +41,8 @@ export default function EditArticlePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { data, isLoading, error } = useGetArticle(params?.id);
   const updateMutation = useUpdateArticle();
+  const uploadCoverMutation = useUploadArticleCover();
+  const deleteCoverMutation = useDeleteArticleCover();
 
   const initialValues = useMemo(
     () => (data ? mapArticleToFormValues(data) : undefined),
@@ -71,6 +76,61 @@ export default function EditArticlePage() {
     }
   };
 
+  const handleUploadCover = async (file: File) => {
+    if (!data) return null;
+    const result = await uploadCoverMutation.mutateAsync({
+      id: data.id,
+      file,
+    });
+    await queryClient.invalidateQueries({ queryKey: ["articles"] });
+    await queryClient.invalidateQueries({
+      queryKey: articleKeys.detail(data.id),
+    });
+    return result.coverImageUrl ?? null;
+  };
+
+  const handleDeleteCover = async () => {
+    if (!data) return;
+    await deleteCoverMutation.mutateAsync({ id: data.id });
+    await queryClient.invalidateQueries({ queryKey: ["articles"] });
+    await queryClient.invalidateQueries({
+      queryKey: articleKeys.detail(data.id),
+    });
+  };
+
+  const handleAssignCoverFromLibrary = async (url: string) => {
+    if (!data) return;
+    await updateMutation.mutateAsync({
+      id: data.id,
+      payload: { coverImageUrl: url },
+    });
+    await queryClient.invalidateQueries({ queryKey: ["articles"] });
+    await queryClient.invalidateQueries({
+      queryKey: articleKeys.detail(data.id),
+    });
+  };
+
+  const handleUploadContentImage = async (file: File) => {
+    if (!data) return null;
+    const previousCover = data.coverImageUrl ?? null;
+    const result = await uploadCoverMutation.mutateAsync({
+      id: data.id,
+      file,
+    });
+    const url = result.coverImageUrl ?? null;
+    if (previousCover !== result.coverImageUrl) {
+      await updateMutation.mutateAsync({
+        id: data.id,
+        payload: { coverImageUrl: previousCover },
+      });
+    }
+    await queryClient.invalidateQueries({ queryKey: ["articles"] });
+    await queryClient.invalidateQueries({
+      queryKey: articleKeys.detail(data.id),
+    });
+    return url;
+  };
+
   if (isLoading) {
     return <p className="text-sm text-zinc-500">Ładowanie...</p>;
   }
@@ -101,6 +161,10 @@ export default function EditArticlePage() {
         onSubmit={handleSubmit}
         isSubmitting={updateMutation.isPending}
         errorMessage={errorMessage}
+        onUploadCover={handleUploadCover}
+        onDeleteCover={handleDeleteCover}
+        onAssignCoverFromLibrary={handleAssignCoverFromLibrary}
+        onUploadContentImage={handleUploadContentImage}
       />
     </section>
   );

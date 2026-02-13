@@ -3,14 +3,12 @@ import { deleteVegetableImage } from "@/app/api/api.requests";
 
 type DeleteVegetableImageInput = {
   id: string;
-  adminToken?: string;
 };
 
 const deleteVegetableImageMutation = async ({
   id,
-  adminToken,
 }: DeleteVegetableImageInput) => {
-  await deleteVegetableImage(id, adminToken);
+  await deleteVegetableImage(id);
 };
 
 export const useDeleteVegetableImage = () => {

@@ -13,7 +13,6 @@ export default function NewVegetablePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const createMutation = useCreateVegetable();
   const uploadMutation = useUploadVegetableImage();
-  const adminToken = process.env.NEXT_PUBLIC_ADMIN_TOKEN;
 
   const handleSubmit = async (
     payload: CreateVegetablePayload,
@@ -26,7 +25,6 @@ export default function NewVegetablePage() {
         await uploadMutation.mutateAsync({
           id: result.id,
           file: imageFile,
-          adminToken,
         });
       }
       router.push(`/vegetables/${result.id}`);

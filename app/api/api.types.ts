@@ -286,14 +286,18 @@ export type CreateArticlePayload = {
 
 export type UpdateArticlePayload = Partial<CreateArticlePayload>;
 
-export type MediaItem = {
-  id: string;
-  url?: string;
-  publicUrl?: string;
-  cdnUrl?: string;
-  fileName?: string;
-  name?: string;
-  createdAt?: string;
+export type MediaLibraryItem = {
+  key: string;
+  publicUrl: string;
+  fileName: string;
+  size?: number;
+  lastModified?: string;
+};
+
+export type MediaLibraryResponse = {
+  items: MediaLibraryItem[];
+  limit: number;
+  nextCursor?: string | null;
 };
 
 export const articleStatusOptions: ArticleStatus[] = ["DRAFT", "PUBLISHED"];

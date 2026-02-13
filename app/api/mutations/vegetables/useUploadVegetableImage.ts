@@ -5,15 +5,13 @@ import type { Vegetable } from "@/app/api/api.types";
 type UploadVegetableImageInput = {
   id: string;
   file: File;
-  adminToken?: string;
 };
 
 const uploadVegetableImageMutation = async ({
   id,
   file,
-  adminToken,
 }: UploadVegetableImageInput) => {
-  return uploadVegetableImage(id, file, adminToken);
+  return uploadVegetableImage(id, file);
 };
 
 export const useUploadVegetableImage = () => {

@@ -26,6 +26,8 @@ import { useGetPests } from "@/app/api/queries/pests/useGetPests";
 import { useGetDiseases } from "@/app/api/queries/diseases/useGetDiseases";
 import { useGetVegetables } from "@/app/api/queries/vegetables/useGetVegetables";
 import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
+import { MediaLibraryModal } from "@/app/components/MediaLibraryModal";
+import type { MediaLibraryItem } from "@/app/api/api.types";
 
 import {
   sunExposureLabels,
@@ -161,6 +163,8 @@ export type VegetableFormProps = {
   excludeCompanionId?: string | null;
   onDeleteImage?: () => Promise<void>;
   isDeletingImage?: boolean;
+  onAssignImageFromLibrary?: (url: string) => Promise<void> | void;
+  onUploadImage?: (file: File) => Promise<string | null>;
 };
 
 export const VegetableForm = ({
@@ -172,6 +176,8 @@ export const VegetableForm = ({
   excludeCompanionId,
   onDeleteImage,
   isDeletingImage,
+  onAssignImageFromLibrary,
+  onUploadImage,
 }: VegetableFormProps) => {
   const [values, setValues] = useState<VegetableFormValues>({
     ...defaultValues,
@@ -182,6 +188,7 @@ export const VegetableForm = ({
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [imageUrlValid, setImageUrlValid] = useState<boolean | null>(null);
   const [imageUrlChecking, setImageUrlChecking] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -464,6 +471,42 @@ export const VegetableForm = ({
                   validateImageUrl(event.target.value.trim());
               }}
             />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="rounded-lg border border-zinc-200 px-3 py-2 text-xs"
+                onClick={() => setIsLibraryOpen(true)}
+              >
+                Wybierz z biblioteki
+              </button>
+              {onUploadImage && (
+                <label className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-2 text-xs">
+                  Upload
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      if (!file) return;
+                      setClientError(null);
+                      if (!file.type.match(/image\/(jpeg|png|webp)/)) {
+                        setClientError("Dozwolone formaty: JPG, PNG, WEBP.");
+                        return;
+                      }
+                      if (file.size > 5 * 1024 * 1024) {
+                        setClientError("Maksymalny rozmiar pliku to 5 MB.");
+                        return;
+                      }
+                      const url = await onUploadImage(file);
+                      if (url) {
+                        updateValue("imageUrl", url);
+                      }
+                    }}
+                  />
+                </label>
+              )}
+            </div>
             {imageUrlChecking && (
               <span className="text-xs text-zinc-500">
                 Sprawdzanie adresu...
@@ -543,6 +586,21 @@ export const VegetableForm = ({
           />
         </label>
       </section>
+
+      <MediaLibraryModal
+        isOpen={isLibraryOpen}
+        onClose={() => setIsLibraryOpen(false)}
+        initialTab="vegetables"
+        onSelect={async (item: MediaLibraryItem) => {
+          const url = item.publicUrl;
+          if (onAssignImageFromLibrary) {
+            await onAssignImageFromLibrary(url);
+          }
+          updateValue("imageUrl", url);
+          setIsLibraryOpen(false);
+        }}
+        title="Wybierz zdjęcie warzywa"
+      />
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Wymagania</h2>
