@@ -4,6 +4,10 @@ export type WarningCode =
   | "DEPTH_TOO_SMALL"
   | "NPK_TOO_LOW"
   | "ROTATION_RISK"
+  | "FAMILY_REPETITION"
+  | "HARVEST_WINDOW_MISSED"
+  | "SUBOPTIMAL_SOWING_TIME"
+  | "EXPERIMENTAL_SETUP"
   | "WATER_RETENTION_MISMATCH"
   | "DRAINAGE_MISMATCH";
 
@@ -54,6 +58,10 @@ export const warningCodeOptions: WarningCode[] = [
   "ROTATION_RISK",
   "WATER_RETENTION_MISMATCH",
   "DRAINAGE_MISMATCH",
+  "FAMILY_REPETITION",
+  "HARVEST_WINDOW_MISSED",
+  "SUBOPTIMAL_SOWING_TIME",
+  "EXPERIMENTAL_SETUP",
 ];
 
 export const warningSeverityOptions: WarningSeverity[] = [

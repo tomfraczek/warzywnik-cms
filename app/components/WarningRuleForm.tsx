@@ -39,10 +39,14 @@ const codeLabels = {
   SOIL_NOT_RECOMMENDED: "Gleba niezalecana",
   PH_OUT_OF_RANGE: "pH poza zakresem",
   DEPTH_TOO_SMALL: "Zbyt mała głębokość",
-  NPK_TOO_LOW: "Za niski NPK",
+  NPK_TOO_LOW: "Za niski poziom NPK",
   ROTATION_RISK: "Ryzyko płodozmianu",
-  WATER_RETENTION_MISMATCH: "Niedopasowana retencja",
+  WATER_RETENTION_MISMATCH: "Niedopasowana retencja wody",
   DRAINAGE_MISMATCH: "Niedopasowany drenaż",
+  FAMILY_REPETITION: "Powtórzenie tej samej rodziny botanicznej",
+  HARVEST_WINDOW_MISSED: "Przekroczone okno zbioru",
+  SUBOPTIMAL_SOWING_TIME: "Niekorzystny termin siewu",
+  EXPERIMENTAL_SETUP: "Konfiguracja eksperymentalna",
 } as const;
 
 const placeholderTokens = [
@@ -56,6 +60,16 @@ const placeholderTokens = [
   "{nutrient}",
   "{needLevel}",
   "{measuredLevel}",
+  "{deficit}",
+  "{familyName}",
+  "{harvestEndDate}",
+  "{plannedStartDate}",
+  "{sowingStartMonth}",
+  "{sowingEndMonth}",
+  "{direction}",
+  "{directionText}",
+  "{phThreshold}",
+  "{phDelta}",
 ];
 
 const toNumberOrNull = (value: string) => {
@@ -161,11 +175,12 @@ export const WarningRuleForm = ({
               <option value="">Wybierz</option>
               {warningCodeOptions.map((option) => (
                 <option key={option} value={option}>
-                  {codeLabels[option]}
+                  {codeLabels[option] ?? option}
                 </option>
               ))}
             </select>
           </label>
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Ważność</span>
             <select
@@ -188,6 +203,7 @@ export const WarningRuleForm = ({
             </select>
           </label>
         </div>
+
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Tytuł</span>
@@ -198,6 +214,7 @@ export const WarningRuleForm = ({
               required
             />
           </label>
+
           <div className="flex flex-col gap-3 text-sm">
             <label className="flex items-center gap-3">
               <input
@@ -210,6 +227,7 @@ export const WarningRuleForm = ({
               />
               <span className="font-medium">Włączona</span>
             </label>
+
             <label className="flex items-center gap-3">
               <input
                 type="checkbox"
@@ -223,6 +241,7 @@ export const WarningRuleForm = ({
             </label>
           </div>
         </div>
+
         <label className="mt-4 flex flex-col gap-1 text-sm">
           <span className="font-medium">Treść komunikatu</span>
           <textarea
@@ -234,6 +253,7 @@ export const WarningRuleForm = ({
             required
           />
         </label>
+
         <label className="mt-4 flex flex-col gap-1 text-sm">
           <span className="font-medium">Podpowiedź (opcjonalnie)</span>
           <textarea
@@ -244,6 +264,7 @@ export const WarningRuleForm = ({
             }
           />
         </label>
+
         <label className="mt-4 flex flex-col gap-1 text-sm">
           <span className="font-medium">Cooldown (dni)</span>
           <input

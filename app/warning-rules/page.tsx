@@ -13,6 +13,20 @@ const severityLabels = {
   CRITICAL: "Krytyczny",
 } as const;
 
+const codeLabels: Record<string, string> = {
+  SOIL_NOT_RECOMMENDED: "Gleba niezalecana",
+  PH_OUT_OF_RANGE: "pH poza zakresem",
+  DEPTH_TOO_SMALL: "Zbyt mała głębokość",
+  NPK_TOO_LOW: "Za niski poziom NPK",
+  ROTATION_RISK: "Ryzyko płodozmianu",
+  WATER_RETENTION_MISMATCH: "Niedopasowana retencja wody",
+  DRAINAGE_MISMATCH: "Niedopasowany drenaż",
+  FAMILY_REPETITION: "Powtórzenie rodziny botanicznej",
+  HARVEST_WINDOW_MISSED: "Przegapione okno zbioru",
+  SUBOPTIMAL_SOWING_TIME: "Niekorzystny termin siewu",
+  EXPERIMENTAL_SETUP: "Konfiguracja eksperymentalna",
+};
+
 const formatDate = (value: string) => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
@@ -61,6 +75,9 @@ export default function WarningRulesPage() {
       setNotice("Nie udało się usunąć reguły.");
     }
   };
+
+  const totalPages = data ? Math.ceil(data.total / data.limit) : 1;
+  const currentPage = data?.page ?? page;
 
   return (
     <section className="space-y-6">
@@ -159,7 +176,14 @@ export default function WarningRulesPage() {
             )}
             {data?.items.map((item) => (
               <tr key={item.id} className="border-t border-zinc-100">
-                <td className="px-4 py-3 text-zinc-600">{item.code}</td>
+                <td className="px-4 py-3 text-zinc-600">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-zinc-900">
+                      {codeLabels[item.code] ?? item.code}
+                    </span>
+                    <span className="text-xs text-zinc-400">{item.code}</span>
+                  </div>
+                </td>
                 <td className="px-4 py-3 font-medium text-zinc-900">
                   {item.title}
                 </td>
@@ -197,22 +221,19 @@ export default function WarningRulesPage() {
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-zinc-500">
-          Strona {data?.page ?? page} z{" "}
-          {data ? Math.ceil(data.total / data.limit) : 1}
+          Strona {currentPage} z {totalPages}
         </div>
         <div className="flex items-center gap-2">
           <button
             className="rounded-lg border border-zinc-200 px-3 py-1 text-sm"
-            disabled={(data?.page ?? page) <= 1}
+            disabled={currentPage <= 1}
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
           >
             Wstecz
           </button>
           <button
             className="rounded-lg border border-zinc-200 px-3 py-1 text-sm"
-            disabled={
-              data ? data.page >= Math.ceil(data.total / data.limit) : false
-            }
+            disabled={data ? data.page >= totalPages : false}
             onClick={() => setPage((prev) => prev + 1)}
           >
             Dalej
@@ -220,7 +241,10 @@ export default function WarningRulesPage() {
           <select
             className="rounded-lg border border-zinc-200 px-2 py-1 text-sm"
             value={limit}
-            onChange={(event) => setLimit(Number(event.target.value))}
+            onChange={(event) => {
+              setPage(1);
+              setLimit(Number(event.target.value));
+            }}
           >
             {[10, 20, 50, 100].map((value) => (
               <option key={value} value={value}>
