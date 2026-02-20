@@ -207,14 +207,14 @@ export const ReferenceForm = ({
         </label>
 
         <div className="mt-4 space-y-2 text-sm">
-          <p className="font-medium">Recommended actions</p>
+          <p className="font-medium">Rekomendowane zabiegi</p>
           <p className="text-xs text-zinc-500">
             Szukaj i przypisz szablony zabiegów (limit 20 wyników).
           </p>
 
           <input
             className="w-full rounded-lg border border-zinc-200 px-3 py-2"
-            placeholder="Szukaj action templates po nazwie lub slug"
+            placeholder="Szukaj szablonów zabiegów po nazwie lub slug"
             value={actionTemplateQuery}
             onChange={(event) => setActionTemplateQuery(event.target.value)}
           />

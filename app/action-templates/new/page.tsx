@@ -28,7 +28,7 @@ export default function NewActionTemplatePage() {
           return;
         }
       }
-      setErrorMessage("Nie udało się zapisać template.");
+      setErrorMessage("Nie udało się zapisać szablonu.");
     }
   };
 
@@ -36,13 +36,15 @@ export default function NewActionTemplatePage() {
     <section className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Action templates
+          Szablony zabiegów
         </p>
-        <h1 className="text-3xl font-semibold text-zinc-900">Nowy template</h1>
+        <h1 className="text-3xl font-semibold text-zinc-900">
+          Nowy szablon zabiegu
+        </h1>
       </header>
 
       <ActionTemplateForm
-        submitLabel="Utwórz template"
+        submitLabel="Utwórz szablon"
         onSubmit={handleSubmit}
         isSubmitting={createMutation.isPending}
         errorMessage={errorMessage}

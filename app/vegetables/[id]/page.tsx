@@ -319,6 +319,24 @@ export default function VegetableDetailsPage() {
 
         <section className="rounded-xl border border-zinc-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-zinc-900">
+            Zabiegi po zbiorach
+          </h2>
+          <div className="mt-4 space-y-2 text-sm text-zinc-600">
+            {data.postHarvestActions?.length ? (
+              data.postHarvestActions.map((item) => (
+                <p key={item.id}>
+                  <span className="font-medium text-zinc-900">{item.name}</span>{" "}
+                  <span className="text-zinc-500">({item.type})</span>
+                </p>
+              ))
+            ) : (
+              <p className="text-sm text-zinc-500">Brak danych.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-zinc-900">
             Etapy nawożenia
           </h2>
           <div className="mt-4 space-y-3 text-sm text-zinc-600">

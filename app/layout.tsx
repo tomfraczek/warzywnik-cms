@@ -78,7 +78,7 @@ export default function RootLayout({
                     className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
                     href="/action-templates"
                   >
-                    Action templates
+                    Szablony zabiegów
                   </Link>
                   <Link
                     className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100"

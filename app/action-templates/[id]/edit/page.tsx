@@ -52,7 +52,7 @@ export default function EditActionTemplatePage() {
           return;
         }
         if (err.response.status === 404) {
-          setErrorMessage("Nie znaleziono template.");
+          setErrorMessage("Nie znaleziono szablonu zabiegu.");
           return;
         }
       }
@@ -65,7 +65,9 @@ export default function EditActionTemplatePage() {
   }
 
   if (error instanceof AxiosError && error.response?.status === 404) {
-    return <p className="text-sm text-red-500">Nie znaleziono template.</p>;
+    return (
+      <p className="text-sm text-red-500">Nie znaleziono szablonu zabiegu.</p>
+    );
   }
 
   if (error) {
@@ -80,10 +82,10 @@ export default function EditActionTemplatePage() {
     <section className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Action templates
+          Szablony zabiegów
         </p>
         <h1 className="text-3xl font-semibold text-zinc-900">
-          Edytuj template
+          Edytuj szablon zabiegu
         </h1>
       </header>
 

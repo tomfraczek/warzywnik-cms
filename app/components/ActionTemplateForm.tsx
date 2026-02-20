@@ -83,7 +83,7 @@ export const ActionTemplateForm = ({
 
     const offsetDays = Number(values.defaultDueOffsetDays);
     if (Number.isNaN(offsetDays) || offsetDays < 0) {
-      setClientError("defaultDueOffsetDays musi być liczbą >= 0.");
+      setClientError("Opóźnienie terminu musi być liczbą >= 0.");
       return;
     }
 
@@ -122,7 +122,7 @@ export const ActionTemplateForm = ({
           </label>
 
           <label className="flex flex-col gap-2 text-sm">
-            Target
+            Zakres
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.target}
@@ -142,7 +142,7 @@ export const ActionTemplateForm = ({
           </label>
 
           <label className="flex flex-col gap-2 text-sm">
-            Type
+            Typ
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.type}
@@ -162,7 +162,7 @@ export const ActionTemplateForm = ({
           </label>
 
           <label className="flex flex-col gap-2 text-sm md:col-span-2">
-            defaultDueOffsetDays
+            Opóźnienie terminu (dni)
             <input
               type="number"
               min={0}

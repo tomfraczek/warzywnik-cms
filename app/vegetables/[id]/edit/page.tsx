@@ -46,6 +46,10 @@ const mapVegetableToFormValues = (data: Vegetable): VegetableFormValues => ({
       ...stage,
       timing: stage.timing || "",
     })) ?? [],
+  postHarvestActionTemplateIds:
+    data.postHarvestActions?.map((item) => item.id) ??
+    data.postHarvestActionTemplateIds ??
+    [],
   commonPestIds: data.commonPests.map((pest) => pest.id),
   commonDiseaseIds: data.commonDiseases.map((disease) => disease.id),
   goodCompanionIds: data.goodCompanions.map((companion) => companion.id),
@@ -165,6 +169,7 @@ export default function EditVegetablePage() {
       </header>
       <VegetableForm
         initialValues={initialValues}
+        initialPostHarvestActions={data.postHarvestActions ?? []}
         submitLabel="Zapisz zmiany"
         onSubmit={handleSubmit}
         isSubmitting={updateMutation.isPending || uploadMutation.isPending}

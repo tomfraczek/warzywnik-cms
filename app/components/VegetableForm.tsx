@@ -9,6 +9,8 @@ import {
 } from "react";
 import Image from "next/image";
 import type {
+  ActionTemplate,
+  ActionTemplateRef,
   CreateVegetablePayload,
   FertilizationStage,
   Month,
@@ -26,6 +28,8 @@ import { useGetPests } from "@/app/api/queries/pests/useGetPests";
 import { useGetDiseases } from "@/app/api/queries/diseases/useGetDiseases";
 import { useGetVegetables } from "@/app/api/queries/vegetables/useGetVegetables";
 import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
+import { useGetActionTemplates } from "@/app/api/queries/action-templates/useGetActionTemplates";
+import { useGetActionTemplatesByIds } from "@/app/api/queries/action-templates/useGetActionTemplatesByIds";
 import { MediaLibraryModal } from "@/app/components/MediaLibraryModal";
 import type { MediaLibraryItem } from "@/app/api/api.types";
 
@@ -76,6 +80,7 @@ export type VegetableFormValues = {
   fertilizationStages: Array<
     Omit<FertilizationStage, "timing"> & { timing: string }
   >;
+  postHarvestActionTemplateIds: string[];
   commonPestIds: string[];
   commonDiseaseIds: string[];
   goodCompanionIds: string[];
@@ -148,6 +153,7 @@ const defaultValues: VegetableFormValues = {
   harvestEndMonth: "",
   harvestSigns: "",
   fertilizationStages: [],
+  postHarvestActionTemplateIds: [],
   commonPestIds: [],
   commonDiseaseIds: [],
   goodCompanionIds: [],
@@ -156,6 +162,7 @@ const defaultValues: VegetableFormValues = {
 
 export type VegetableFormProps = {
   initialValues?: Partial<VegetableFormValues>;
+  initialPostHarvestActions?: ActionTemplateRef[];
   onSubmit: (payload: CreateVegetablePayload, imageFile: File | null) => void;
   submitLabel: string;
   isSubmitting?: boolean;
@@ -169,6 +176,7 @@ export type VegetableFormProps = {
 
 export const VegetableForm = ({
   initialValues,
+  initialPostHarvestActions,
   onSubmit,
   submitLabel,
   isSubmitting,
@@ -189,6 +197,9 @@ export const VegetableForm = ({
   const [imageUrlValid, setImageUrlValid] = useState<boolean | null>(null);
   const [imageUrlChecking, setImageUrlChecking] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [actionTemplateQuery, setActionTemplateQuery] = useState("");
+  const [debouncedActionTemplateQuery, setDebouncedActionTemplateQuery] =
+    useState("");
 
   useEffect(() => {
     return () => {
@@ -198,11 +209,28 @@ export const VegetableForm = ({
     };
   }, [imagePreviewUrl]);
 
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedActionTemplateQuery(actionTemplateQuery.trim());
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [actionTemplateQuery]);
+
   const listParams = useMemo(() => ({ page: 1, limit: 100 }), []);
   const { data: pestsData } = useGetPests(listParams);
   const { data: diseasesData } = useGetDiseases(listParams);
   const { data: vegetablesData } = useGetVegetables(listParams);
   const { data: soilsData, isLoading: soilsLoading } = useGetSoils(listParams);
+  const { data: actionTemplatesData, isFetching: actionTemplatesFetching } =
+    useGetActionTemplates({
+      page: 1,
+      limit: 20,
+      q: debouncedActionTemplateQuery || undefined,
+    });
+  const { data: selectedActionTemplateDetails } = useGetActionTemplatesByIds(
+    values.postHarvestActionTemplateIds,
+  );
 
   const companionOptions = useMemo(() => {
     const items = vegetablesData?.items ?? [];
@@ -211,6 +239,36 @@ export const VegetableForm = ({
     }
     return items.filter((item) => item.id !== excludeCompanionId);
   }, [vegetablesData, excludeCompanionId]);
+
+  const selectedActionTemplateMap = useMemo(() => {
+    const map = new Map<string, ActionTemplateRef>();
+
+    (initialPostHarvestActions ?? []).forEach((item) => {
+      map.set(item.id, item);
+    });
+
+    (selectedActionTemplateDetails ?? []).forEach((item: ActionTemplate) => {
+      map.set(item.id, {
+        id: item.id,
+        name: item.name,
+        type: item.type,
+      });
+    });
+
+    (actionTemplatesData?.items ?? []).forEach((item) => {
+      map.set(item.id, {
+        id: item.id,
+        name: item.name,
+        type: item.type,
+      });
+    });
+
+    return map;
+  }, [
+    actionTemplatesData?.items,
+    initialPostHarvestActions,
+    selectedActionTemplateDetails,
+  ]);
 
   const isValidUrl = (url: string) => {
     try {
@@ -304,6 +362,15 @@ export const VegetableForm = ({
       return;
     }
 
+    if (
+      values.postHarvestActionTemplateIds.some(
+        (templateId) => !isUuid(templateId),
+      )
+    ) {
+      setClientError("Każda akcja po zbiorach musi mieć poprawny UUID.");
+      return;
+    }
+
     const minSoilDepthCm = toNumberOrNull(values.minSoilDepthCm);
     if (minSoilDepthCm !== null && minSoilDepthCm < 0) {
       setClientError("Minimalna głębokość gleby nie może być ujemna.");
@@ -351,6 +418,7 @@ export const VegetableForm = ({
       harvestEndMonth: values.harvestEndMonth || null,
       harvestSigns: toOptionalString(values.harvestSigns),
       fertilizationStages,
+      postHarvestActionTemplateIds: values.postHarvestActionTemplateIds,
       commonPestIds: values.commonPestIds,
       commonDiseaseIds: values.commonDiseaseIds,
       goodCompanionIds: values.goodCompanionIds,
@@ -1179,6 +1247,76 @@ export const VegetableForm = ({
               disabled={!values.successionSowing}
             />
           </label>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-zinc-200 bg-white p-6">
+        <h2 className="text-lg font-semibold text-zinc-900">
+          Zabiegi po zbiorach
+        </h2>
+        <p className="mt-2 text-xs text-zinc-500">
+          Szukaj i przypisz szablony zabiegów wykonywanych po zbiorze.
+        </p>
+
+        <div className="mt-4 space-y-2">
+          <input
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+            placeholder="Szukaj szablonów zabiegów po nazwie lub slug"
+            value={actionTemplateQuery}
+            onChange={(event) => setActionTemplateQuery(event.target.value)}
+          />
+
+          <div className="max-h-56 overflow-auto rounded-lg border border-zinc-200 p-2">
+            {(actionTemplatesData?.items ?? []).map((item) => (
+              <label
+                key={item.id}
+                className="flex items-center gap-2 px-1 py-1 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  checked={values.postHarvestActionTemplateIds.includes(
+                    item.id,
+                  )}
+                  onChange={() =>
+                    updateValue(
+                      "postHarvestActionTemplateIds",
+                      toggleSelection(
+                        values.postHarvestActionTemplateIds,
+                        item.id,
+                      ),
+                    )
+                  }
+                />
+                <span className="text-zinc-800">{item.name}</span>
+                <span className="text-xs text-zinc-500">({item.type})</span>
+              </label>
+            ))}
+
+            {actionTemplatesFetching && (
+              <p className="px-1 py-1 text-xs text-zinc-500">Ładowanie...</p>
+            )}
+
+            {!actionTemplatesFetching &&
+              (actionTemplatesData?.items.length ?? 0) === 0 && (
+                <p className="px-1 py-1 text-xs text-zinc-500">Brak wyników.</p>
+              )}
+          </div>
+
+          {values.postHarvestActionTemplateIds.length > 0 && (
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
+              <p className="mb-2 font-medium">Wybrane:</p>
+              <ul className="space-y-1">
+                {values.postHarvestActionTemplateIds.map((id) => {
+                  const template = selectedActionTemplateMap.get(id);
+                  return (
+                    <li key={id}>
+                      {template ? `${template.name} (${template.type})` : id}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       </section>
 

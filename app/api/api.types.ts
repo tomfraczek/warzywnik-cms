@@ -98,6 +98,8 @@ export type Vegetable = {
   harvestEndMonth: Month | null;
   harvestSigns: string | null;
   fertilizationStages: FertilizationStage[] | null;
+  postHarvestActions: ActionTemplateRef[];
+  postHarvestActionTemplateIds?: string[];
   commonPests: MiniRef[];
   commonDiseases: MiniRef[];
   goodCompanions: MiniRef[];
@@ -180,6 +182,7 @@ export type CreateVegetablePayload = {
   harvestEndMonth?: Month | null;
   harvestSigns?: string | null;
   fertilizationStages?: FertilizationStage[] | null;
+  postHarvestActionTemplateIds?: string[];
   commonPestIds?: string[];
   commonDiseaseIds?: string[];
   goodCompanionIds?: string[];

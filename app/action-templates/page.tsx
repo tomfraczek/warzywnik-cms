@@ -22,16 +22,16 @@ export default function ActionTemplatesPage() {
   const deleteMutation = useDeleteActionTemplate();
 
   const handleDelete = async (id: string) => {
-    const confirmed = window.confirm("Czy na pewno usunąć template zabiegu?");
+    const confirmed = window.confirm("Czy na pewno usunąć szablon zabiegu?");
     if (!confirmed) return;
 
     setNotice(null);
     try {
       await deleteMutation.mutateAsync({ id });
       await queryClient.invalidateQueries({ queryKey: ["action-templates"] });
-      setNotice("Template został usunięty.");
+      setNotice("Szablon został usunięty.");
     } catch {
-      setNotice("Nie udało się usunąć template.");
+      setNotice("Nie udało się usunąć szablonu.");
     }
   };
 
@@ -39,17 +39,17 @@ export default function ActionTemplatesPage() {
     <section className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Action templates
+          Szablony zabiegów
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-3xl font-semibold text-zinc-900">
-            Lista action templates
+            Lista szablonów zabiegów
           </h1>
           <Link
             className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
             href="/action-templates/new"
           >
-            Dodaj template
+            Dodaj szablon
           </Link>
         </div>
       </header>
@@ -73,12 +73,12 @@ export default function ActionTemplatesPage() {
         <table className="w-full text-left text-sm">
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-400">
             <tr>
-              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Nazwa</th>
               <th className="px-4 py-3">Slug</th>
-              <th className="px-4 py-3">Target</th>
-              <th className="px-4 py-3">Type</th>
-              <th className="px-4 py-3">defaultDueOffsetDays</th>
-              <th className="px-4 py-3">updatedAt</th>
+              <th className="px-4 py-3">Zakres</th>
+              <th className="px-4 py-3">Typ</th>
+              <th className="px-4 py-3">Opóźnienie terminu (dni)</th>
+              <th className="px-4 py-3">Aktualizacja</th>
               <th className="px-4 py-3 text-right">Akcje</th>
             </tr>
           </thead>
@@ -100,7 +100,7 @@ export default function ActionTemplatesPage() {
             {!isLoading && data?.items.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-zinc-500" colSpan={7}>
-                  Brak templatek zabiegów.
+                  Brak szablonów zabiegów.
                 </td>
               </tr>
             )}
@@ -124,20 +124,20 @@ export default function ActionTemplatesPage() {
                       className="text-zinc-600 hover:text-zinc-900"
                       href={`/action-templates/${item.id}`}
                     >
-                      View
+                      Podgląd
                     </Link>
                     <Link
                       className="text-zinc-600 hover:text-zinc-900"
                       href={`/action-templates/${item.id}/edit`}
                     >
-                      Edit
+                      Edytuj
                     </Link>
                     <button
                       type="button"
                       className="text-red-500"
                       onClick={() => handleDelete(item.id)}
                     >
-                      Delete
+                      Usuń
                     </button>
                   </div>
                 </td>

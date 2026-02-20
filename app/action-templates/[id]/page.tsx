@@ -14,7 +14,7 @@ export default function ActionTemplateDetailsPage() {
 
   const handleDelete = async () => {
     if (!data) return;
-    const confirmed = window.confirm("Czy na pewno usunąć template zabiegu?");
+    const confirmed = window.confirm("Czy na pewno usunąć szablon zabiegu?");
     if (!confirmed) return;
 
     await deleteMutation.mutateAsync({ id: data.id });
@@ -29,7 +29,9 @@ export default function ActionTemplateDetailsPage() {
   }
 
   if (notFound) {
-    return <p className="text-sm text-red-500">Nie znaleziono template.</p>;
+    return (
+      <p className="text-sm text-red-500">Nie znaleziono szablonu zabiegu.</p>
+    );
   }
 
   if (error) {
@@ -44,7 +46,7 @@ export default function ActionTemplateDetailsPage() {
     <section className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Action templates
+          Szablony zabiegów
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-3xl font-semibold text-zinc-900">{data.name}</h1>
@@ -69,15 +71,15 @@ export default function ActionTemplateDetailsPage() {
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6 space-y-2 text-sm text-zinc-600">
         <p>
-          <span className="font-medium text-zinc-900">Target:</span>{" "}
+          <span className="font-medium text-zinc-900">Zakres:</span>{" "}
           {data.target}
         </p>
         <p>
-          <span className="font-medium text-zinc-900">Type:</span> {data.type}
+          <span className="font-medium text-zinc-900">Typ:</span> {data.type}
         </p>
         <p>
           <span className="font-medium text-zinc-900">
-            defaultDueOffsetDays:
+            Opóźnienie terminu (dni):
           </span>{" "}
           {data.defaultDueOffsetDays}
         </p>
