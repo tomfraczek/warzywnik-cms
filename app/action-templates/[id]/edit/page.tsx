@@ -3,43 +3,44 @@
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AxiosError } from "axios";
-import { ReferenceForm } from "@/app/components/ReferenceForm";
-import { useGetDisease } from "@/app/api/queries/diseases/useGetDisease";
-import { useUpdateDisease } from "@/app/api/mutations/diseases/useUpdateDisease";
-import type { ReferenceFormValues } from "@/app/components/ReferenceForm";
-import type { CreateDiseasePayload, Disease } from "@/app/api/api.types";
+import { ActionTemplateForm } from "@/app/components/ActionTemplateForm";
+import { useGetActionTemplate } from "@/app/api/queries/action-templates/useGetActionTemplate";
+import { useUpdateActionTemplate } from "@/app/api/mutations/action-templates/useUpdateActionTemplate";
+import type { ActionTemplateFormValues } from "@/app/components/ActionTemplateForm";
+import type {
+  ActionTemplate,
+  CreateActionTemplatePayload,
+} from "@/app/api/api.types";
 
-const mapDiseaseToFormValues = (data: Disease): ReferenceFormValues => ({
+const mapActionTemplateToFormValues = (
+  data: ActionTemplate,
+): ActionTemplateFormValues => ({
   slug: data.slug,
   name: data.name,
-  description: data.description,
-  symptoms: data.symptoms || "",
-  prevention: data.prevention || "",
-  treatment: data.treatment || "",
-  recommendedActionTemplateIds:
-    data.recommendedActions?.map((item) => item.id) ??
-    data.recommendedActionTemplateIds ??
-    [],
+  target: data.target,
+  type: data.type,
+  defaultDueOffsetDays: data.defaultDueOffsetDays.toString(),
+  description: data.description || "",
 });
 
-export default function EditDiseasePage() {
+export default function EditActionTemplatePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { data, isLoading, error } = useGetDisease(params?.id);
-  const updateMutation = useUpdateDisease();
+  const { data, isLoading, error } = useGetActionTemplate(params?.id);
+  const updateMutation = useUpdateActionTemplate();
 
   const initialValues = useMemo(
-    () => (data ? mapDiseaseToFormValues(data) : undefined),
+    () => (data ? mapActionTemplateToFormValues(data) : undefined),
     [data],
   );
 
-  const handleSubmit = async (payload: CreateDiseasePayload) => {
+  const handleSubmit = async (payload: CreateActionTemplatePayload) => {
     if (!data) return;
     setErrorMessage(null);
     try {
       const result = await updateMutation.mutateAsync({ id: data.id, payload });
-      router.push(`/diseases/${result.id}`);
+      router.push(`/action-templates/${result.id}`);
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
         if (err.response.status === 409) {
@@ -51,7 +52,7 @@ export default function EditDiseasePage() {
           return;
         }
         if (err.response.status === 404) {
-          setErrorMessage("Nie znaleziono choroby.");
+          setErrorMessage("Nie znaleziono template.");
           return;
         }
       }
@@ -64,7 +65,7 @@ export default function EditDiseasePage() {
   }
 
   if (error instanceof AxiosError && error.response?.status === 404) {
-    return <p className="text-sm text-red-500">Nie znaleziono choroby.</p>;
+    return <p className="text-sm text-red-500">Nie znaleziono template.</p>;
   }
 
   if (error) {
@@ -79,13 +80,15 @@ export default function EditDiseasePage() {
     <section className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Choroby
+          Action templates
         </p>
-        <h1 className="text-3xl font-semibold text-zinc-900">Edytuj chorobę</h1>
+        <h1 className="text-3xl font-semibold text-zinc-900">
+          Edytuj template
+        </h1>
       </header>
-      <ReferenceForm
+
+      <ActionTemplateForm
         initialValues={initialValues}
-        initialRecommendedActions={data.recommendedActions ?? []}
         submitLabel="Zapisz zmiany"
         onSubmit={handleSubmit}
         isSubmitting={updateMutation.isPending}

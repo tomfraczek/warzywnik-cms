@@ -1,5 +1,7 @@
 import { apiClient, unwrapData } from "@/app/api/axios";
 import type {
+  ActionTemplate,
+  ActionTemplateListItem,
   Article,
   ArticleListItem,
   ArticleStatus,
@@ -8,12 +10,14 @@ import type {
   MediaLibraryResponse,
   CreateDiseasePayload,
   CreatePestPayload,
+  CreateActionTemplatePayload,
   CreateVegetablePayload,
   Disease,
   ListResponse,
   Pest,
   CreateArticlePayload,
   UpdateArticlePayload,
+  UpdateActionTemplatePayload,
   UpdateDiseasePayload,
   UpdatePestPayload,
   UpdateVegetablePayload,
@@ -185,6 +189,51 @@ export const updateDisease = async (
 
 export const deleteDisease = async (id: string): Promise<void> => {
   await apiClient.delete(`/diseases/${id}`);
+};
+
+export const getActionTemplates = async (
+  params: { page?: number; limit?: number; q?: string } = {},
+): Promise<ListResponse<ActionTemplateListItem>> => {
+  const { data } = await apiClient.get<ListResponse<ActionTemplateListItem>>(
+    "/action-templates",
+    { params },
+  );
+  return data;
+};
+
+export const getActionTemplate = async (
+  id: string,
+): Promise<ActionTemplate> => {
+  const { data } = await apiClient.get<ActionTemplate>(
+    `/action-templates/${id}`,
+  );
+  return data;
+};
+
+export const createActionTemplate = async (
+  payload: CreateActionTemplatePayload,
+): Promise<ActionTemplate> => {
+  const { data } = await apiClient.post<ActionTemplate>(
+    "/action-templates",
+    payload,
+  );
+  return data;
+};
+
+export const updateActionTemplate = async (
+  id: string,
+  payload: UpdateActionTemplatePayload,
+): Promise<ActionTemplate> => {
+  const normalizedPayload = normalizePatchPayload(payload);
+  const { data } = await apiClient.patch<ActionTemplate>(
+    `/action-templates/${id}`,
+    normalizedPayload,
+  );
+  return data;
+};
+
+export const deleteActionTemplate = async (id: string): Promise<void> => {
+  await apiClient.delete(`/action-templates/${id}`);
 };
 
 export type GetArticlesParams = {

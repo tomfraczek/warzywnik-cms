@@ -52,6 +52,30 @@ export type MiniRef = {
   name: string;
 };
 
+export type ActionTemplateTarget = "bed" | "planting";
+export type ActionTemplateType = string;
+
+export type ActionTemplateRef = {
+  id: string;
+  name: string;
+  type: ActionTemplateType;
+};
+
+export type ActionTemplateListItem = {
+  id: string;
+  slug: string;
+  name: string;
+  target: ActionTemplateTarget;
+  type: ActionTemplateType;
+  defaultDueOffsetDays: number;
+  updatedAt: string;
+};
+
+export type ActionTemplate = ActionTemplateListItem & {
+  description: string | null;
+  createdAt: string;
+};
+
 export type Vegetable = {
   id: string;
   slug: string;
@@ -108,6 +132,8 @@ export type Pest = {
   symptoms: string | null;
   prevention: string | null;
   treatment: string | null;
+  recommendedActions: ActionTemplateRef[];
+  recommendedActionTemplateIds?: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -120,6 +146,8 @@ export type Disease = {
   symptoms: string | null;
   prevention: string | null;
   treatment: string | null;
+  recommendedActions: ActionTemplateRef[];
+  recommendedActionTemplateIds?: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -167,6 +195,7 @@ export type CreatePestPayload = {
   symptoms?: string | null;
   prevention?: string | null;
   treatment?: string | null;
+  recommendedActionTemplateIds?: string[];
 };
 
 export type UpdatePestPayload = Partial<CreatePestPayload>;
@@ -178,7 +207,19 @@ export type CreateDiseasePayload = {
   symptoms?: string | null;
   prevention?: string | null;
   treatment?: string | null;
+  recommendedActionTemplateIds?: string[];
 };
+
+export type CreateActionTemplatePayload = {
+  slug: string;
+  name: string;
+  target: ActionTemplateTarget;
+  type: ActionTemplateType;
+  defaultDueOffsetDays: number;
+  description?: string | null;
+};
+
+export type UpdateActionTemplatePayload = Partial<CreateActionTemplatePayload>;
 
 export type UpdateDiseasePayload = Partial<CreateDiseasePayload>;
 
@@ -222,6 +263,20 @@ export const dominantNutrientDemandOptions: DominantNutrientDemand[] = [
   "P",
   "K",
   "BALANCED",
+];
+
+export const actionTemplateTargetOptions: ActionTemplateTarget[] = [
+  "bed",
+  "planting",
+];
+
+export const actionTemplateTypeOptions: ActionTemplateType[] = [
+  "spray",
+  "fertilization",
+  "watering",
+  "manual",
+  "monitoring",
+  "other",
 ];
 
 export type ArticleStatus = "DRAFT" | "PUBLISHED";

@@ -16,6 +16,10 @@ const mapPestToFormValues = (data: Pest): ReferenceFormValues => ({
   symptoms: data.symptoms || "",
   prevention: data.prevention || "",
   treatment: data.treatment || "",
+  recommendedActionTemplateIds:
+    data.recommendedActions?.map((item) => item.id) ??
+    data.recommendedActionTemplateIds ??
+    [],
 });
 
 export default function EditPestPage() {
@@ -83,6 +87,7 @@ export default function EditPestPage() {
       </header>
       <ReferenceForm
         initialValues={initialValues}
+        initialRecommendedActions={data.recommendedActions ?? []}
         submitLabel="Zapisz zmiany"
         onSubmit={handleSubmit}
         isSubmitting={updateMutation.isPending}

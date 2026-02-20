@@ -84,6 +84,16 @@ export default function DiseaseDetailsPage() {
           <span className="font-medium text-zinc-900">Leczenie:</span>{" "}
           {data.treatment || "-"}
         </p>
+        <p>
+          <span className="font-medium text-zinc-900">
+            Recommended actions:
+          </span>{" "}
+          {data.recommendedActions?.length
+            ? data.recommendedActions
+                .map((item) => `${item.name} (${item.type})`)
+                .join(", ")
+            : "-"}
+        </p>
       </section>
     </section>
   );

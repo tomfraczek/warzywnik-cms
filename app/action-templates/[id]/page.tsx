@@ -3,22 +3,22 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AxiosError } from "axios";
-import { useGetPest } from "@/app/api/queries/pests/useGetPest";
-import { useDeletePest } from "@/app/api/mutations/pests/useDeletePest";
+import { useGetActionTemplate } from "@/app/api/queries/action-templates/useGetActionTemplate";
+import { useDeleteActionTemplate } from "@/app/api/mutations/action-templates/useDeleteActionTemplate";
 
-export default function PestDetailsPage() {
+export default function ActionTemplateDetailsPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const { data, isLoading, error } = useGetPest(params?.id);
-  const deleteMutation = useDeletePest();
+  const { data, isLoading, error } = useGetActionTemplate(params?.id);
+  const deleteMutation = useDeleteActionTemplate();
 
   const handleDelete = async () => {
     if (!data) return;
-    const confirmed = window.confirm("Czy na pewno usunąć szkodnika?");
+    const confirmed = window.confirm("Czy na pewno usunąć template zabiegu?");
     if (!confirmed) return;
 
     await deleteMutation.mutateAsync({ id: data.id });
-    router.push("/pests");
+    router.push("/action-templates");
   };
 
   const notFound =
@@ -29,7 +29,7 @@ export default function PestDetailsPage() {
   }
 
   if (notFound) {
-    return <p className="text-sm text-red-500">Nie znaleziono szkodnika.</p>;
+    return <p className="text-sm text-red-500">Nie znaleziono template.</p>;
   }
 
   if (error) {
@@ -44,14 +44,14 @@ export default function PestDetailsPage() {
     <section className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Szkodniki
+          Action templates
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-3xl font-semibold text-zinc-900">{data.name}</h1>
           <div className="flex items-center gap-3">
             <Link
               className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium"
-              href={`/pests/${data.id}/edit`}
+              href={`/action-templates/${data.id}/edit`}
             >
               Edytuj
             </Link>
@@ -69,30 +69,21 @@ export default function PestDetailsPage() {
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6 space-y-2 text-sm text-zinc-600">
         <p>
-          <span className="font-medium text-zinc-900">Opis:</span>{" "}
-          {data.description}
+          <span className="font-medium text-zinc-900">Target:</span>{" "}
+          {data.target}
         </p>
         <p>
-          <span className="font-medium text-zinc-900">Objawy:</span>{" "}
-          {data.symptoms || "-"}
-        </p>
-        <p>
-          <span className="font-medium text-zinc-900">Zapobieganie:</span>{" "}
-          {data.prevention || "-"}
-        </p>
-        <p>
-          <span className="font-medium text-zinc-900">Leczenie:</span>{" "}
-          {data.treatment || "-"}
+          <span className="font-medium text-zinc-900">Type:</span> {data.type}
         </p>
         <p>
           <span className="font-medium text-zinc-900">
-            Recommended actions:
+            defaultDueOffsetDays:
           </span>{" "}
-          {data.recommendedActions?.length
-            ? data.recommendedActions
-                .map((item) => `${item.name} (${item.type})`)
-                .join(", ")
-            : "-"}
+          {data.defaultDueOffsetDays}
+        </p>
+        <p>
+          <span className="font-medium text-zinc-900">Opis:</span>{" "}
+          {data.description || "-"}
         </p>
       </section>
     </section>
