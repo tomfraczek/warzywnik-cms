@@ -137,7 +137,7 @@ export default function ArticlesClient() {
       <div className="grid gap-4 rounded-xl border border-zinc-200 bg-white p-4 md:grid-cols-5">
         <input
           className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-          placeholder="Szukaj po tytule lub slug"
+          placeholder="Szukaj po tytule"
           value={q}
           onChange={(event) => setQ(event.target.value)}
         />
@@ -210,7 +210,6 @@ export default function ArticlesClient() {
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-400">
             <tr>
               <th className="px-4 py-3">Title</th>
-              <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Priority</th>
               <th className="px-4 py-3">Published</th>
@@ -221,21 +220,21 @@ export default function ArticlesClient() {
           <tbody>
             {isLoading && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={7}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={6}>
                   Ładowanie...
                 </td>
               </tr>
             )}
             {error && (
               <tr>
-                <td className="px-4 py-6 text-red-500" colSpan={7}>
+                <td className="px-4 py-6 text-red-500" colSpan={6}>
                   Nie udało się pobrać listy.
                 </td>
               </tr>
             )}
             {!isLoading && data?.items.length === 0 && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={7}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={6}>
                   Brak artykułów.
                 </td>
               </tr>
@@ -245,7 +244,6 @@ export default function ArticlesClient() {
                 <td className="px-4 py-3 font-medium text-zinc-900">
                   {item.title}
                 </td>
-                <td className="px-4 py-3 text-zinc-500">{item.slug}</td>
                 <td className="px-4 py-3 text-zinc-500">{item.status}</td>
                 <td className="px-4 py-3 text-zinc-500">{item.priority}</td>
                 <td className="px-4 py-3 text-zinc-500">

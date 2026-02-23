@@ -14,7 +14,6 @@ import type { VegetableFormValues } from "@/app/components/VegetableForm";
 import type { CreateVegetablePayload, Vegetable } from "@/app/api/api.types";
 
 const mapVegetableToFormValues = (data: Vegetable): VegetableFormValues => ({
-  slug: data.slug,
   name: data.name,
   description: data.description,
   latinName: data.latinName || "",
@@ -106,7 +105,7 @@ export default function EditVegetablePage() {
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
         if (err.response.status === 409) {
-          setErrorMessage("Slug jest zajęty");
+          setErrorMessage("Rekord o tej nazwie już istnieje.");
           return;
         }
         if (err.response.status === 400) {

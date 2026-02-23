@@ -10,7 +10,6 @@ import type { ReferenceFormValues } from "@/app/components/ReferenceForm";
 import type { CreatePestPayload, Pest } from "@/app/api/api.types";
 
 const mapPestToFormValues = (data: Pest): ReferenceFormValues => ({
-  slug: data.slug,
   name: data.name,
   description: data.description,
   symptoms: data.symptoms || "",
@@ -43,7 +42,7 @@ export default function EditPestPage() {
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
         if (err.response.status === 409) {
-          setErrorMessage("Slug jest zajęty");
+          setErrorMessage("Rekord o tej nazwie już istnieje.");
           return;
         }
         if (err.response.status === 400) {

@@ -48,7 +48,6 @@ import {
 } from "../utils/labels";
 
 export type VegetableFormValues = {
-  slug: string;
   name: string;
   description: string;
   latinName: string;
@@ -139,8 +138,6 @@ const isUuid = (value: string) =>
     value,
   );
 
-const isLowercaseSlug = (value: string) => /^[a-z0-9-]{2,}$/.test(value);
-
 const parseInteger = (value: string) => {
   if (value.trim() === "") {
     return null;
@@ -155,7 +152,6 @@ const parseInteger = (value: string) => {
 };
 
 const defaultValues: VegetableFormValues = {
-  slug: "",
   name: "",
   description: "",
   latinName: "",
@@ -338,10 +334,6 @@ export const VegetableForm = ({
     setClientError(null);
 
     try {
-      if (!isLowercaseSlug(values.slug)) {
-        setClientError("Slug musi mieć min 2 znaki i tylko a-z0-9-.");
-        return;
-      }
       if (values.name.trim().length < 2) {
         setClientError("Nazwa musi mieć co najmniej 2 znaki.");
         return;
@@ -488,7 +480,6 @@ export const VegetableForm = ({
         : null;
 
       const payload: CreateVegetablePayload = {
-        slug: values.slug.trim(),
         name: values.name.trim(),
         description: values.description.trim(),
         latinName: toOptionalString(values.latinName),
@@ -585,20 +576,6 @@ export const VegetableForm = ({
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Podstawy</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Slug</span>
-            <span className="text-xs text-zinc-500">
-              Unikalny identyfikator techniczny używany w URL i jako klucz w
-              API. Tylko małe litery, cyfry i myślniki.
-            </span>
-            <input
-              className="rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.slug}
-              onChange={(event) => updateValue("slug", event.target.value)}
-              required
-            />
-          </label>
-
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Nazwa</span>
             <span className="text-xs text-zinc-500">
@@ -1361,7 +1338,7 @@ export const VegetableForm = ({
         <div className="mt-4 space-y-2">
           <input
             className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-            placeholder="Szukaj szablonów zabiegów po nazwie lub slug"
+            placeholder="Szukaj szablonów zabiegów po nazwie"
             value={actionTemplateQuery}
             onChange={(event) => setActionTemplateQuery(event.target.value)}
           />

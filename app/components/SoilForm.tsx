@@ -10,7 +10,6 @@ import {
 } from "@/app/soils/api/api.types";
 
 export type SoilFormValues = {
-  slug: string;
   name: string;
   description: string;
   soilType: CreateSoilPayload["soilType"] | "";
@@ -55,7 +54,6 @@ const drainageLevelLabels = {
 } as const;
 
 const defaultValues: SoilFormValues = {
-  slug: "",
   name: "",
   description: "",
   soilType: "",
@@ -69,8 +67,6 @@ const defaultValues: SoilFormValues = {
   disadvantages: [],
   improvementTips: [],
 };
-
-const isLowercaseSlug = (value: string) => /^[a-z0-9-]{2,}$/.test(value);
 
 const toNumberOrNull = (value: string) => {
   if (value.trim() === "") {
@@ -141,10 +137,6 @@ export const SoilForm = ({
     event.preventDefault();
     setClientError(null);
 
-    if (!isLowercaseSlug(values.slug)) {
-      setClientError("Slug musi mieć min 2 znaki i tylko a-z0-9-.");
-      return;
-    }
     if (values.name.trim().length < 2) {
       setClientError("Nazwa musi mieć co najmniej 2 znaki.");
       return;
@@ -182,7 +174,6 @@ export const SoilForm = ({
     }
 
     const payload: CreateSoilPayload = {
-      slug: values.slug.trim(),
       name: values.name.trim(),
       description: values.description.trim(),
       soilType: values.soilType,
@@ -205,19 +196,6 @@ export const SoilForm = ({
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Podstawy</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Slug</span>
-            <span className="text-xs text-zinc-500">
-              Unikalny identyfikator techniczny używany w URL i API. Tylko małe
-              litery, cyfry i myślniki (np. „gleba-piaszczysta”).
-            </span>
-            <input
-              className="rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.slug}
-              onChange={(event) => updateValue("slug", event.target.value)}
-              required
-            />
-          </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Nazwa</span>
             <span className="text-xs text-zinc-500">

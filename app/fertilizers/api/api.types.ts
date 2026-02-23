@@ -42,7 +42,6 @@ export type FertilizerRecommendedFrequency =
 
 export type FertilizerType = {
   id: string;
-  slug: string;
   name: string;
   description: string;
   category: FertilizerCategory;
@@ -66,7 +65,6 @@ export type FertilizerType = {
 
 export type FertilizerListItem = {
   id: string;
-  slug: string;
   name: string;
   category: FertilizerCategory;
   isActive: boolean;

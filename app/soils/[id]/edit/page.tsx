@@ -10,7 +10,6 @@ import type { SoilFormValues } from "@/app/components/SoilForm";
 import type { CreateSoilPayload, Soil } from "@/app/soils/api/api.types";
 
 const mapSoilToFormValues = (data: Soil): SoilFormValues => ({
-  slug: data.slug,
   name: data.name,
   description: data.description,
   soilType: data.soilType,
@@ -46,7 +45,7 @@ export default function EditSoilPage() {
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
         if (err.response.status === 409) {
-          setErrorMessage("Slug jest zajęty");
+          setErrorMessage("Rekord o tej nazwie już istnieje.");
           return;
         }
         if (err.response.status === 400) {

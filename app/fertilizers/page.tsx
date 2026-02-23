@@ -78,7 +78,7 @@ export default function FertilizersPage() {
       <div className="grid gap-4 rounded-xl border border-zinc-200 bg-white p-4 md:grid-cols-3">
         <input
           className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-          placeholder="Szukaj po nazwie lub slug"
+          placeholder="Szukaj po nazwie"
           value={q}
           onChange={(event) => setQ(event.target.value)}
         />
@@ -122,7 +122,6 @@ export default function FertilizersPage() {
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-400">
             <tr>
               <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Kategoria</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3 text-right">Akcje</th>
@@ -131,21 +130,21 @@ export default function FertilizersPage() {
           <tbody>
             {isLoading && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={5}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={4}>
                   Ładowanie...
                 </td>
               </tr>
             )}
             {error && (
               <tr>
-                <td className="px-4 py-6 text-red-500" colSpan={5}>
+                <td className="px-4 py-6 text-red-500" colSpan={4}>
                   Nie udało się pobrać listy.
                 </td>
               </tr>
             )}
             {!isLoading && data?.items.length === 0 && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={5}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={4}>
                   Brak nawozów.
                 </td>
               </tr>
@@ -155,7 +154,6 @@ export default function FertilizersPage() {
                 <td className="px-4 py-3 font-medium text-zinc-900">
                   {item.name}
                 </td>
-                <td className="px-4 py-3 text-zinc-500">{item.slug}</td>
                 <td className="px-4 py-3 text-zinc-500">
                   {categoryLabels[item.category]}
                 </td>

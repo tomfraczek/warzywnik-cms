@@ -15,7 +15,6 @@ import type {
 const mapFertilizerToFormValues = (
   data: FertilizerType,
 ): FertilizerFormValues => ({
-  slug: data.slug,
   name: data.name,
   description: data.description,
   category: data.category,
@@ -59,7 +58,7 @@ export default function EditFertilizerPage() {
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
         if (err.response.status === 409) {
-          setErrorMessage("Slug jest zajęty");
+          setErrorMessage("Rekord o tej nazwie już istnieje.");
           return;
         }
         if (err.response.status === 400) {

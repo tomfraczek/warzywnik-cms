@@ -27,10 +27,10 @@ export const getFertilizers = async (
 };
 
 export const getFertilizer = async (
-  idOrSlug: string,
+  id: string,
 ): Promise<FertilizerType> => {
   const { data } = await apiClient.get<FertilizerType>(
-    `/fertilizers/${idOrSlug}`,
+    `/fertilizers/${id}`,
   );
   return data;
 };

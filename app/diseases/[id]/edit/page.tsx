@@ -10,7 +10,6 @@ import type { ReferenceFormValues } from "@/app/components/ReferenceForm";
 import type { CreateDiseasePayload, Disease } from "@/app/api/api.types";
 
 const mapDiseaseToFormValues = (data: Disease): ReferenceFormValues => ({
-  slug: data.slug,
   name: data.name,
   description: data.description,
   symptoms: data.symptoms || "",
@@ -43,7 +42,7 @@ export default function EditDiseasePage() {
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
         if (err.response.status === 409) {
-          setErrorMessage("Slug jest zajęty");
+          setErrorMessage("Rekord o tej nazwie już istnieje.");
           return;
         }
         if (err.response.status === 400) {

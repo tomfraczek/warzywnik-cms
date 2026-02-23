@@ -10,8 +10,7 @@ export const actionTemplateKeys = {
     q?: string;
     scope?: ActionTemplateScope;
   }) => [...actionTemplateKeys.all, params] as const,
-  detail: (idOrSlug: string) =>
-    [...actionTemplateKeys.all, "detail", idOrSlug] as const,
+  detail: (id: string) => [...actionTemplateKeys.all, "detail", id] as const,
 };
 
 const fetchActionTemplates =

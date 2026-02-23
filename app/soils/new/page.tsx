@@ -20,7 +20,7 @@ export default function NewSoilPage() {
     } catch (error) {
       if (error instanceof AxiosError && error.response) {
         if (error.response.status === 409) {
-          setErrorMessage("Slug jest zajęty");
+          setErrorMessage("Rekord o tej nazwie już istnieje.");
           return;
         }
         if (error.response.status === 400) {

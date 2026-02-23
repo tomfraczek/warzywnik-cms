@@ -15,7 +15,6 @@ import type {
 const mapActionTemplateToFormValues = (
   data: ActionTemplate,
 ): ActionTemplateFormValues => ({
-  slug: data.slug,
   name: data.name,
   scope: data.scope ?? data.target ?? "bed",
   type: data.type,
@@ -44,7 +43,7 @@ export default function EditActionTemplatePage() {
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
         if (err.response.status === 409) {
-          setErrorMessage("Slug jest zajęty");
+          setErrorMessage("Rekord o tej nazwie już istnieje.");
           return;
         }
         if (err.response.status === 400) {

@@ -17,7 +17,6 @@ import type { Article, CreateArticlePayload } from "@/app/api/api.types";
 
 const mapArticleToFormValues = (data: Article): ArticleFormValues => ({
   title: data.title,
-  slug: data.slug,
   excerpt: data.excerpt,
   content: data.content,
   coverImageUrl: data.coverImageUrl ?? "",
@@ -60,7 +59,7 @@ export default function EditArticlePage() {
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
         if (err.response.status === 409) {
-          setErrorMessage("Slug jest zajęty.");
+          setErrorMessage("Rekord o tej nazwie już istnieje.");
           return;
         }
         if (err.response.status === 400) {

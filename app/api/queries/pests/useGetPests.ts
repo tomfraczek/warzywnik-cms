@@ -5,7 +5,7 @@ export const pestKeys = {
   all: ["pests"] as const,
   list: (params: { page?: number; limit?: number; q?: string }) =>
     [...pestKeys.all, params] as const,
-  detail: (idOrSlug: string) => [...pestKeys.all, "detail", idOrSlug] as const,
+  detail: (id: string) => [...pestKeys.all, "detail", id] as const,
 };
 
 const fetchPests = (params: { page?: number; limit?: number; q?: string }) =>

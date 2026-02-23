@@ -48,7 +48,6 @@ export type FertilizationStage = {
 
 export type MiniRef = {
   id: string;
-  slug: string;
   name: string;
 };
 
@@ -89,7 +88,6 @@ export type ActionTemplateRef = {
 
 export type ActionTemplateListItem = {
   id: string;
-  slug: string;
   name: string;
   scope: ActionTemplateScope;
   target?: ActionTemplateScope;
@@ -105,7 +103,6 @@ export type ActionTemplate = ActionTemplateListItem & {
 
 export type Vegetable = {
   id: string;
-  slug: string;
   name: string;
   latinName: string | null;
   imageUrl: string | null;
@@ -139,7 +136,6 @@ export type Vegetable = {
 
 export type VegetableListItem = {
   id: string;
-  slug: string;
   name: string;
   latinName: string | null;
   imageUrl: string | null;
@@ -157,7 +153,6 @@ export type DiseaseListItem = MiniRef;
 
 export type Pest = {
   id: string;
-  slug: string;
   name: string;
   description: string;
   symptoms: string | null;
@@ -171,7 +166,6 @@ export type Pest = {
 
 export type Disease = {
   id: string;
-  slug: string;
   name: string;
   description: string;
   symptoms: string | null;
@@ -191,7 +185,6 @@ export type ListResponse<T> = {
 };
 
 export type CreateVegetablePayload = {
-  slug: string;
   name: string;
   description: string;
   latinName?: string | null;
@@ -222,7 +215,6 @@ export type CreateVegetablePayload = {
 export type UpdateVegetablePayload = Partial<CreateVegetablePayload>;
 
 export type CreatePestPayload = {
-  slug: string;
   name: string;
   description: string;
   symptoms?: string | null;
@@ -234,7 +226,6 @@ export type CreatePestPayload = {
 export type UpdatePestPayload = Partial<CreatePestPayload>;
 
 export type CreateDiseasePayload = {
-  slug: string;
   name: string;
   description: string;
   symptoms?: string | null;
@@ -244,7 +235,6 @@ export type CreateDiseasePayload = {
 };
 
 export type CreateActionTemplatePayload = {
-  slug: string;
   name: string;
   scope: ActionTemplateScope;
   type: ActionTemplateType;
@@ -346,7 +336,6 @@ export type ArticleContext =
 
 export type ArticleListItem = {
   id: string;
-  slug: string;
   title: string;
   status: ArticleStatus;
   priority: number;
@@ -356,7 +345,6 @@ export type ArticleListItem = {
 
 export type Article = {
   id: string;
-  slug: string;
   title: string;
   excerpt: string;
   content: string;
@@ -378,7 +366,6 @@ export type Article = {
 
 export type CreateArticlePayload = {
   title: string;
-  slug: string;
   excerpt: string;
   content: string;
   coverImageUrl?: string | null;

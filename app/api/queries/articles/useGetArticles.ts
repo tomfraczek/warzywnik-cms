@@ -5,8 +5,7 @@ import { getArticles } from "@/app/api/api.requests";
 export const articleKeys = {
   all: ["articles"] as const,
   list: (params: GetArticlesParams) => [...articleKeys.all, params] as const,
-  detail: (idOrSlug: string) =>
-    [...articleKeys.all, "detail", idOrSlug] as const,
+  detail: (id: string) => [...articleKeys.all, "detail", id] as const,
 };
 
 const fetchArticles = (params: GetArticlesParams) => async () => {

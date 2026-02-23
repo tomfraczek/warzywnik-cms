@@ -55,7 +55,7 @@ export default function DiseasesPage() {
       <div className="rounded-xl border border-zinc-200 bg-white p-4">
         <input
           className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-          placeholder="Szukaj po nazwie lub slug"
+          placeholder="Szukaj po nazwie"
           value={q}
           onChange={(event) => setQ(event.target.value)}
         />
@@ -72,28 +72,27 @@ export default function DiseasesPage() {
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-400">
             <tr>
               <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3 text-right">Akcje</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={3}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={2}>
                   Ładowanie...
                 </td>
               </tr>
             )}
             {error && (
               <tr>
-                <td className="px-4 py-6 text-red-500" colSpan={3}>
+                <td className="px-4 py-6 text-red-500" colSpan={2}>
                   Nie udało się pobrać listy.
                 </td>
               </tr>
             )}
             {!isLoading && data?.items.length === 0 && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={3}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={2}>
                   Brak chorób.
                 </td>
               </tr>
@@ -103,7 +102,6 @@ export default function DiseasesPage() {
                 <td className="px-4 py-3 font-medium text-zinc-900">
                   {item.name}
                 </td>
-                <td className="px-4 py-3 text-zinc-500">{item.slug}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-3 text-xs font-medium">
                     <Link

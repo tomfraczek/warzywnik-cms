@@ -11,7 +11,6 @@ import { useGetActionTemplates } from "@/app/api/queries/action-templates/useGet
 import { useGetActionTemplatesByIds } from "@/app/api/queries/action-templates/useGetActionTemplatesByIds";
 
 export type ReferenceFormValues = {
-  slug: string;
   name: string;
   description: string;
   symptoms: string;
@@ -21,7 +20,6 @@ export type ReferenceFormValues = {
 };
 
 const defaultValues: ReferenceFormValues = {
-  slug: "",
   name: "",
   description: "",
   symptoms: "",
@@ -29,8 +27,6 @@ const defaultValues: ReferenceFormValues = {
   treatment: "",
   recommendedActionTemplateIds: [],
 };
-
-const isLowercaseSlug = (value: string) => /^[a-z0-9-]{2,}$/.test(value);
 
 export type ReferenceFormProps = {
   initialValues?: Partial<ReferenceFormValues>;
@@ -116,10 +112,6 @@ export const ReferenceForm = ({
     event.preventDefault();
     setClientError(null);
 
-    if (!isLowercaseSlug(values.slug)) {
-      setClientError("Slug musi mieć min 2 znaki i tylko a-z0-9-.");
-      return;
-    }
     if (values.name.trim().length < 2) {
       setClientError("Nazwa musi mieć co najmniej 2 znaki.");
       return;
@@ -130,7 +122,6 @@ export const ReferenceForm = ({
     }
 
     onSubmit({
-      slug: values.slug.trim(),
       name: values.name.trim(),
       description: values.description.trim(),
       symptoms: values.symptoms.trim() || null,
@@ -153,15 +144,6 @@ export const ReferenceForm = ({
     <form className="space-y-6" onSubmit={handleSubmit}>
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-2 text-sm">
-            Slug
-            <input
-              className="rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.slug}
-              onChange={(event) => updateValue("slug", event.target.value)}
-              required
-            />
-          </label>
           <label className="flex flex-col gap-2 text-sm">
             Nazwa
             <input
@@ -214,7 +196,7 @@ export const ReferenceForm = ({
 
           <input
             className="w-full rounded-lg border border-zinc-200 px-3 py-2"
-            placeholder="Szukaj szablonów zabiegów po nazwie lub slug"
+            placeholder="Szukaj szablonów zabiegów po nazwie"
             value={actionTemplateQuery}
             onChange={(event) => setActionTemplateQuery(event.target.value)}
           />

@@ -8,7 +8,6 @@ import {
 } from "@/app/api/api.types";
 
 export type ActionTemplateFormValues = {
-  slug: string;
   name: string;
   scope: CreateActionTemplatePayload["scope"];
   type: CreateActionTemplatePayload["type"];
@@ -17,15 +16,12 @@ export type ActionTemplateFormValues = {
 };
 
 const defaultValues: ActionTemplateFormValues = {
-  slug: "",
   name: "",
   scope: "bed",
   type: actionTemplateTypeOptions[0] ?? "other",
   defaultDueOffsetDays: "",
   description: "",
 };
-
-const isLowercaseSlug = (value: string) => /^[a-z0-9-]{2,}$/.test(value);
 
 const scopeLabels: Record<CreateActionTemplatePayload["scope"], string> = {
   bed: "Grządka",
@@ -71,11 +67,6 @@ export const ActionTemplateForm = ({
     event.preventDefault();
     setClientError(null);
 
-    if (!isLowercaseSlug(values.slug)) {
-      setClientError("Slug musi mieć min 2 znaki i tylko a-z0-9-.");
-      return;
-    }
-
     if (values.name.trim().length < 2) {
       setClientError("Nazwa musi mieć co najmniej 2 znaki.");
       return;
@@ -94,7 +85,6 @@ export const ActionTemplateForm = ({
     }
 
     onSubmit({
-      slug: values.slug.trim(),
       name: values.name.trim(),
       scope: values.scope,
       type: values.type,
@@ -107,16 +97,6 @@ export const ActionTemplateForm = ({
     <form className="space-y-6" onSubmit={handleSubmit}>
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-2 text-sm">
-            Slug
-            <input
-              className="rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.slug}
-              onChange={(event) => updateValue("slug", event.target.value)}
-              required
-            />
-          </label>
-
           <label className="flex flex-col gap-2 text-sm">
             Nazwa
             <input

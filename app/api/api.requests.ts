@@ -122,9 +122,9 @@ export const deleteVegetableImage = async (id: string): Promise<void> => {
 
 export const getPests = async (
   params: { page?: number; limit?: number; q?: string } = {},
-): Promise<ListResponse<{ id: string; slug: string; name: string }>> => {
+): Promise<ListResponse<{ id: string; name: string }>> => {
   const { data } = await apiClient.get<
-    ListResponse<{ id: string; slug: string; name: string }>
+    ListResponse<{ id: string; name: string }>
   >("/pests", { params });
   return data;
 };
@@ -157,9 +157,9 @@ export const deletePest = async (id: string): Promise<void> => {
 
 export const getDiseases = async (
   params: { page?: number; limit?: number; q?: string } = {},
-): Promise<ListResponse<{ id: string; slug: string; name: string }>> => {
+): Promise<ListResponse<{ id: string; name: string }>> => {
   const { data } = await apiClient.get<
-    ListResponse<{ id: string; slug: string; name: string }>
+    ListResponse<{ id: string; name: string }>
   >("/diseases", { params });
   return data;
 };
@@ -262,8 +262,8 @@ export const getArticles = async (
   return data;
 };
 
-export const getArticle = async (idOrSlug: string): Promise<Article> => {
-  const { data } = await apiClient.get<Article>(`/articles/${idOrSlug}`);
+export const getArticle = async (id: string): Promise<Article> => {
+  const { data } = await apiClient.get<Article>(`/articles/${id}`);
   return data;
 };
 

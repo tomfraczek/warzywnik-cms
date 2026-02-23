@@ -23,7 +23,6 @@ import { AxiosError } from "axios";
 
 export type ArticleFormValues = {
   title: string;
-  slug: string;
   excerpt: string;
   content: string;
   coverImageUrl: string;
@@ -42,7 +41,6 @@ export type ArticleFormValues = {
 
 const defaultValues: ArticleFormValues = {
   title: "",
-  slug: "",
   excerpt: "",
   content: "",
   coverImageUrl: "",
@@ -93,19 +91,6 @@ const contextLabels: Record<ArticleContext, string> = {
 const statusLabels: Record<ArticleStatus, string> = {
   DRAFT: "Szkic",
   PUBLISHED: "Opublikowany",
-};
-
-const isLowercaseSlug = (value: string) => /^[a-z0-9-]{2,}$/.test(value);
-
-const slugify = (value: string) => {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
 };
 
 const isValidUrl = (value: string) => {
@@ -258,7 +243,6 @@ export const ArticleForm = ({
     content: legacyContent.html,
   });
   const [clientError, setClientError] = useState<string | null>(null);
-  const [slugTouched, setSlugTouched] = useState(false);
   const [isCoverLibraryOpen, setIsCoverLibraryOpen] = useState(false);
   const [isContentEmpty, setIsContentEmpty] = useState(() =>
     isHtmlEmpty(legacyContent.html),
@@ -305,9 +289,6 @@ export const ArticleForm = ({
 
   const handleTitleChange = (value: string) => {
     updateValue("title", value);
-    if (!slugTouched) {
-      updateValue("slug", slugify(value));
-    }
   };
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -316,10 +297,6 @@ export const ArticleForm = ({
 
     if (values.title.trim().length < 1) {
       setClientError("Tytuł jest wymagany.");
-      return;
-    }
-    if (!isLowercaseSlug(values.slug.trim())) {
-      setClientError("Slug musi mieć min 2 znaki i tylko a-z0-9-.");
       return;
     }
     if (values.excerpt.trim().length < 1) {
@@ -351,7 +328,6 @@ export const ArticleForm = ({
 
     const payload: CreateArticlePayload = {
       title: values.title.trim(),
-      slug: values.slug.trim(),
       excerpt: values.excerpt.trim(),
       content: values.content.trim(),
       coverImageUrl: values.coverImageUrl.trim() || null,
@@ -384,22 +360,6 @@ export const ArticleForm = ({
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.title}
               onChange={(event) => handleTitleChange(event.target.value)}
-              required
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Slug</span>
-            <span className="text-xs text-zinc-500">
-              Unikalny identyfikator techniczny. Tylko małe litery, cyfry i
-              myślniki.
-            </span>
-            <input
-              className="rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.slug}
-              onChange={(event) => {
-                setSlugTouched(true);
-                updateValue("slug", event.target.value);
-              }}
               required
             />
           </label>

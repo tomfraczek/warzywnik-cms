@@ -2,14 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { getFertilizer } from "@/app/fertilizers/api/api.requests";
 import { fertilizerKeys } from "@/app/api/queries/fertilizers/useGetFertilizers";
 
-const fetchFertilizer = (idOrSlug: string) => async () => {
-  return getFertilizer(idOrSlug);
+const fetchFertilizer = (id: string) => async () => {
+  return getFertilizer(id);
 };
 
-export const useGetFertilizer = (idOrSlug?: string) => {
+export const useGetFertilizer = (id?: string) => {
   return useQuery({
-    queryKey: fertilizerKeys.detail(idOrSlug || ""),
-    queryFn: fetchFertilizer(idOrSlug || ""),
-    enabled: Boolean(idOrSlug),
+    queryKey: fertilizerKeys.detail(id || ""),
+    queryFn: fetchFertilizer(id || ""),
+    enabled: Boolean(id),
   });
 };

@@ -6,8 +6,7 @@ export const fertilizerKeys = {
   all: ["fertilizers"] as const,
   list: (params: GetFertilizersParams) =>
     [...fertilizerKeys.all, params] as const,
-  detail: (idOrSlug: string) =>
-    [...fertilizerKeys.all, "detail", idOrSlug] as const,
+  detail: (id: string) => [...fertilizerKeys.all, "detail", id] as const,
 };
 
 const fetchFertilizers = (params: GetFertilizersParams) => async () => {

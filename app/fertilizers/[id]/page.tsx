@@ -74,7 +74,6 @@ export default function FertilizerDetailsPage() {
           </div>
         </div>
 
-        <p className="text-base text-zinc-600">Slug: {data.slug}</p>
       </header>
 
       <div className="grid gap-6 md:grid-cols-2">

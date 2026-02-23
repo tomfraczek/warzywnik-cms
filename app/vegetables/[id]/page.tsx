@@ -128,7 +128,6 @@ export default function VegetableDetailsPage() {
               </button>
             </div>
           </div>
-          <p className="text-base text-zinc-600">Slug: {data.slug}</p>
         </header>
 
         <section className="rounded-xl border border-zinc-200 bg-white p-6">

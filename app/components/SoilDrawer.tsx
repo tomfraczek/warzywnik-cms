@@ -72,9 +72,6 @@ export const SoilDrawer = ({ soilId, onClose }: SoilDrawerProps) => {
             <h3 className="mt-1 text-xl font-semibold text-zinc-900">
               {isLoading ? "Ładowanie..." : (soil?.name ?? "Gleba")}
             </h3>
-            {soil?.slug ? (
-              <p className="mt-1 text-sm text-zinc-600">Slug: {soil.slug}</p>
-            ) : null}
           </div>
 
           <button
