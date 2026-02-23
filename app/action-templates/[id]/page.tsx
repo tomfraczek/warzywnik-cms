@@ -72,7 +72,7 @@ export default function ActionTemplateDetailsPage() {
       <section className="rounded-xl border border-zinc-200 bg-white p-6 space-y-2 text-sm text-zinc-600">
         <p>
           <span className="font-medium text-zinc-900">Zakres:</span>{" "}
-          {data.target}
+          {data.scope ?? data.target ?? "-"}
         </p>
         <p>
           <span className="font-medium text-zinc-900">Typ:</span> {data.type}
@@ -81,7 +81,7 @@ export default function ActionTemplateDetailsPage() {
           <span className="font-medium text-zinc-900">
             Opóźnienie terminu (dni):
           </span>{" "}
-          {data.defaultDueOffsetDays}
+          {data.defaultDueOffsetDays ?? "-"}
         </p>
         <p>
           <span className="font-medium text-zinc-900">Opis:</span>{" "}

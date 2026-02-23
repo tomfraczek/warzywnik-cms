@@ -110,10 +110,12 @@ export default function ActionTemplatesPage() {
                   {item.name}
                 </td>
                 <td className="px-4 py-3 text-zinc-500">{item.slug}</td>
-                <td className="px-4 py-3 text-zinc-500">{item.target}</td>
+                <td className="px-4 py-3 text-zinc-500">
+                  {item.scope ?? item.target ?? "-"}
+                </td>
                 <td className="px-4 py-3 text-zinc-500">{item.type}</td>
                 <td className="px-4 py-3 text-zinc-500">
-                  {item.defaultDueOffsetDays}
+                  {item.defaultDueOffsetDays ?? "-"}
                 </td>
                 <td className="px-4 py-3 text-zinc-500">
                   {new Date(item.updatedAt).toLocaleString()}

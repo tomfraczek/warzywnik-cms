@@ -50,6 +50,19 @@ const mapVegetableToFormValues = (data: Vegetable): VegetableFormValues => ({
     data.postHarvestActions?.map((item) => item.id) ??
     data.postHarvestActionTemplateIds ??
     [],
+  actionRules:
+    data.actionRules?.map((rule, index) => ({
+      uid: rule.id ?? `${data.id}-rule-${index}`,
+      actionTemplateId: rule.actionTemplateId,
+      trigger: rule.trigger,
+      offsetDays: rule.offsetDays.toString(),
+      schedule: rule.schedule,
+      everyNDays: rule.everyNDays?.toString() ?? "",
+      occurrencesLimit: rule.occurrencesLimit?.toString() ?? "",
+      applyIfStartMethod: rule.applyIfStartMethod ?? [],
+      enabled: rule.enabled,
+    })) ?? [],
+  rulesVersion: data.rulesVersion?.toString() ?? "",
   commonPestIds: data.commonPests.map((pest) => pest.id),
   commonDiseaseIds: data.commonDiseases.map((disease) => disease.id),
   goodCompanionIds: data.goodCompanions.map((companion) => companion.id),

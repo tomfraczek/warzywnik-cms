@@ -25,6 +25,7 @@ import type {
   VegetableListResponse,
   DemandLevel,
   SunExposure,
+  ActionTemplateScope,
 } from "@/app/api/api.types";
 
 export type GetVegetablesParams = {
@@ -192,7 +193,12 @@ export const deleteDisease = async (id: string): Promise<void> => {
 };
 
 export const getActionTemplates = async (
-  params: { page?: number; limit?: number; q?: string } = {},
+  params: {
+    page?: number;
+    limit?: number;
+    q?: string;
+    scope?: ActionTemplateScope;
+  } = {},
 ): Promise<ListResponse<ActionTemplateListItem>> => {
   const { data } = await apiClient.get<ListResponse<ActionTemplateListItem>>(
     "/action-templates",

@@ -3,14 +3,14 @@
 import { useState } from "react";
 import type { CreateActionTemplatePayload } from "@/app/api/api.types";
 import {
-  actionTemplateTargetOptions,
+  actionTemplateScopeOptions,
   actionTemplateTypeOptions,
 } from "@/app/api/api.types";
 
 export type ActionTemplateFormValues = {
   slug: string;
   name: string;
-  target: CreateActionTemplatePayload["target"];
+  scope: CreateActionTemplatePayload["scope"];
   type: CreateActionTemplatePayload["type"];
   defaultDueOffsetDays: string;
   description: string;
@@ -19,15 +19,15 @@ export type ActionTemplateFormValues = {
 const defaultValues: ActionTemplateFormValues = {
   slug: "",
   name: "",
-  target: "bed",
+  scope: "bed",
   type: actionTemplateTypeOptions[0] ?? "other",
-  defaultDueOffsetDays: "0",
+  defaultDueOffsetDays: "",
   description: "",
 };
 
 const isLowercaseSlug = (value: string) => /^[a-z0-9-]{2,}$/.test(value);
 
-const targetLabels: Record<CreateActionTemplatePayload["target"], string> = {
+const scopeLabels: Record<CreateActionTemplatePayload["scope"], string> = {
   bed: "Grządka",
   planting: "Nasadzenie",
 };
@@ -81,16 +81,22 @@ export const ActionTemplateForm = ({
       return;
     }
 
-    const offsetDays = Number(values.defaultDueOffsetDays);
-    if (Number.isNaN(offsetDays) || offsetDays < 0) {
-      setClientError("Opóźnienie terminu musi być liczbą >= 0.");
-      return;
+    const trimmedOffset = values.defaultDueOffsetDays.trim();
+    let offsetDays: number | null = null;
+
+    if (trimmedOffset !== "") {
+      const parsedOffset = Number(trimmedOffset);
+      if (!Number.isInteger(parsedOffset) || parsedOffset < 0) {
+        setClientError("Opóźnienie terminu musi być liczbą całkowitą >= 0.");
+        return;
+      }
+      offsetDays = parsedOffset;
     }
 
     onSubmit({
       slug: values.slug.trim(),
       name: values.name.trim(),
-      target: values.target,
+      scope: values.scope,
       type: values.type,
       defaultDueOffsetDays: offsetDays,
       description: values.description.trim() || null,
@@ -125,17 +131,17 @@ export const ActionTemplateForm = ({
             Zakres
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.target}
+              value={values.scope}
               onChange={(event) =>
                 updateValue(
-                  "target",
-                  event.target.value as ActionTemplateFormValues["target"],
+                  "scope",
+                  event.target.value as ActionTemplateFormValues["scope"],
                 )
               }
             >
-              {actionTemplateTargetOptions.map((option) => (
+              {actionTemplateScopeOptions.map((option) => (
                 <option key={option} value={option}>
-                  {targetLabels[option] ?? option}
+                  {scopeLabels[option] ?? option}
                 </option>
               ))}
             </select>
@@ -162,7 +168,7 @@ export const ActionTemplateForm = ({
           </label>
 
           <label className="flex flex-col gap-2 text-sm md:col-span-2">
-            Opóźnienie terminu (dni)
+            Domyślne opóźnienie terminu (dni)
             <input
               type="number"
               min={0}
@@ -171,7 +177,7 @@ export const ActionTemplateForm = ({
               onChange={(event) =>
                 updateValue("defaultDueOffsetDays", event.target.value)
               }
-              required
+              placeholder="Opcjonalne"
             />
           </label>
         </div>

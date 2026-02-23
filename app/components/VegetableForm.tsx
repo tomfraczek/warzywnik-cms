@@ -11,9 +11,12 @@ import Image from "next/image";
 import type {
   ActionTemplate,
   ActionTemplateRef,
+  ActionRuleSchedule,
+  ActionRuleTrigger,
   CreateVegetablePayload,
   FertilizationStage,
   Month,
+  PlantingStartMethod,
   SowingMethod,
   SowingMethodType,
 } from "@/app/api/api.types";
@@ -32,6 +35,10 @@ import { useGetActionTemplates } from "@/app/api/queries/action-templates/useGet
 import { useGetActionTemplatesByIds } from "@/app/api/queries/action-templates/useGetActionTemplatesByIds";
 import { MediaLibraryModal } from "@/app/components/MediaLibraryModal";
 import type { MediaLibraryItem } from "@/app/api/api.types";
+import {
+  VegetableActionRulesSection,
+  type VegetableActionRuleFormValue,
+} from "@/app/components/VegetableActionRulesSection";
 
 import {
   sunExposureLabels,
@@ -81,6 +88,8 @@ export type VegetableFormValues = {
     Omit<FertilizationStage, "timing"> & { timing: string }
   >;
   postHarvestActionTemplateIds: string[];
+  actionRules: VegetableActionRuleFormValue[];
+  rulesVersion: string;
   commonPestIds: string[];
   commonDiseaseIds: string[];
   goodCompanionIds: string[];
@@ -132,6 +141,19 @@ const isUuid = (value: string) =>
 
 const isLowercaseSlug = (value: string) => /^[a-z0-9-]{2,}$/.test(value);
 
+const parseInteger = (value: string) => {
+  if (value.trim() === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) {
+    return null;
+  }
+
+  return parsed;
+};
+
 const defaultValues: VegetableFormValues = {
   slug: "",
   name: "",
@@ -154,6 +176,8 @@ const defaultValues: VegetableFormValues = {
   harvestSigns: "",
   fertilizationStages: [],
   postHarvestActionTemplateIds: [],
+  actionRules: [],
+  rulesVersion: "",
   commonPestIds: [],
   commonDiseaseIds: [],
   goodCompanionIds: [],
@@ -313,119 +337,195 @@ export const VegetableForm = ({
     event.preventDefault();
     setClientError(null);
 
-    if (!isLowercaseSlug(values.slug)) {
-      setClientError("Slug musi mieć min 2 znaki i tylko a-z0-9-.");
-      return;
-    }
-    if (values.name.trim().length < 2) {
-      setClientError("Nazwa musi mieć co najmniej 2 znaki.");
-      return;
-    }
-    if (values.description.trim().length < 1) {
-      setClientError("Opis jest wymagany.");
-      return;
-    }
-
-    let timeToHarvestDaysMin = toNumberOrNull(values.timeToHarvestDaysMin);
-    let timeToHarvestDaysMax = toNumberOrNull(values.timeToHarvestDaysMax);
-    if (typeof timeToHarvestDaysMin !== "number") timeToHarvestDaysMin = null;
-    if (typeof timeToHarvestDaysMax !== "number") timeToHarvestDaysMax = null;
-    if (timeToHarvestDaysMin !== null && timeToHarvestDaysMin < 0) {
-      setClientError("Minimalny czas zbioru nie może być ujemny.");
-      return;
-    }
-    if (timeToHarvestDaysMax !== null && timeToHarvestDaysMax < 0) {
-      setClientError("Maksymalny czas zbioru nie może być ujemny.");
-      return;
-    }
-    if (
-      timeToHarvestDaysMin !== null &&
-      timeToHarvestDaysMax !== null &&
-      timeToHarvestDaysMin > timeToHarvestDaysMax
-    ) {
-      setClientError(
-        "Minimalny czas zbioru nie może być większy niż maksymalny.",
-      );
-      return;
-    }
-
-    if (values.successionSowing) {
-      const interval = toNumberOrNull(values.successionIntervalDays);
-      if (!interval || interval <= 0) {
-        setClientError("Podaj dodatni interwał dla siewu sukcesywnego.");
+    try {
+      if (!isLowercaseSlug(values.slug)) {
+        setClientError("Slug musi mieć min 2 znaki i tylko a-z0-9-.");
         return;
       }
+      if (values.name.trim().length < 2) {
+        setClientError("Nazwa musi mieć co najmniej 2 znaki.");
+        return;
+      }
+      if (values.description.trim().length < 1) {
+        setClientError("Opis jest wymagany.");
+        return;
+      }
+
+      let timeToHarvestDaysMin = toNumberOrNull(values.timeToHarvestDaysMin);
+      let timeToHarvestDaysMax = toNumberOrNull(values.timeToHarvestDaysMax);
+      if (typeof timeToHarvestDaysMin !== "number") timeToHarvestDaysMin = null;
+      if (typeof timeToHarvestDaysMax !== "number") timeToHarvestDaysMax = null;
+      if (timeToHarvestDaysMin !== null && timeToHarvestDaysMin < 0) {
+        setClientError("Minimalny czas zbioru nie może być ujemny.");
+        return;
+      }
+      if (timeToHarvestDaysMax !== null && timeToHarvestDaysMax < 0) {
+        setClientError("Maksymalny czas zbioru nie może być ujemny.");
+        return;
+      }
+      if (
+        timeToHarvestDaysMin !== null &&
+        timeToHarvestDaysMax !== null &&
+        timeToHarvestDaysMin > timeToHarvestDaysMax
+      ) {
+        setClientError(
+          "Minimalny czas zbioru nie może być większy niż maksymalny.",
+        );
+        return;
+      }
+
+      if (values.successionSowing) {
+        const interval = toNumberOrNull(values.successionIntervalDays);
+        if (!interval || interval <= 0) {
+          setClientError("Podaj dodatni interwał dla siewu sukcesywnego.");
+          return;
+        }
+      }
+
+      if (values.recommendedSoilIds.some((soilId) => !isUuid(soilId))) {
+        setClientError("Każda rekomendowana gleba musi mieć poprawny UUID.");
+        return;
+      }
+
+      if (
+        values.postHarvestActionTemplateIds.some(
+          (templateId) => !isUuid(templateId),
+        )
+      ) {
+        setClientError("Każda akcja po zbiorach musi mieć poprawny UUID.");
+        return;
+      }
+
+      const normalizedActionRules = values.actionRules.map((rule, index) => {
+        if (!isUuid(rule.actionTemplateId)) {
+          throw new Error(
+            `Reguła #${index + 1}: ActionTemplate musi mieć poprawny UUID.`,
+          );
+        }
+
+        const offsetDays = parseInteger(rule.offsetDays);
+        if (offsetDays === null || offsetDays < 0) {
+          throw new Error(
+            `Reguła #${index + 1}: offsetDays musi być liczbą całkowitą >= 0.`,
+          );
+        }
+
+        const schedule = rule.schedule as ActionRuleSchedule;
+        let everyNDays: number | null = null;
+
+        if (schedule === "EVERY_N_DAYS") {
+          everyNDays = parseInteger(rule.everyNDays);
+          if (everyNDays === null || everyNDays < 1) {
+            throw new Error(
+              `Reguła #${index + 1}: everyNDays jest wymagane dla EVERY_N_DAYS i musi być >= 1.`,
+            );
+          }
+        }
+
+        const occurrencesLimit = parseInteger(rule.occurrencesLimit);
+        if (occurrencesLimit !== null && occurrencesLimit < 1) {
+          throw new Error(
+            `Reguła #${index + 1}: occurrencesLimit musi być >= 1 (lub puste).`,
+          );
+        }
+
+        return {
+          actionTemplateId: rule.actionTemplateId,
+          trigger: rule.trigger as ActionRuleTrigger,
+          offsetDays,
+          schedule,
+          everyNDays,
+          occurrencesLimit,
+          applyIfStartMethod: rule.applyIfStartMethod as PlantingStartMethod[],
+          enabled: rule.enabled,
+        };
+      });
+
+      const duplicateRuleSet = new Set<string>();
+      for (const rule of normalizedActionRules) {
+        const duplicateKey = [
+          rule.actionTemplateId,
+          rule.trigger,
+          rule.offsetDays,
+          rule.schedule,
+          rule.everyNDays ?? "",
+        ].join("|");
+
+        if (duplicateRuleSet.has(duplicateKey)) {
+          setClientError(
+            "Zduplikowana reguła. Unikalność: templateId + trigger + offsetDays + schedule + everyNDays.",
+          );
+          return;
+        }
+
+        duplicateRuleSet.add(duplicateKey);
+      }
+
+      const minSoilDepthCm = toNumberOrNull(values.minSoilDepthCm);
+      if (minSoilDepthCm !== null && minSoilDepthCm < 0) {
+        setClientError("Minimalna głębokość gleby nie może być ujemna.");
+        return;
+      }
+
+      const sowingMethods = values.sowingMethods.length
+        ? values.sowingMethods.map((method) => ({
+            ...method,
+            germinationDaysMin:
+              toNumberOrNull(method.germinationDaysMin) ?? null,
+            germinationDaysMax:
+              toNumberOrNull(method.germinationDaysMax) ?? null,
+            seedDepthCm: toNumberOrNull(method.seedDepthCm) ?? null,
+            rowSpacingCm: toNumberOrNull(method.rowSpacingCm) ?? null,
+            plantSpacingCm: toNumberOrNull(method.plantSpacingCm) ?? null,
+          }))
+        : null;
+
+      const fertilizationStages = values.fertilizationStages.length
+        ? values.fertilizationStages.map((stage) => ({
+            ...stage,
+            timing: toOptionalString(stage.timing),
+          }))
+        : null;
+
+      const payload: CreateVegetablePayload = {
+        slug: values.slug.trim(),
+        name: values.name.trim(),
+        description: values.description.trim(),
+        latinName: toOptionalString(values.latinName),
+        imageUrl: toOptionalString(values.imageUrl),
+        sunExposure: values.sunExposure || null,
+        waterDemand: values.waterDemand || null,
+        nutrientDemand: values.nutrientDemand || null,
+        recommendedSoilIds: values.recommendedSoilIds,
+        minSoilDepthCm,
+        dominantNutrientDemand: values.dominantNutrientDemand || null,
+        sowingMethods,
+        timeToHarvestDaysMin: timeToHarvestDaysMin ?? null,
+        timeToHarvestDaysMax: timeToHarvestDaysMax ?? null,
+        successionSowing: values.successionSowing,
+        successionIntervalDays: values.successionSowing
+          ? toNumberOrNull(values.successionIntervalDays)
+          : null,
+        harvestStartMonth: values.harvestStartMonth || null,
+        harvestEndMonth: values.harvestEndMonth || null,
+        harvestSigns: toOptionalString(values.harvestSigns),
+        fertilizationStages,
+        postHarvestActionTemplateIds: values.postHarvestActionTemplateIds,
+        actionRules: normalizedActionRules,
+        commonPestIds: values.commonPestIds,
+        commonDiseaseIds: values.commonDiseaseIds,
+        goodCompanionIds: values.goodCompanionIds,
+        badCompanionIds: values.badCompanionIds,
+      };
+
+      onSubmit(payload, imageFile);
+    } catch (error) {
+      if (error instanceof Error) {
+        setClientError(error.message);
+        return;
+      }
+      setClientError("Nie udało się zwalidować reguł harmonogramu.");
     }
-
-    if (values.recommendedSoilIds.some((soilId) => !isUuid(soilId))) {
-      setClientError("Każda rekomendowana gleba musi mieć poprawny UUID.");
-      return;
-    }
-
-    if (
-      values.postHarvestActionTemplateIds.some(
-        (templateId) => !isUuid(templateId),
-      )
-    ) {
-      setClientError("Każda akcja po zbiorach musi mieć poprawny UUID.");
-      return;
-    }
-
-    const minSoilDepthCm = toNumberOrNull(values.minSoilDepthCm);
-    if (minSoilDepthCm !== null && minSoilDepthCm < 0) {
-      setClientError("Minimalna głębokość gleby nie może być ujemna.");
-      return;
-    }
-
-    const sowingMethods = values.sowingMethods.length
-      ? values.sowingMethods.map((method) => ({
-          ...method,
-          germinationDaysMin: toNumberOrNull(method.germinationDaysMin) ?? null,
-          germinationDaysMax: toNumberOrNull(method.germinationDaysMax) ?? null,
-          seedDepthCm: toNumberOrNull(method.seedDepthCm) ?? null,
-          rowSpacingCm: toNumberOrNull(method.rowSpacingCm) ?? null,
-          plantSpacingCm: toNumberOrNull(method.plantSpacingCm) ?? null,
-        }))
-      : null;
-
-    const fertilizationStages = values.fertilizationStages.length
-      ? values.fertilizationStages.map((stage) => ({
-          ...stage,
-          timing: toOptionalString(stage.timing),
-        }))
-      : null;
-
-    const payload: CreateVegetablePayload = {
-      slug: values.slug.trim(),
-      name: values.name.trim(),
-      description: values.description.trim(),
-      latinName: toOptionalString(values.latinName),
-      imageUrl: toOptionalString(values.imageUrl),
-      sunExposure: values.sunExposure || null,
-      waterDemand: values.waterDemand || null,
-      nutrientDemand: values.nutrientDemand || null,
-      recommendedSoilIds: values.recommendedSoilIds,
-      minSoilDepthCm,
-      dominantNutrientDemand: values.dominantNutrientDemand || null,
-      sowingMethods,
-      timeToHarvestDaysMin: timeToHarvestDaysMin ?? null,
-      timeToHarvestDaysMax: timeToHarvestDaysMax ?? null,
-      successionSowing: values.successionSowing,
-      successionIntervalDays: values.successionSowing
-        ? toNumberOrNull(values.successionIntervalDays)
-        : null,
-      harvestStartMonth: values.harvestStartMonth || null,
-      harvestEndMonth: values.harvestEndMonth || null,
-      harvestSigns: toOptionalString(values.harvestSigns),
-      fertilizationStages,
-      postHarvestActionTemplateIds: values.postHarvestActionTemplateIds,
-      commonPestIds: values.commonPestIds,
-      commonDiseaseIds: values.commonDiseaseIds,
-      goodCompanionIds: values.goodCompanionIds,
-      badCompanionIds: values.badCompanionIds,
-    };
-
-    onSubmit(payload, imageFile);
   };
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -1319,6 +1419,12 @@ export const VegetableForm = ({
           )}
         </div>
       </section>
+
+      <VegetableActionRulesSection
+        rulesVersion={values.rulesVersion ? Number(values.rulesVersion) : null}
+        rules={values.actionRules}
+        onChange={(nextRules) => updateValue("actionRules", nextRules)}
+      />
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="flex items-center justify-between">

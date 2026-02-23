@@ -52,8 +52,34 @@ export type MiniRef = {
   name: string;
 };
 
-export type ActionTemplateTarget = "bed" | "planting";
+export type ActionTemplateScope = "bed" | "planting";
 export type ActionTemplateType = string;
+
+export type ActionRuleTrigger =
+  | "ON_SOWED"
+  | "AFTER_SOWING_DAYS"
+  | "BEFORE_TRANSPLANT_DAYS"
+  | "ON_TRANSPLANTED"
+  | "AFTER_TRANSPLANT_DAYS"
+  | "ON_HARVEST_WINDOW_START"
+  | "BEFORE_HARVEST_WINDOW_START_DAYS"
+  | "ON_HARVEST_CONFIRMED"
+  | "AFTER_HARVEST_DAYS";
+
+export type ActionRuleSchedule = "ONCE" | "EVERY_N_DAYS";
+export type PlantingStartMethod = "DIRECT_SOW" | "TRANSPLANT";
+
+export type VegetableActionRule = {
+  id?: string;
+  actionTemplateId: string;
+  trigger: ActionRuleTrigger;
+  offsetDays: number;
+  schedule: ActionRuleSchedule;
+  everyNDays: number | null;
+  occurrencesLimit: number | null;
+  applyIfStartMethod: PlantingStartMethod[];
+  enabled: boolean;
+};
 
 export type ActionTemplateRef = {
   id: string;
@@ -65,9 +91,10 @@ export type ActionTemplateListItem = {
   id: string;
   slug: string;
   name: string;
-  target: ActionTemplateTarget;
+  scope: ActionTemplateScope;
+  target?: ActionTemplateScope;
   type: ActionTemplateType;
-  defaultDueOffsetDays: number;
+  defaultDueOffsetDays?: number | null;
   updatedAt: string;
 };
 
@@ -100,6 +127,8 @@ export type Vegetable = {
   fertilizationStages: FertilizationStage[] | null;
   postHarvestActions: ActionTemplateRef[];
   postHarvestActionTemplateIds?: string[];
+  actionRules: VegetableActionRule[];
+  rulesVersion: number;
   commonPests: MiniRef[];
   commonDiseases: MiniRef[];
   goodCompanions: MiniRef[];
@@ -183,6 +212,7 @@ export type CreateVegetablePayload = {
   harvestSigns?: string | null;
   fertilizationStages?: FertilizationStage[] | null;
   postHarvestActionTemplateIds?: string[];
+  actionRules?: VegetableActionRule[];
   commonPestIds?: string[];
   commonDiseaseIds?: string[];
   goodCompanionIds?: string[];
@@ -216,9 +246,9 @@ export type CreateDiseasePayload = {
 export type CreateActionTemplatePayload = {
   slug: string;
   name: string;
-  target: ActionTemplateTarget;
+  scope: ActionTemplateScope;
   type: ActionTemplateType;
-  defaultDueOffsetDays: number;
+  defaultDueOffsetDays?: number | null;
   description?: string | null;
 };
 
@@ -268,9 +298,31 @@ export const dominantNutrientDemandOptions: DominantNutrientDemand[] = [
   "BALANCED",
 ];
 
-export const actionTemplateTargetOptions: ActionTemplateTarget[] = [
+export const actionTemplateScopeOptions: ActionTemplateScope[] = [
   "bed",
   "planting",
+];
+
+export const actionRuleTriggerOptions: ActionRuleTrigger[] = [
+  "ON_SOWED",
+  "AFTER_SOWING_DAYS",
+  "BEFORE_TRANSPLANT_DAYS",
+  "ON_TRANSPLANTED",
+  "AFTER_TRANSPLANT_DAYS",
+  "ON_HARVEST_WINDOW_START",
+  "BEFORE_HARVEST_WINDOW_START_DAYS",
+  "ON_HARVEST_CONFIRMED",
+  "AFTER_HARVEST_DAYS",
+];
+
+export const actionRuleScheduleOptions: ActionRuleSchedule[] = [
+  "ONCE",
+  "EVERY_N_DAYS",
+];
+
+export const plantingStartMethodOptions: PlantingStartMethod[] = [
+  "DIRECT_SOW",
+  "TRANSPLANT",
 ];
 
 export const actionTemplateTypeOptions: ActionTemplateType[] = [
