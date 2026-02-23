@@ -8,12 +8,14 @@ export const pestKeys = {
   detail: (id: string) => [...pestKeys.all, "detail", id] as const,
 };
 
-const fetchPests = (params: { page?: number; limit?: number; q?: string }) =>
-  async () => {
+const fetchPests =
+  (params: { page?: number; limit?: number; q?: string }) => async () => {
     return getPests(params);
   };
 
-export const useGetPests = (params: { page?: number; limit?: number; q?: string } = {}) => {
+export const useGetPests = (
+  params: { page?: number; limit?: number; q?: string } = {},
+) => {
   return useQuery({
     queryKey: pestKeys.list(params),
     queryFn: fetchPests(params),

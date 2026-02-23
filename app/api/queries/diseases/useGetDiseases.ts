@@ -8,8 +8,8 @@ export const diseaseKeys = {
   detail: (id: string) => [...diseaseKeys.all, "detail", id] as const,
 };
 
-const fetchDiseases = (params: { page?: number; limit?: number; q?: string }) =>
-  async () => {
+const fetchDiseases =
+  (params: { page?: number; limit?: number; q?: string }) => async () => {
     return getDiseases(params);
   };
 

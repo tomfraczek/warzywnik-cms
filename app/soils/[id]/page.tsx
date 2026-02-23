@@ -70,7 +70,6 @@ export default function SoilDetailsPage() {
             </button>
           </div>
         </div>
-
       </header>
 
       <div className="grid gap-6 md:grid-cols-2">

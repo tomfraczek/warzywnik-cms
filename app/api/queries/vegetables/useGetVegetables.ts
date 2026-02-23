@@ -4,7 +4,8 @@ import { getVegetables } from "@/app/api/api.requests";
 
 export const vegetableKeys = {
   all: ["vegetables"] as const,
-  list: (params: GetVegetablesParams) => [...vegetableKeys.all, params] as const,
+  list: (params: GetVegetablesParams) =>
+    [...vegetableKeys.all, params] as const,
   detail: (id: string) => [...vegetableKeys.all, "detail", id] as const,
 };
 

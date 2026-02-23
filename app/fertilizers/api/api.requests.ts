@@ -26,12 +26,8 @@ export const getFertilizers = async (
   return data;
 };
 
-export const getFertilizer = async (
-  id: string,
-): Promise<FertilizerType> => {
-  const { data } = await apiClient.get<FertilizerType>(
-    `/fertilizers/${id}`,
-  );
+export const getFertilizer = async (id: string): Promise<FertilizerType> => {
+  const { data } = await apiClient.get<FertilizerType>(`/fertilizers/${id}`);
   return data;
 };
 
