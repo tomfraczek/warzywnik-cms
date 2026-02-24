@@ -52,25 +52,25 @@ export const createEmptyVegetableActionRule = (
 });
 
 const triggerLabels: Record<ActionRuleTrigger, string> = {
-  ON_SOWED: "ON_SOWED",
-  AFTER_SOWING_DAYS: "AFTER_SOWING_DAYS",
-  BEFORE_TRANSPLANT_DAYS: "BEFORE_TRANSPLANT_DAYS",
-  ON_TRANSPLANTED: "ON_TRANSPLANTED",
-  AFTER_TRANSPLANT_DAYS: "AFTER_TRANSPLANT_DAYS",
-  ON_HARVEST_WINDOW_START: "ON_HARVEST_WINDOW_START",
-  BEFORE_HARVEST_WINDOW_START_DAYS: "BEFORE_HARVEST_WINDOW_START_DAYS",
-  ON_HARVEST_CONFIRMED: "ON_HARVEST_CONFIRMED",
-  AFTER_HARVEST_DAYS: "AFTER_HARVEST_DAYS",
+  ON_SOWED: "Siew zakończony",
+  AFTER_SOWING_DAYS: "Po X dniach od siewu",
+  BEFORE_TRANSPLANT_DAYS: "X dni przed przesadzeniem",
+  ON_TRANSPLANTED: "Przesadzenie zakończone",
+  AFTER_TRANSPLANT_DAYS: "Po X dniach od przesadzenia",
+  ON_HARVEST_WINDOW_START: "Początek okna zbioru",
+  BEFORE_HARVEST_WINDOW_START_DAYS: "X dni przed oknem zbioru",
+  ON_HARVEST_CONFIRMED: "Zbiór potwierdzony",
+  AFTER_HARVEST_DAYS: "Po X dniach od zbioru",
 };
 
 const scheduleLabels: Record<ActionRuleSchedule, string> = {
-  ONCE: "ONCE",
-  EVERY_N_DAYS: "EVERY_N_DAYS",
+  ONCE: "Jednorazowo",
+  EVERY_N_DAYS: "Co N dni",
 };
 
 const startMethodLabels: Record<PlantingStartMethod, string> = {
-  DIRECT_SOW: "DIRECT_SOW",
-  TRANSPLANT: "TRANSPLANT",
+  DIRECT_SOW: "Siew bezpośredni",
+  TRANSPLANT: "Rozsada/przesadzenie",
 };
 
 const groupedTriggers: Array<{
@@ -81,12 +81,12 @@ const groupedTriggers: Array<{
 }> = [
   {
     key: "sowing",
-    title: "Sowing-related",
+    title: "Po siewie",
     triggers: ["ON_SOWED", "AFTER_SOWING_DAYS"],
   },
   {
     key: "transplant",
-    title: "Transplant-related",
+    title: "Po przesadzeniu",
     triggers: [
       "BEFORE_TRANSPLANT_DAYS",
       "ON_TRANSPLANTED",
@@ -95,19 +95,19 @@ const groupedTriggers: Array<{
   },
   {
     key: "harvest-window",
-    title: "Harvest window",
+    title: "Okno zbioru",
     triggers: ["ON_HARVEST_WINDOW_START", "BEFORE_HARVEST_WINDOW_START_DAYS"],
   },
   {
     key: "post-harvest-proposals",
-    title: "Post-harvest: Proposals",
-    subtitle: "shown in modal",
+    title: "Po zbiorze: propozycje",
+    subtitle: "pokazane w oknie modalnym",
     triggers: ["ON_HARVEST_CONFIRMED"],
   },
   {
     key: "post-harvest-auto",
-    title: "Post-harvest: Auto",
-    subtitle: "auto created after harvest YES",
+    title: "Po zbiorze: automatyczne",
+    subtitle: "tworzone automatycznie po zbiorze",
     triggers: ["AFTER_HARVEST_DAYS"],
   },
 ];
@@ -164,10 +164,10 @@ const RuleRow = ({
     <div className="rounded-lg border border-zinc-200 p-4">
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium">ActionTemplate</span>
+          <span className="font-medium">Szablon zabiegu</span>
           <input
             className="rounded-lg border border-zinc-200 px-3 py-2"
-            placeholder="Search action templates"
+            placeholder="Szukaj szablonów zabiegów"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -197,7 +197,7 @@ const RuleRow = ({
         </label>
 
         <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium">trigger</span>
+          <span className="font-medium">Trigger</span>
           <select
             className="rounded-lg border border-zinc-200 px-3 py-2"
             value={rule.trigger}
@@ -217,7 +217,7 @@ const RuleRow = ({
         </label>
 
         <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium">offsetDays</span>
+          <span className="font-medium">Opóźnienie (dni)</span>
           <input
             type="number"
             min={0}
@@ -234,7 +234,7 @@ const RuleRow = ({
         </label>
 
         <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium">schedule</span>
+          <span className="font-medium">Harmonogram</span>
           <select
             className="rounded-lg border border-zinc-200 px-3 py-2"
             value={rule.schedule}
@@ -256,7 +256,7 @@ const RuleRow = ({
         </label>
 
         <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium">everyNDays</span>
+          <span className="font-medium">Co ile dni</span>
           <input
             type="number"
             min={1}
@@ -272,14 +272,14 @@ const RuleRow = ({
             disabled={rule.schedule !== "EVERY_N_DAYS"}
             placeholder={
               rule.schedule === "EVERY_N_DAYS"
-                ? "required"
-                : "only for EVERY_N_DAYS"
+                ? "wymagane"
+                : "tylko dla trybu 'Co N dni'"
             }
           />
         </label>
 
         <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium">occurrencesLimit</span>
+          <span className="font-medium">Limit powtórzeń</span>
           <input
             type="number"
             min={1}
@@ -292,12 +292,12 @@ const RuleRow = ({
                 occurrencesLimit: event.target.value,
               })
             }
-            placeholder="optional"
+            placeholder="opcjonalnie"
           />
         </label>
 
         <div className="flex flex-col gap-1 text-xs">
-          <span className="font-medium">applyIfStartMethod</span>
+          <span className="font-medium">Dotyczy metody rozpoczęcia</span>
           <div className="flex gap-3 rounded-lg border border-zinc-200 px-3 py-2">
             {plantingStartMethodOptions.map((method) => (
               <label key={method} className="flex items-center gap-1">
@@ -324,7 +324,7 @@ const RuleRow = ({
                 })
               }
             />
-            enabled
+            Aktywna
           </label>
 
           <button
@@ -332,7 +332,7 @@ const RuleRow = ({
             className="rounded-lg border border-red-200 px-3 py-2 text-red-600"
             onClick={onDelete}
           >
-            delete
+            Usuń
           </button>
         </div>
       </div>
@@ -372,18 +372,19 @@ export const VegetableActionRulesSection = ({
     <section className="rounded-xl border border-zinc-200 bg-white p-6">
       <div className="space-y-2">
         <h2 className="text-lg font-semibold text-zinc-900">
-          VegetableActionRules
+          Reguły zabiegów dla warzywa
         </h2>
         <p className="text-xs text-zinc-500">
-          Existing plantings keep their appliedRulesVersion by default. You can
-          recompute plantings from mobile/admin if needed.
+          Istniejące nasadzenia zachowują swoją wersję reguł
+          (appliedRulesVersion). Możesz przeliczyć reguły z poziomu aplikacji
+          mobilnej lub panelu admina.
         </p>
         <p className="text-xs text-zinc-500">
-          Dla triggerów BEFORE_* podawaj dodatni offsetDays — backend odejmie go
-          od daty referencyjnej.
+          Dla triggerów BEFORE_* podawaj dodatni &quot;Opóźnienie (dni)&quot; —
+          backend odejmie tę wartość od daty referencyjnej.
         </p>
         <p className="text-xs text-zinc-600">
-          rulesVersion:{" "}
+          Wersja reguł:{" "}
           <span className="font-medium">{rulesVersion ?? "-"}</span>
         </p>
       </div>
@@ -418,7 +419,7 @@ export const VegetableActionRulesSection = ({
                     ])
                   }
                 >
-                  Add rule
+                  Dodaj regułę
                 </button>
               </div>
 
@@ -458,7 +459,7 @@ export const VegetableActionRulesSection = ({
       </div>
 
       <p className="mt-3 text-xs text-zinc-500">
-        Triggers available: {actionRuleTriggerOptions.join(", ")}
+        Dostępne triggery: {actionRuleTriggerOptions.join(", ")}
       </p>
     </section>
   );
