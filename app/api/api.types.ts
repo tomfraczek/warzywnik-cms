@@ -53,13 +53,31 @@ export type MiniRef = {
 
 export type ActionTemplateScope = "bed" | "planting";
 export type ActionTemplateType =
-  | "WATER"
-  | "SPRAY"
-  | "FERTILIZE"
-  | "WEED"
-  | "HARVEST"
-  | "SOIL_PREP"
-  | "OTHER";
+  | "sowing"
+  | "transplanting"
+  | "thinning"
+  | "hardening"
+  | "watering"
+  | "fertilization"
+  | "pruning"
+  | "weeding"
+  | "staking"
+  | "harvest"
+  | "pest_control"
+  | "disease_control"
+  | "spraying"
+  | "physical_protection"
+  | "trap_setup"
+  | "soil_preparation"
+  | "soil_amendment"
+  | "mulching"
+  | "soil_testing"
+  | "soil_regeneration"
+  | "irrigation_setup"
+  | "monitoring"
+  | "rotation_planning"
+  | "bed_ready"
+  | "manual_custom";
 
 export type ActionRuleTrigger =
   | "ON_SOWED"
@@ -245,7 +263,7 @@ export type CreateActionTemplatePayload = {
   name: string;
   target: ActionTemplateScope;
   type: ActionTemplateType;
-  defaultDueOffsetDays?: number;
+  defaultDueOffsetDays?: number | null;
   description?: string;
 };
 
@@ -323,14 +341,139 @@ export const plantingStartMethodOptions: PlantingStartMethod[] = [
 ];
 
 export const actionTemplateTypeOptions: ActionTemplateType[] = [
-  "WATER",
-  "SPRAY",
-  "FERTILIZE",
-  "WEED",
-  "HARVEST",
-  "SOIL_PREP",
-  "OTHER",
+  "sowing",
+  "transplanting",
+  "thinning",
+  "hardening",
+  "watering",
+  "fertilization",
+  "pruning",
+  "weeding",
+  "staking",
+  "harvest",
+  "pest_control",
+  "disease_control",
+  "spraying",
+  "physical_protection",
+  "trap_setup",
+  "soil_preparation",
+  "soil_amendment",
+  "mulching",
+  "soil_testing",
+  "soil_regeneration",
+  "irrigation_setup",
+  "monitoring",
+  "rotation_planning",
+  "bed_ready",
+  "manual_custom",
 ];
+
+export type ActionTemplateTypeGroup = {
+  label:
+    | "Uprawa"
+    | "Ochrona"
+    | "Gleba i grządka"
+    | "Monitoring i planowanie"
+    | "Systemowe"
+    | "Ręczne";
+  options: ActionTemplateType[];
+};
+
+export const actionTemplateTypeGroups: ActionTemplateTypeGroup[] = [
+  {
+    label: "Uprawa",
+    options: [
+      "sowing",
+      "transplanting",
+      "thinning",
+      "hardening",
+      "watering",
+      "fertilization",
+      "pruning",
+      "weeding",
+      "staking",
+      "harvest",
+    ],
+  },
+  {
+    label: "Ochrona",
+    options: [
+      "pest_control",
+      "disease_control",
+      "spraying",
+      "physical_protection",
+      "trap_setup",
+    ],
+  },
+  {
+    label: "Gleba i grządka",
+    options: [
+      "soil_preparation",
+      "soil_amendment",
+      "mulching",
+      "soil_testing",
+      "soil_regeneration",
+      "irrigation_setup",
+    ],
+  },
+  {
+    label: "Monitoring i planowanie",
+    options: ["monitoring", "rotation_planning"],
+  },
+  {
+    label: "Systemowe",
+    options: ["bed_ready"],
+  },
+  {
+    label: "Ręczne",
+    options: ["manual_custom"],
+  },
+];
+
+export const actionTemplateDefaultTypeByScope: Record<
+  ActionTemplateScope,
+  ActionTemplateType
+> = {
+  planting: "monitoring",
+  bed: "soil_preparation",
+};
+
+export const legacyActionTemplateTypeToNewType: Record<
+  string,
+  ActionTemplateType
+> = {
+  water: "watering",
+  watering: "watering",
+  fertilize: "fertilization",
+  fertilization: "fertilization",
+  spray: "spraying",
+  weed: "weeding",
+  soil_prep: "soil_preparation",
+  monitoring: "monitoring",
+  manual: "manual_custom",
+  other: "manual_custom",
+  system: "bed_ready",
+};
+
+export const mapActionTemplateType = (
+  type: string | null | undefined,
+  scope: ActionTemplateScope,
+): ActionTemplateType => {
+  const normalizedType = String(type ?? "")
+    .trim()
+    .toLowerCase();
+
+  if ((actionTemplateTypeOptions as string[]).includes(normalizedType)) {
+    return normalizedType as ActionTemplateType;
+  }
+
+  const mappedLegacy = legacyActionTemplateTypeToNewType[normalizedType];
+  if (mappedLegacy) {
+    return mappedLegacy;
+  }
+
+  return actionTemplateDefaultTypeByScope[scope];
+};
 
 export type ArticleStatus = "DRAFT" | "PUBLISHED";
 export type ArticleSeason = "winter" | "spring" | "summer" | "autumn";

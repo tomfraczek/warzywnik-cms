@@ -6,21 +6,27 @@ import { AxiosError } from "axios";
 import { ActionTemplateForm } from "@/app/components/ActionTemplateForm";
 import { useGetActionTemplate } from "@/app/api/queries/action-templates/useGetActionTemplate";
 import { useUpdateActionTemplate } from "@/app/api/mutations/action-templates/useUpdateActionTemplate";
+import { mapActionTemplateType } from "@/app/api/api.types";
 import type { ActionTemplateFormValues } from "@/app/components/ActionTemplateForm";
 import type {
   ActionTemplate,
+  ActionTemplateScope,
   CreateActionTemplatePayload,
 } from "@/app/api/api.types";
 
-const mapActionTemplateToFormValues = (
+const mapActionTemplateFromApi = (
   data: ActionTemplate,
-): ActionTemplateFormValues => ({
-  name: data.name,
-  target: data.target ?? data.scope ?? "bed",
-  type: data.type,
-  defaultDueOffsetDays: data.defaultDueOffsetDays ?? null,
-  description: data.description || "",
-});
+): ActionTemplateFormValues => {
+  const target = (data.target ?? data.scope ?? "bed") as ActionTemplateScope;
+
+  return {
+    name: data.name,
+    target,
+    type: mapActionTemplateType(data.type, target),
+    defaultDueOffsetDays: data.defaultDueOffsetDays ?? null,
+    description: data.description || "",
+  };
+};
 
 export default function EditActionTemplatePage() {
   const router = useRouter();
@@ -30,7 +36,7 @@ export default function EditActionTemplatePage() {
   const updateMutation = useUpdateActionTemplate();
 
   const initialValues = useMemo(
-    () => (data ? mapActionTemplateToFormValues(data) : undefined),
+    () => (data ? mapActionTemplateFromApi(data) : undefined),
     [data],
   );
 

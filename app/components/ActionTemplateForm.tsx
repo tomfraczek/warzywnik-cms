@@ -3,8 +3,10 @@
 import { useState } from "react";
 import type { CreateActionTemplatePayload } from "@/app/api/api.types";
 import {
+  actionTemplateDefaultTypeByScope,
+  actionTemplateTypeGroups,
   actionTemplateScopeOptions,
-  actionTemplateTypeOptions,
+  mapActionTemplateType,
 } from "@/app/api/api.types";
 
 export type ActionTemplateFormValues = {
@@ -18,7 +20,7 @@ export type ActionTemplateFormValues = {
 const defaultValues: ActionTemplateFormValues = {
   name: "",
   target: "bed",
-  type: actionTemplateTypeOptions[0] ?? "OTHER",
+  type: actionTemplateDefaultTypeByScope.bed,
   defaultDueOffsetDays: null,
   description: "",
 };
@@ -28,35 +30,32 @@ const targetLabels: Record<CreateActionTemplatePayload["target"], string> = {
   planting: "Nasadzenie",
 };
 
-const typeLabels: Record<string, string> = {
-  WATER: "Podlewanie",
-  SPRAY: "Oprysk",
-  FERTILIZE: "Nawożenie",
-  WEED: "Odchwaszczanie",
-  HARVEST: "Zbiór",
-  SOIL_PREP: "Przygotowanie gleby",
-  OTHER: "Inne",
-};
-
-const normalizeActionTemplateType = (
-  type: string,
-): CreateActionTemplatePayload["type"] => {
-  const normalized = type.trim().toUpperCase();
-
-  const legacyMap: Record<string, CreateActionTemplatePayload["type"]> = {
-    spray: "SPRAY",
-    fertilization: "FERTILIZE",
-    watering: "WATER",
-    manual: "OTHER",
-    monitoring: "OTHER",
-    other: "OTHER",
-  };
-
-  return (
-    (legacyMap[type.trim().toLowerCase()] ??
-      (normalized as CreateActionTemplatePayload["type"])) ||
-    "OTHER"
-  );
+const typeLabels: Record<CreateActionTemplatePayload["type"], string> = {
+  sowing: "Siew",
+  transplanting: "Przesadzanie",
+  thinning: "Przerywanie",
+  hardening: "Hartowanie",
+  watering: "Podlewanie",
+  fertilization: "Nawożenie",
+  pruning: "Przycinanie",
+  weeding: "Odchwaszczanie",
+  staking: "Palikowanie i podpieranie",
+  harvest: "Zbiór",
+  pest_control: "Zwalczanie szkodników",
+  disease_control: "Zwalczanie chorób",
+  spraying: "Opryski",
+  physical_protection: "Ochrona fizyczna",
+  trap_setup: "Zakładanie pułapek",
+  soil_preparation: "Przygotowanie gleby",
+  soil_amendment: "Ulepszanie gleby",
+  mulching: "Ściółkowanie",
+  soil_testing: "Badanie gleby",
+  soil_regeneration: "Regeneracja gleby",
+  irrigation_setup: "Przygotowanie nawadniania",
+  monitoring: "Monitoring",
+  rotation_planning: "Planowanie zmianowania",
+  bed_ready: "Grządka gotowa",
+  manual_custom: "Ręczny (własny)",
 };
 
 export type ActionTemplateFormProps = {
@@ -78,6 +77,7 @@ export const ActionTemplateForm = ({
     ...defaultValues,
     ...initialValues,
   });
+  const [didUserPickType, setDidUserPickType] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
 
   const updateValue = <K extends keyof ActionTemplateFormValues>(
@@ -101,19 +101,12 @@ export const ActionTemplateForm = ({
       return;
     }
 
-    if (offsetDays !== null && (offsetDays < -3650 || offsetDays > 3650)) {
-      setClientError(
-        "Opóźnienie terminu musi być w zakresie od -3650 do 3650.",
-      );
-      return;
-    }
-
     const trimmedDescription = values.description.trim();
 
     onSubmit({
       name: values.name.trim(),
       target: values.target,
-      type: normalizeActionTemplateType(values.type),
+      type: mapActionTemplateType(values.type, values.target),
       ...(offsetDays === null ? {} : { defaultDueOffsetDays: offsetDays }),
       ...(trimmedDescription === "" ? {} : { description: trimmedDescription }),
     });
@@ -138,12 +131,23 @@ export const ActionTemplateForm = ({
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.target}
-              onChange={(event) =>
-                updateValue(
-                  "target",
-                  event.target.value as ActionTemplateFormValues["target"],
-                )
-              }
+              onChange={(event) => {
+                const nextTarget = event.target
+                  .value as ActionTemplateFormValues["target"];
+                setValues((prev) => {
+                  const nextValues: ActionTemplateFormValues = {
+                    ...prev,
+                    target: nextTarget,
+                  };
+
+                  if (!didUserPickType) {
+                    nextValues.type =
+                      actionTemplateDefaultTypeByScope[nextTarget];
+                  }
+
+                  return nextValues;
+                });
+              }}
             >
               {actionTemplateScopeOptions.map((option) => (
                 <option key={option} value={option}>
@@ -158,17 +162,22 @@ export const ActionTemplateForm = ({
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.type}
-              onChange={(event) =>
+              onChange={(event) => {
+                setDidUserPickType(true);
                 updateValue(
                   "type",
                   event.target.value as ActionTemplateFormValues["type"],
-                )
-              }
+                );
+              }}
             >
-              {actionTemplateTypeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {typeLabels[option] ?? option}
-                </option>
+              {actionTemplateTypeGroups.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((option) => (
+                    <option key={option} value={option}>
+                      {typeLabels[option] ?? option}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>
@@ -178,8 +187,6 @@ export const ActionTemplateForm = ({
             <input
               type="number"
               step={1}
-              min={-3650}
-              max={3650}
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.defaultDueOffsetDays ?? ""}
               onChange={(event) => {
@@ -190,7 +197,7 @@ export const ActionTemplateForm = ({
                   raw === "" || Number.isNaN(parsedValue) ? null : parsedValue,
                 );
               }}
-              placeholder="Liczba dni (np. 7)"
+              placeholder="np. -3, 0, 14"
             />
           </label>
         </div>
