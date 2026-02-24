@@ -56,15 +56,12 @@ export const ActionTemplateForm = ({
     ...defaultValues,
     ...initialValues,
   });
-
   const [clientError, setClientError] = useState<string | null>(null);
 
   const updateValue = <K extends keyof ActionTemplateFormValues>(
     key: K,
     value: ActionTemplateFormValues[K],
-  ) => {
-    setValues((prev) => ({ ...prev, [key]: value }));
-  };
+  ) => setValues((prev) => ({ ...prev, [key]: value }));
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -77,15 +74,12 @@ export const ActionTemplateForm = ({
 
     const offsetDays = values.defaultDueOffsetDays;
 
-    if (offsetDays !== null) {
-      if (
-        !Number.isFinite(offsetDays) ||
-        !Number.isInteger(offsetDays) ||
-        offsetDays < 0
-      ) {
-        setClientError("Opóźnienie terminu musi być liczbą całkowitą >= 0.");
-        return;
-      }
+    if (
+      offsetDays !== null &&
+      (!Number.isInteger(offsetDays) || offsetDays < 0)
+    ) {
+      setClientError("Opóźnienie terminu musi być liczbą całkowitą >= 0.");
+      return;
     }
 
     onSubmit({
@@ -101,7 +95,6 @@ export const ActionTemplateForm = ({
     <form className="space-y-6" onSubmit={handleSubmit}>
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="grid gap-4 md:grid-cols-2">
-          {/* Nazwa */}
           <label className="flex flex-col gap-2 text-sm">
             Nazwa
             <input
@@ -112,7 +105,6 @@ export const ActionTemplateForm = ({
             />
           </label>
 
-          {/* Zakres */}
           <label className="flex flex-col gap-2 text-sm">
             Zakres
             <select
@@ -133,7 +125,6 @@ export const ActionTemplateForm = ({
             </select>
           </label>
 
-          {/* Typ */}
           <label className="flex flex-col gap-2 text-sm">
             Typ
             <select
@@ -154,7 +145,6 @@ export const ActionTemplateForm = ({
             </select>
           </label>
 
-          {/* Offset */}
           <label className="flex flex-col gap-2 text-sm md:col-span-2">
             Domyślne opóźnienie terminu (dni)
             <input
@@ -165,9 +155,10 @@ export const ActionTemplateForm = ({
               value={values.defaultDueOffsetDays ?? ""}
               onChange={(event) => {
                 const raw = event.target.value;
+                const parsedValue = event.target.valueAsNumber;
                 updateValue(
                   "defaultDueOffsetDays",
-                  raw === "" ? null : Number(raw),
+                  raw === "" || Number.isNaN(parsedValue) ? null : parsedValue,
                 );
               }}
               placeholder="Liczba dni (np. 7)"
@@ -175,7 +166,6 @@ export const ActionTemplateForm = ({
           </label>
         </div>
 
-        {/* Opis */}
         <label className="mt-4 flex flex-col gap-2 text-sm">
           Opis (opcjonalnie)
           <textarea

@@ -18,7 +18,7 @@ const mapActionTemplateToFormValues = (
   name: data.name,
   scope: data.scope ?? data.target ?? "bed",
   type: data.type,
-  defaultDueOffsetDays: data.defaultDueOffsetDays?.toString() ?? "",
+  defaultDueOffsetDays: data.defaultDueOffsetDays ?? null,
   description: data.description || "",
 });
 
