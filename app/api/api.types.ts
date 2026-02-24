@@ -52,7 +52,14 @@ export type MiniRef = {
 };
 
 export type ActionTemplateScope = "bed" | "planting";
-export type ActionTemplateType = string;
+export type ActionTemplateType =
+  | "WATER"
+  | "SPRAY"
+  | "FERTILIZE"
+  | "WEED"
+  | "HARVEST"
+  | "SOIL_PREP"
+  | "OTHER";
 
 export type ActionRuleTrigger =
   | "ON_SOWED"
@@ -316,12 +323,13 @@ export const plantingStartMethodOptions: PlantingStartMethod[] = [
 ];
 
 export const actionTemplateTypeOptions: ActionTemplateType[] = [
-  "spray",
-  "fertilization",
-  "watering",
-  "manual",
-  "monitoring",
-  "other",
+  "WATER",
+  "SPRAY",
+  "FERTILIZE",
+  "WEED",
+  "HARVEST",
+  "SOIL_PREP",
+  "OTHER",
 ];
 
 export type ArticleStatus = "DRAFT" | "PUBLISHED";

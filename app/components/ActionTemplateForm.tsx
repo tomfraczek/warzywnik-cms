@@ -18,7 +18,7 @@ export type ActionTemplateFormValues = {
 const defaultValues: ActionTemplateFormValues = {
   name: "",
   scope: "bed",
-  type: actionTemplateTypeOptions[0] ?? "other",
+  type: actionTemplateTypeOptions[0] ?? "OTHER",
   defaultDueOffsetDays: null,
   description: "",
 };
@@ -29,12 +29,34 @@ const scopeLabels: Record<CreateActionTemplatePayload["scope"], string> = {
 };
 
 const typeLabels: Record<string, string> = {
-  spray: "Oprysk",
-  fertilization: "Nawożenie",
-  watering: "Podlewanie",
-  manual: "Ręcznie",
-  monitoring: "Monitoring",
-  other: "Inne",
+  WATER: "Podlewanie",
+  SPRAY: "Oprysk",
+  FERTILIZE: "Nawożenie",
+  WEED: "Odchwaszczanie",
+  HARVEST: "Zbiór",
+  SOIL_PREP: "Przygotowanie gleby",
+  OTHER: "Inne",
+};
+
+const normalizeActionTemplateType = (
+  type: string,
+): CreateActionTemplatePayload["type"] => {
+  const normalized = type.trim().toUpperCase();
+
+  const legacyMap: Record<string, CreateActionTemplatePayload["type"]> = {
+    spray: "SPRAY",
+    fertilization: "FERTILIZE",
+    watering: "WATER",
+    manual: "OTHER",
+    monitoring: "OTHER",
+    other: "OTHER",
+  };
+
+  return (
+    (legacyMap[type.trim().toLowerCase()] ??
+      (normalized as CreateActionTemplatePayload["type"])) ||
+    "OTHER"
+  );
 };
 
 export type ActionTemplateFormProps = {
@@ -82,7 +104,7 @@ export const ActionTemplateForm = ({
     onSubmit({
       name: values.name.trim(),
       scope: values.scope,
-      type: values.type,
+      type: normalizeActionTemplateType(values.type),
       defaultDueOffsetDays: offsetDays,
       description: values.description.trim() || null,
     });
