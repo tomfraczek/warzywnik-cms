@@ -16,7 +16,7 @@ const mapActionTemplateToFormValues = (
   data: ActionTemplate,
 ): ActionTemplateFormValues => ({
   name: data.name,
-  scope: data.scope ?? data.target ?? "bed",
+  target: data.target ?? data.scope ?? "bed",
   type: data.type,
   defaultDueOffsetDays: data.defaultDueOffsetDays ?? null,
   description: data.description || "",

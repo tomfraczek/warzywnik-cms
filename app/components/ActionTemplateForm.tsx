@@ -9,7 +9,7 @@ import {
 
 export type ActionTemplateFormValues = {
   name: string;
-  scope: CreateActionTemplatePayload["scope"];
+  target: CreateActionTemplatePayload["target"];
   type: CreateActionTemplatePayload["type"];
   defaultDueOffsetDays: number | null;
   description: string;
@@ -17,13 +17,13 @@ export type ActionTemplateFormValues = {
 
 const defaultValues: ActionTemplateFormValues = {
   name: "",
-  scope: "bed",
+  target: "bed",
   type: actionTemplateTypeOptions[0] ?? "OTHER",
   defaultDueOffsetDays: null,
   description: "",
 };
 
-const scopeLabels: Record<CreateActionTemplatePayload["scope"], string> = {
+const targetLabels: Record<CreateActionTemplatePayload["target"], string> = {
   bed: "Grządka",
   planting: "Nasadzenie",
 };
@@ -101,12 +101,21 @@ export const ActionTemplateForm = ({
       return;
     }
 
+    if (offsetDays !== null && (offsetDays < -3650 || offsetDays > 3650)) {
+      setClientError(
+        "Opóźnienie terminu musi być w zakresie od -3650 do 3650.",
+      );
+      return;
+    }
+
+    const trimmedDescription = values.description.trim();
+
     onSubmit({
       name: values.name.trim(),
-      scope: values.scope,
+      target: values.target,
       type: normalizeActionTemplateType(values.type),
-      defaultDueOffsetDays: offsetDays,
-      description: values.description.trim() || null,
+      ...(offsetDays === null ? {} : { defaultDueOffsetDays: offsetDays }),
+      ...(trimmedDescription === "" ? {} : { description: trimmedDescription }),
     });
   };
 
@@ -128,17 +137,17 @@ export const ActionTemplateForm = ({
             Zakres
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.scope}
+              value={values.target}
               onChange={(event) =>
                 updateValue(
-                  "scope",
-                  event.target.value as ActionTemplateFormValues["scope"],
+                  "target",
+                  event.target.value as ActionTemplateFormValues["target"],
                 )
               }
             >
               {actionTemplateScopeOptions.map((option) => (
                 <option key={option} value={option}>
-                  {scopeLabels[option] ?? option}
+                  {targetLabels[option] ?? option}
                 </option>
               ))}
             </select>
@@ -169,6 +178,8 @@ export const ActionTemplateForm = ({
             <input
               type="number"
               step={1}
+              min={-3650}
+              max={3650}
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.defaultDueOffsetDays ?? ""}
               onChange={(event) => {

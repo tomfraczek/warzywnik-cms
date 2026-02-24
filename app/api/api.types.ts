@@ -96,8 +96,8 @@ export type ActionTemplateRef = {
 export type ActionTemplateListItem = {
   id: string;
   name: string;
-  scope: ActionTemplateScope;
-  target?: ActionTemplateScope;
+  scope?: ActionTemplateScope;
+  target: ActionTemplateScope;
   type: ActionTemplateType;
   defaultDueOffsetDays?: number | null;
   updatedAt: string;
@@ -243,10 +243,10 @@ export type CreateDiseasePayload = {
 
 export type CreateActionTemplatePayload = {
   name: string;
-  scope: ActionTemplateScope;
+  target: ActionTemplateScope;
   type: ActionTemplateType;
-  defaultDueOffsetDays?: number | null;
-  description?: string | null;
+  defaultDueOffsetDays?: number;
+  description?: string;
 };
 
 export type UpdateActionTemplatePayload = Partial<CreateActionTemplatePayload>;
