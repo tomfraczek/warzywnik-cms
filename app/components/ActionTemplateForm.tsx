@@ -11,7 +11,7 @@ export type ActionTemplateFormValues = {
   name: string;
   scope: CreateActionTemplatePayload["scope"];
   type: CreateActionTemplatePayload["type"];
-  defaultDueOffsetDays: string;
+  defaultDueOffsetDays: number | null;
   description: string;
 };
 
@@ -19,7 +19,7 @@ const defaultValues: ActionTemplateFormValues = {
   name: "",
   scope: "bed",
   type: actionTemplateTypeOptions[0] ?? "other",
-  defaultDueOffsetDays: "",
+  defaultDueOffsetDays: null,
   description: "",
 };
 
@@ -56,12 +56,15 @@ export const ActionTemplateForm = ({
     ...defaultValues,
     ...initialValues,
   });
+
   const [clientError, setClientError] = useState<string | null>(null);
 
   const updateValue = <K extends keyof ActionTemplateFormValues>(
     key: K,
     value: ActionTemplateFormValues[K],
-  ) => setValues((prev) => ({ ...prev, [key]: value }));
+  ) => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+  };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -72,16 +75,17 @@ export const ActionTemplateForm = ({
       return;
     }
 
-    const trimmedOffset = values.defaultDueOffsetDays.trim();
-    let offsetDays: number | null = null;
+    const offsetDays = values.defaultDueOffsetDays;
 
-    if (trimmedOffset !== "") {
-      const parsedOffset = Number(trimmedOffset);
-      if (!Number.isInteger(parsedOffset) || parsedOffset < 0) {
+    if (offsetDays !== null) {
+      if (
+        !Number.isFinite(offsetDays) ||
+        !Number.isInteger(offsetDays) ||
+        offsetDays < 0
+      ) {
         setClientError("Opóźnienie terminu musi być liczbą całkowitą >= 0.");
         return;
       }
-      offsetDays = parsedOffset;
     }
 
     onSubmit({
@@ -97,6 +101,7 @@ export const ActionTemplateForm = ({
     <form className="space-y-6" onSubmit={handleSubmit}>
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="grid gap-4 md:grid-cols-2">
+          {/* Nazwa */}
           <label className="flex flex-col gap-2 text-sm">
             Nazwa
             <input
@@ -107,6 +112,7 @@ export const ActionTemplateForm = ({
             />
           </label>
 
+          {/* Zakres */}
           <label className="flex flex-col gap-2 text-sm">
             Zakres
             <select
@@ -127,6 +133,7 @@ export const ActionTemplateForm = ({
             </select>
           </label>
 
+          {/* Typ */}
           <label className="flex flex-col gap-2 text-sm">
             Typ
             <select
@@ -147,21 +154,28 @@ export const ActionTemplateForm = ({
             </select>
           </label>
 
+          {/* Offset */}
           <label className="flex flex-col gap-2 text-sm md:col-span-2">
             Domyślne opóźnienie terminu (dni)
             <input
               type="number"
               min={0}
+              step={1}
               className="rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.defaultDueOffsetDays}
-              onChange={(event) =>
-                updateValue("defaultDueOffsetDays", event.target.value)
-              }
-              placeholder="Opcjonalne"
+              value={values.defaultDueOffsetDays ?? ""}
+              onChange={(event) => {
+                const raw = event.target.value;
+                updateValue(
+                  "defaultDueOffsetDays",
+                  raw === "" ? null : Number(raw),
+                );
+              }}
+              placeholder="Liczba dni (np. 7)"
             />
           </label>
         </div>
 
+        {/* Opis */}
         <label className="mt-4 flex flex-col gap-2 text-sm">
           Opis (opcjonalnie)
           <textarea
