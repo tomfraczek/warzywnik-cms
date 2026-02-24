@@ -74,11 +74,8 @@ export const ActionTemplateForm = ({
 
     const offsetDays = values.defaultDueOffsetDays;
 
-    if (
-      offsetDays !== null &&
-      (!Number.isInteger(offsetDays) || offsetDays < 0)
-    ) {
-      setClientError("Opóźnienie terminu musi być liczbą całkowitą >= 0.");
+    if (offsetDays !== null && !Number.isInteger(offsetDays)) {
+      setClientError("Opóźnienie terminu musi być liczbą całkowitą.");
       return;
     }
 
@@ -149,7 +146,6 @@ export const ActionTemplateForm = ({
             Domyślne opóźnienie terminu (dni)
             <input
               type="number"
-              min={0}
               step={1}
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.defaultDueOffsetDays ?? ""}
