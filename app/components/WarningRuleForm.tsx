@@ -1,14 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useGetWarningRuleCodes } from "@/app/api/queries/warning-rules/useGetWarningRuleCodes";
 import type { CreateWarningRulePayload } from "@/app/warning-rules/api/api.types";
 import {
   warningCodeOptions,
+  warningRuleDayPartOptions,
+  warningRuleHorizonOptions,
   warningSeverityOptions,
 } from "@/app/warning-rules/api/api.types";
 
 export type WarningRuleFormValues = {
   code: CreateWarningRulePayload["code"] | "";
+  category: string;
+  horizon: NonNullable<CreateWarningRulePayload["horizon"]> | "";
+  dayPart: NonNullable<CreateWarningRulePayload["dayPart"]> | "";
+  generatesTask: boolean;
   enabled: boolean;
   severity: CreateWarningRulePayload["severity"] | "";
   title: string;
@@ -20,6 +27,10 @@ export type WarningRuleFormValues = {
 
 const defaultValues: WarningRuleFormValues = {
   code: "",
+  category: "SEED_ONLY",
+  horizon: "RADAR",
+  dayPart: "ANY",
+  generatesTask: false,
   enabled: true,
   severity: "",
   title: "",
@@ -35,7 +46,7 @@ const severityLabels = {
   CRITICAL: "Krytyczny",
 } as const;
 
-const codeLabels = {
+const codeLabels: Record<string, string> = {
   SOIL_NOT_RECOMMENDED: "Gleba niezalecana",
   PH_OUT_OF_RANGE: "pH poza zakresem",
   DEPTH_TOO_SMALL: "Zbyt mała głębokość",
@@ -47,7 +58,18 @@ const codeLabels = {
   HARVEST_WINDOW_MISSED: "Przekroczone okno zbioru",
   SUBOPTIMAL_SOWING_TIME: "Niekorzystny termin siewu",
   EXPERIMENTAL_SETUP: "Konfiguracja eksperymentalna",
-} as const;
+};
+
+const horizonLabels: Record<string, string> = {
+  RADAR: "Radar",
+  OPERATIONAL: "Operacyjne",
+};
+
+const dayPartLabels: Record<string, string> = {
+  ANY: "Dowolna pora",
+  DAY: "Dzień",
+  NIGHT: "Noc",
+};
 
 const placeholderTokens = [
   "{vegetableName}",
@@ -97,11 +119,22 @@ export const WarningRuleForm = ({
   errorMessage,
   isCodeLocked = false,
 }: WarningRuleFormProps) => {
+  const { data: backendCodes } = useGetWarningRuleCodes();
+
   const [values, setValues] = useState<WarningRuleFormValues>({
     ...defaultValues,
     ...initialValues,
   });
   const [clientError, setClientError] = useState<string | null>(null);
+
+  const availableCodeOptions = useMemo(() => {
+    const options = [
+      ...(backendCodes ?? []),
+      ...warningCodeOptions,
+      ...(values.code ? [values.code] : []),
+    ];
+    return [...new Set(options)];
+  }, [backendCodes, values.code]);
 
   const updateValue = <K extends keyof WarningRuleFormValues>(
     key: K,
@@ -121,6 +154,21 @@ export const WarningRuleForm = ({
 
     if (!values.severity) {
       setClientError("Wybierz poziom ważności.");
+      return;
+    }
+
+    if (!values.category.trim()) {
+      setClientError("Kategoria jest wymagana.");
+      return;
+    }
+
+    if (!values.horizon) {
+      setClientError("Wybierz horyzont.");
+      return;
+    }
+
+    if (!values.dayPart) {
+      setClientError("Wybierz porę dnia.");
       return;
     }
 
@@ -144,6 +192,10 @@ export const WarningRuleForm = ({
       code: values.code,
       enabled: values.enabled,
       severity: values.severity,
+      category: values.category.trim(),
+      horizon: values.horizon,
+      dayPart: values.dayPart,
+      generatesTask: values.generatesTask,
       title: values.title.trim(),
       messageTemplate: values.messageTemplate.trim(),
       hintTemplate: values.hintTemplate.trim() || null,
@@ -173,7 +225,7 @@ export const WarningRuleForm = ({
               disabled={isCodeLocked}
             >
               <option value="">Wybierz</option>
-              {warningCodeOptions.map((option) => (
+              {availableCodeOptions.map((option) => (
                 <option key={option} value={option}>
                   {codeLabels[option] ?? option}
                 </option>
@@ -205,6 +257,63 @@ export const WarningRuleForm = ({
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Kategoria</span>
+            <input
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.category}
+              onChange={(event) => updateValue("category", event.target.value)}
+              placeholder="np. SEED_ONLY"
+              required
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Horyzont</span>
+            <select
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.horizon}
+              onChange={(event) =>
+                updateValue(
+                  "horizon",
+                  event.target.value as WarningRuleFormValues["horizon"],
+                )
+              }
+              required
+            >
+              <option value="">Wybierz</option>
+              {warningRuleHorizonOptions.map((option) => (
+                <option key={option} value={option}>
+                  {horizonLabels[option] ?? option}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Pora dnia</span>
+            <select
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.dayPart}
+              onChange={(event) =>
+                updateValue(
+                  "dayPart",
+                  event.target.value as WarningRuleFormValues["dayPart"],
+                )
+              }
+              required
+            >
+              <option value="">Wybierz</option>
+              {warningRuleDayPartOptions.map((option) => (
+                <option key={option} value={option}>
+                  {dayPartLabels[option] ?? option}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Tytuł</span>
             <input
@@ -238,6 +347,18 @@ export const WarningRuleForm = ({
                 }
               />
               <span className="font-medium">Blokująca</span>
+            </label>
+
+            <label className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-zinc-300"
+                checked={values.generatesTask}
+                onChange={(event) =>
+                  updateValue("generatesTask", event.target.checked)
+                }
+              />
+              <span className="font-medium">Generuje zadanie</span>
             </label>
           </div>
         </div>

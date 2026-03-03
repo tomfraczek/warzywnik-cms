@@ -3,7 +3,10 @@ import type {
   CreateWarningRulePayload,
   ListResponse,
   UpdateWarningRulePayload,
+  WarningCode,
+  WarningRuleHorizon,
   WarningRule,
+  WarningRuleCategory,
   WarningRuleListItem,
   WarningSeverity,
 } from "@/app/warning-rules/api/api.types";
@@ -14,7 +17,17 @@ export type GetWarningRulesParams = {
   q?: string;
   enabled?: boolean;
   severity?: WarningSeverity;
+  horizon?: WarningRuleHorizon;
+  category?: WarningRuleCategory;
+  generatesTask?: boolean;
 };
+
+type WarningCodesResponse =
+  | WarningCode[]
+  | {
+      codes?: WarningCode[];
+      items?: WarningCode[];
+    };
 
 export const getWarningRules = async (
   params: GetWarningRulesParams = {},
@@ -24,6 +37,26 @@ export const getWarningRules = async (
     { params },
   );
   return data;
+};
+
+export const getWarningRuleCodes = async (): Promise<WarningCode[]> => {
+  const { data } = await apiClient.get<WarningCodesResponse>(
+    "/warning-rules/codes",
+  );
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (Array.isArray(data.codes)) {
+    return data.codes;
+  }
+
+  if (Array.isArray(data.items)) {
+    return data.items;
+  }
+
+  return [];
 };
 
 export const getWarningRule = async (

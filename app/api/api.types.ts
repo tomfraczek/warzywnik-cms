@@ -25,6 +25,13 @@ export type SoilType =
   | "OTHER";
 export type SowingMethodType = "direct_sow" | "seedlings";
 export type DominantNutrientDemand = "N" | "P" | "K" | "BALANCED";
+export type CultivationEnvironment =
+  | "GROUND_OUTDOOR"
+  | "RAISED_BED_OUTDOOR"
+  | "POT_OUTDOOR"
+  | "POT_INDOOR"
+  | "GREENHOUSE"
+  | "TUNNEL";
 
 export type SowingMethod = {
   method: SowingMethodType;
@@ -311,6 +318,14 @@ export const dominantNutrientDemandOptions: DominantNutrientDemand[] = [
   "P",
   "K",
   "BALANCED",
+];
+export const cultivationEnvironmentOptions: CultivationEnvironment[] = [
+  "GROUND_OUTDOOR",
+  "RAISED_BED_OUTDOOR",
+  "POT_OUTDOOR",
+  "POT_INDOOR",
+  "GREENHOUSE",
+  "TUNNEL",
 ];
 
 export const actionTemplateScopeOptions: ActionTemplateScope[] = [

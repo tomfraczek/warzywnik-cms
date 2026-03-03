@@ -14,6 +14,10 @@ import type {
 
 const mapRuleToFormValues = (data: WarningRule): WarningRuleFormValues => ({
   code: data.code,
+  category: data.category ?? "SEED_ONLY",
+  horizon: data.horizon ?? "RADAR",
+  dayPart: data.dayPart ?? "ANY",
+  generatesTask: Boolean(data.generatesTask),
   enabled: data.enabled,
   severity: data.severity,
   title: data.title,

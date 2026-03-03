@@ -1,4 +1,5 @@
 import type {
+  CultivationEnvironment,
   CreateVegetablePayload,
   DemandLevel,
   Month,
@@ -84,6 +85,19 @@ export const soilDrainageLabels: Record<DrainageLevel, string> = {
   poor: "Słaby",
   medium: "Średni",
   good: "Dobry",
+};
+
+// ---------- bed ----------
+export const cultivationEnvironmentLabels: Record<
+  CultivationEnvironment,
+  string
+> = {
+  GROUND_OUTDOOR: "Grunt (na zewnątrz)",
+  RAISED_BED_OUTDOOR: "Podwyższona grządka (na zewnątrz)",
+  POT_OUTDOOR: "Donica (na zewnątrz)",
+  POT_INDOOR: "Donica (wewnątrz)",
+  GREENHOUSE: "Szklarnia",
+  TUNNEL: "Tunel",
 };
 
 // ---------- fertilizer ----------
