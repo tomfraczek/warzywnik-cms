@@ -6,13 +6,11 @@ import {
   demandLevelOptions,
   drainageLevelOptions,
   soilStructureOptions,
-  soilTypeOptions,
 } from "@/app/soils/api/api.types";
 
 export type SoilFormValues = {
   name: string;
   description: string;
-  soilType: CreateSoilPayload["soilType"] | "";
   structure: CreateSoilPayload["structure"] | "";
   waterRetention: CreateSoilPayload["waterRetention"] | "";
   drainage: CreateSoilPayload["drainage"] | "";
@@ -23,17 +21,6 @@ export type SoilFormValues = {
   disadvantages: string[];
   improvementTips: string[];
 };
-
-const soilTypeLabels = {
-  SANDY: "Piaszczysta",
-  LOAMY: "Gliniasta",
-  CLAY: "Ilasta",
-  SILT: "Pyłowa",
-  PEAT: "Torfowa",
-  CHALK: "Wapienna",
-  COMPOST_RICH: "Kompostowa",
-  OTHER: "Inna",
-} as const;
 
 const soilStructureLabels = {
   loose: "Luźna",
@@ -56,7 +43,6 @@ const drainageLevelLabels = {
 const defaultValues: SoilFormValues = {
   name: "",
   description: "",
-  soilType: "",
   structure: "",
   waterRetention: "",
   drainage: "",
@@ -163,7 +149,6 @@ export const SoilForm = ({
     }
 
     if (
-      !values.soilType ||
       !values.structure ||
       !values.waterRetention ||
       !values.drainage ||
@@ -176,7 +161,6 @@ export const SoilForm = ({
     const payload: CreateSoilPayload = {
       name: values.name.trim(),
       description: values.description.trim(),
-      soilType: values.soilType,
       structure: values.structure,
       waterRetention: values.waterRetention,
       drainage: values.drainage,
@@ -227,30 +211,6 @@ export const SoilForm = ({
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Parametry</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Typ gleby</span>
-            <span className="text-xs text-zinc-500">
-              Ogólny typ gleby: lekka (piaszczysta), średnia (ogrodowa), ciężka
-              (gliniasta).
-            </span>
-            <select
-              className="rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.soilType}
-              onChange={(event) =>
-                updateValue(
-                  "soilType",
-                  event.target.value as SoilFormValues["soilType"],
-                )
-              }
-            >
-              <option value="">Wybierz</option>
-              {soilTypeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {soilTypeLabels[option]}
-                </option>
-              ))}
-            </select>
-          </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Struktura</span>
             <span className="text-xs text-zinc-500">

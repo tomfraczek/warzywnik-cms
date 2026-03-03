@@ -12,7 +12,6 @@ import type { CreateSoilPayload, Soil } from "@/app/soils/api/api.types";
 const mapSoilToFormValues = (data: Soil): SoilFormValues => ({
   name: data.name,
   description: data.description,
-  soilType: data.soilType,
   structure: data.structure,
   waterRetention: data.waterRetention,
   drainage: data.drainage,

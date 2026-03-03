@@ -45,7 +45,7 @@ export type ListResponse<T> = {
 export type CreateSoilPayload = {
   name: string;
   description: string;
-  soilType: SoilType;
+  soilType?: SoilType;
   structure: SoilStructure;
   waterRetention: DemandLevel;
   drainage: DrainageLevel;
