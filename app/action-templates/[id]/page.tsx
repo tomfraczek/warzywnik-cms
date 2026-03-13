@@ -5,6 +5,15 @@ import { useParams, useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import { useGetActionTemplate } from "@/app/api/queries/action-templates/useGetActionTemplate";
 import { useDeleteActionTemplate } from "@/app/api/mutations/action-templates/useDeleteActionTemplate";
+import {
+  normalizeActionTemplateEnvironment,
+  normalizeActionTemplateTarget,
+} from "@/app/api/api.types";
+import {
+  actionTemplateEnvironmentLabels,
+  actionTemplateTargetLabels,
+  actionTemplateTypeLabels,
+} from "@/app/utils/labels";
 
 export default function ActionTemplateDetailsPage() {
   const router = useRouter();
@@ -71,10 +80,23 @@ export default function ActionTemplateDetailsPage() {
       <section className="rounded-xl border border-zinc-200 bg-white p-6 space-y-2 text-sm text-zinc-600">
         <p>
           <span className="font-medium text-zinc-900">Zakres:</span>{" "}
-          {data.scope ?? data.target ?? "-"}
+          {
+            actionTemplateTargetLabels[
+              normalizeActionTemplateTarget(data.target ?? data.scope)
+            ]
+          }
         </p>
         <p>
-          <span className="font-medium text-zinc-900">Typ:</span> {data.type}
+          <span className="font-medium text-zinc-900">Środowisko:</span>{" "}
+          {
+            actionTemplateEnvironmentLabels[
+              normalizeActionTemplateEnvironment(data.environment)
+            ]
+          }
+        </p>
+        <p>
+          <span className="font-medium text-zinc-900">Typ:</span>{" "}
+          {actionTemplateTypeLabels[data.type] ?? data.type}
         </p>
         <p>
           <span className="font-medium text-zinc-900">

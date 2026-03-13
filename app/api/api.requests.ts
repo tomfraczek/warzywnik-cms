@@ -26,6 +26,9 @@ import type {
   DemandLevel,
   SunExposure,
   ActionTemplateScope,
+  ActionTemplateTarget,
+  ActionTemplateEnvironment,
+  ActionTemplateType,
 } from "@/app/api/api.types";
 
 export type GetVegetablesParams = {
@@ -198,6 +201,9 @@ export const getActionTemplates = async (
     limit?: number;
     q?: string;
     scope?: ActionTemplateScope;
+    target?: ActionTemplateTarget;
+    environment?: ActionTemplateEnvironment;
+    type?: ActionTemplateType;
   } = {},
 ): Promise<ListResponse<ActionTemplateListItem>> => {
   const { data } = await apiClient.get<ListResponse<ActionTemplateListItem>>(
@@ -230,7 +236,10 @@ export const updateActionTemplate = async (
   id: string,
   payload: UpdateActionTemplatePayload,
 ): Promise<ActionTemplate> => {
-  const normalizedPayload = normalizePatchPayload(payload);
+  const normalizedPayload = Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined),
+  ) as UpdateActionTemplatePayload;
+
   const { data } = await apiClient.patch<ActionTemplate>(
     `/action-templates/${id}`,
     normalizedPayload,

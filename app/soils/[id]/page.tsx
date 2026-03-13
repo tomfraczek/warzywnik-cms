@@ -8,7 +8,6 @@ import { useDeleteSoil } from "@/app/api/mutations/soils/useDeleteSoil";
 
 import {
   labelOrDash,
-  soilTypeLabels,
   soilStructureLabels,
   soilWaterRetentionLabels,
   soilDrainageLabels,
@@ -88,11 +87,6 @@ export default function SoilDetailsPage() {
         <section className="rounded-xl border border-zinc-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-zinc-900">Parametry</h2>
           <div className="mt-4 space-y-2 text-sm text-zinc-600">
-            <p>
-              <span className="font-medium text-zinc-900">Typ gleby:</span>{" "}
-              {labelOrDash(data.soilType, soilTypeLabels)}
-            </p>
-
             <p>
               <span className="font-medium text-zinc-900">Struktura:</span>{" "}
               {labelOrDash(data.structure, soilStructureLabels)}

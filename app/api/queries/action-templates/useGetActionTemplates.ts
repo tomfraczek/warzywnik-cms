@@ -1,6 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { getActionTemplates } from "@/app/api/api.requests";
-import type { ActionTemplateScope } from "@/app/api/api.types";
+import type {
+  ActionTemplateEnvironment,
+  ActionTemplateScope,
+  ActionTemplateTarget,
+  ActionTemplateType,
+} from "@/app/api/api.types";
 
 export const actionTemplateKeys = {
   all: ["action-templates"] as const,
@@ -9,6 +14,9 @@ export const actionTemplateKeys = {
     limit?: number;
     q?: string;
     scope?: ActionTemplateScope;
+    target?: ActionTemplateTarget;
+    environment?: ActionTemplateEnvironment;
+    type?: ActionTemplateType;
   }) => [...actionTemplateKeys.all, params] as const,
   detail: (id: string) => [...actionTemplateKeys.all, "detail", id] as const,
 };
@@ -19,6 +27,9 @@ const fetchActionTemplates =
     limit?: number;
     q?: string;
     scope?: ActionTemplateScope;
+    target?: ActionTemplateTarget;
+    environment?: ActionTemplateEnvironment;
+    type?: ActionTemplateType;
   }) =>
   async () => {
     return getActionTemplates(params);
@@ -30,6 +41,9 @@ export const useGetActionTemplates = (
     limit?: number;
     q?: string;
     scope?: ActionTemplateScope;
+    target?: ActionTemplateTarget;
+    environment?: ActionTemplateEnvironment;
+    type?: ActionTemplateType;
   } = {},
 ) => {
   return useQuery({

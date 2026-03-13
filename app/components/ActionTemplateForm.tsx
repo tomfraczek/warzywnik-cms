@@ -4,14 +4,21 @@ import { useState } from "react";
 import type { CreateActionTemplatePayload } from "@/app/api/api.types";
 import {
   actionTemplateDefaultTypeByScope,
+  actionTemplateEnvironmentOptions,
   actionTemplateTypeGroups,
   actionTemplateScopeOptions,
   mapActionTemplateType,
 } from "@/app/api/api.types";
+import {
+  actionTemplateEnvironmentLabels,
+  actionTemplateTargetLabels,
+  actionTemplateTypeLabels,
+} from "@/app/utils/labels";
 
 export type ActionTemplateFormValues = {
   name: string;
   target: CreateActionTemplatePayload["target"];
+  environment: CreateActionTemplatePayload["environment"];
   type: CreateActionTemplatePayload["type"];
   defaultDueOffsetDays: number | null;
   description: string;
@@ -20,42 +27,10 @@ export type ActionTemplateFormValues = {
 const defaultValues: ActionTemplateFormValues = {
   name: "",
   target: "bed",
+  environment: "any",
   type: actionTemplateDefaultTypeByScope.bed,
   defaultDueOffsetDays: null,
   description: "",
-};
-
-const targetLabels: Record<CreateActionTemplatePayload["target"], string> = {
-  bed: "Grządka",
-  planting: "Nasadzenie",
-};
-
-const typeLabels: Record<CreateActionTemplatePayload["type"], string> = {
-  sowing: "Siew",
-  transplanting: "Przesadzanie",
-  thinning: "Przerywanie",
-  hardening: "Hartowanie",
-  watering: "Podlewanie",
-  fertilization: "Nawożenie",
-  pruning: "Przycinanie",
-  weeding: "Odchwaszczanie",
-  staking: "Palikowanie i podpieranie",
-  harvest: "Zbiór",
-  pest_control: "Zwalczanie szkodników",
-  disease_control: "Zwalczanie chorób",
-  spraying: "Opryski",
-  physical_protection: "Ochrona fizyczna",
-  trap_setup: "Zakładanie pułapek",
-  soil_preparation: "Przygotowanie gleby",
-  soil_amendment: "Ulepszanie gleby",
-  mulching: "Ściółkowanie",
-  soil_testing: "Badanie gleby",
-  soil_regeneration: "Regeneracja gleby",
-  irrigation_setup: "Przygotowanie nawadniania",
-  monitoring: "Monitoring",
-  rotation_planning: "Planowanie zmianowania",
-  bed_ready: "Grządka gotowa",
-  manual_custom: "Ręczny (własny)",
 };
 
 export type ActionTemplateFormProps = {
@@ -64,6 +39,7 @@ export type ActionTemplateFormProps = {
   submitLabel: string;
   isSubmitting?: boolean;
   errorMessage?: string | null;
+  fieldErrors?: Partial<Record<keyof ActionTemplateFormValues, string>>;
 };
 
 export const ActionTemplateForm = ({
@@ -72,6 +48,7 @@ export const ActionTemplateForm = ({
   submitLabel,
   isSubmitting,
   errorMessage,
+  fieldErrors,
 }: ActionTemplateFormProps) => {
   const [values, setValues] = useState<ActionTemplateFormValues>({
     ...defaultValues,
@@ -94,6 +71,11 @@ export const ActionTemplateForm = ({
       return;
     }
 
+    if (values.name.trim().length > 120) {
+      setClientError("Nazwa może mieć maksymalnie 120 znaków.");
+      return;
+    }
+
     const offsetDays = values.defaultDueOffsetDays;
 
     if (offsetDays !== null && !Number.isInteger(offsetDays)) {
@@ -106,9 +88,10 @@ export const ActionTemplateForm = ({
     onSubmit({
       name: values.name.trim(),
       target: values.target,
+      environment: values.environment,
       type: mapActionTemplateType(values.type, values.target),
-      ...(offsetDays === null ? {} : { defaultDueOffsetDays: offsetDays }),
-      ...(trimmedDescription === "" ? {} : { description: trimmedDescription }),
+      defaultDueOffsetDays: offsetDays,
+      description: trimmedDescription === "" ? null : trimmedDescription,
     });
   };
 
@@ -123,7 +106,12 @@ export const ActionTemplateForm = ({
               value={values.name}
               onChange={(event) => updateValue("name", event.target.value)}
               required
+              minLength={2}
+              maxLength={120}
             />
+            {fieldErrors?.name && (
+              <span className="text-xs text-red-600">{fieldErrors.name}</span>
+            )}
           </label>
 
           <label className="flex flex-col gap-2 text-sm">
@@ -148,13 +136,43 @@ export const ActionTemplateForm = ({
                   return nextValues;
                 });
               }}
+              required
             >
               {actionTemplateScopeOptions.map((option) => (
                 <option key={option} value={option}>
-                  {targetLabels[option] ?? option}
+                  {actionTemplateTargetLabels[option] ?? option}
                 </option>
               ))}
             </select>
+            {fieldErrors?.target && (
+              <span className="text-xs text-red-600">{fieldErrors.target}</span>
+            )}
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm">
+            Środowisko
+            <select
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.environment}
+              onChange={(event) => {
+                updateValue(
+                  "environment",
+                  event.target.value as ActionTemplateFormValues["environment"],
+                );
+              }}
+              required
+            >
+              {actionTemplateEnvironmentOptions.map((option) => (
+                <option key={option} value={option}>
+                  {actionTemplateEnvironmentLabels[option] ?? option}
+                </option>
+              ))}
+            </select>
+            {fieldErrors?.environment && (
+              <span className="text-xs text-red-600">
+                {fieldErrors.environment}
+              </span>
+            )}
           </label>
 
           <label className="flex flex-col gap-2 text-sm">
@@ -169,17 +187,21 @@ export const ActionTemplateForm = ({
                   event.target.value as ActionTemplateFormValues["type"],
                 );
               }}
+              required
             >
               {actionTemplateTypeGroups.map((group) => (
                 <optgroup key={group.label} label={group.label}>
                   {group.options.map((option) => (
                     <option key={option} value={option}>
-                      {typeLabels[option] ?? option}
+                      {actionTemplateTypeLabels[option] ?? option}
                     </option>
                   ))}
                 </optgroup>
               ))}
             </select>
+            {fieldErrors?.type && (
+              <span className="text-xs text-red-600">{fieldErrors.type}</span>
+            )}
           </label>
 
           <label className="flex flex-col gap-2 text-sm md:col-span-2">
@@ -199,6 +221,11 @@ export const ActionTemplateForm = ({
               }}
               placeholder="np. -3, 0, 14"
             />
+            {fieldErrors?.defaultDueOffsetDays && (
+              <span className="text-xs text-red-600">
+                {fieldErrors.defaultDueOffsetDays}
+              </span>
+            )}
           </label>
         </div>
 
@@ -209,6 +236,11 @@ export const ActionTemplateForm = ({
             value={values.description}
             onChange={(event) => updateValue("description", event.target.value)}
           />
+          {fieldErrors?.description && (
+            <span className="text-xs text-red-600">
+              {fieldErrors.description}
+            </span>
+          )}
         </label>
       </section>
 

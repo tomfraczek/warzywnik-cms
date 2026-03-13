@@ -6,22 +6,133 @@ import { AxiosError } from "axios";
 import { ActionTemplateForm } from "@/app/components/ActionTemplateForm";
 import { useGetActionTemplate } from "@/app/api/queries/action-templates/useGetActionTemplate";
 import { useUpdateActionTemplate } from "@/app/api/mutations/action-templates/useUpdateActionTemplate";
-import { mapActionTemplateType } from "@/app/api/api.types";
+import {
+  mapActionTemplateType,
+  normalizeActionTemplateEnvironment,
+  normalizeActionTemplateTarget,
+} from "@/app/api/api.types";
 import type { ActionTemplateFormValues } from "@/app/components/ActionTemplateForm";
 import type {
   ActionTemplate,
-  ActionTemplateScope,
   CreateActionTemplatePayload,
+  UpdateActionTemplatePayload,
 } from "@/app/api/api.types";
+
+type FieldErrors = Partial<Record<keyof ActionTemplateFormValues, string>>;
+
+const mapBackendFieldToFormField = (
+  field: string,
+): keyof ActionTemplateFormValues | null => {
+  if (field === "scope") return "target";
+
+  const mapping: Record<string, keyof ActionTemplateFormValues> = {
+    name: "name",
+    target: "target",
+    environment: "environment",
+    type: "type",
+    defaultDueOffsetDays: "defaultDueOffsetDays",
+    description: "description",
+  };
+
+  return mapping[field] ?? null;
+};
+
+const extractFieldErrors = (payload: unknown): FieldErrors => {
+  if (!payload || typeof payload !== "object") return {};
+
+  const result: FieldErrors = {};
+
+  const appendFromMessageText = (text: string) => {
+    const normalized = text.trim();
+    const knownFields = [
+      "name",
+      "target",
+      "scope",
+      "environment",
+      "type",
+      "defaultDueOffsetDays",
+      "description",
+    ];
+
+    const field = knownFields.find(
+      (entry) =>
+        normalized.toLowerCase().startsWith(`${entry.toLowerCase()} `) ||
+        normalized.toLowerCase().startsWith(`${entry.toLowerCase()}:`),
+    );
+
+    if (!field) return;
+    const mappedField = mapBackendFieldToFormField(field);
+    if (!mappedField) return;
+    result[mappedField] = normalized;
+  };
+
+  const maybeErrors = (payload as { errors?: unknown }).errors;
+  if (Array.isArray(maybeErrors)) {
+    maybeErrors.forEach((errorItem) => {
+      if (!errorItem || typeof errorItem !== "object") return;
+
+      const field = String((errorItem as { field?: unknown }).field ?? "");
+      const message = String(
+        (errorItem as { message?: unknown }).message ?? "",
+      );
+      const mappedField = mapBackendFieldToFormField(field);
+
+      if (mappedField && message) {
+        result[mappedField] = message;
+      }
+    });
+  }
+
+  const message = (payload as { message?: unknown }).message;
+  if (Array.isArray(message)) {
+    message
+      .filter((item): item is string => typeof item === "string")
+      .forEach(appendFromMessageText);
+  }
+
+  if (typeof message === "string") {
+    appendFromMessageText(message);
+  }
+
+  return result;
+};
+
+const buildUpdatePayload = (
+  current: CreateActionTemplatePayload,
+  initial: ActionTemplateFormValues,
+): UpdateActionTemplatePayload => {
+  const initialName = initial.name.trim();
+  const initialDescription = initial.description.trim() || null;
+
+  const next: UpdateActionTemplatePayload = {};
+
+  if (current.name !== initialName) next.name = current.name;
+  if (current.target !== initial.target) next.target = current.target;
+  if (current.environment !== initial.environment) {
+    next.environment = current.environment;
+  }
+  if (current.type !== initial.type) next.type = current.type;
+
+  if ((current.defaultDueOffsetDays ?? null) !== initial.defaultDueOffsetDays) {
+    next.defaultDueOffsetDays = current.defaultDueOffsetDays ?? null;
+  }
+
+  if ((current.description ?? null) !== initialDescription) {
+    next.description = current.description ?? null;
+  }
+
+  return next;
+};
 
 const mapActionTemplateFromApi = (
   data: ActionTemplate,
 ): ActionTemplateFormValues => {
-  const target = (data.target ?? data.scope ?? "bed") as ActionTemplateScope;
+  const target = normalizeActionTemplateTarget(data.target ?? data.scope);
 
   return {
     name: data.name,
     target,
+    environment: normalizeActionTemplateEnvironment(data.environment),
     type: mapActionTemplateType(data.type, target),
     defaultDueOffsetDays: data.defaultDueOffsetDays ?? null,
     description: data.description || "",
@@ -32,6 +143,7 @@ export default function EditActionTemplatePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const { data, isLoading, error } = useGetActionTemplate(params?.id);
   const updateMutation = useUpdateActionTemplate();
 
@@ -41,19 +153,34 @@ export default function EditActionTemplatePage() {
   );
 
   const handleSubmit = async (payload: CreateActionTemplatePayload) => {
-    if (!data) return;
+    if (!data || !initialValues) return;
+
     setErrorMessage(null);
+    setFieldErrors({});
+
+    const updatePayload = buildUpdatePayload(payload, initialValues);
+
+    if (Object.keys(updatePayload).length === 0) {
+      router.push(`/action-templates/${data.id}`);
+      return;
+    }
+
     try {
-      const result = await updateMutation.mutateAsync({ id: data.id, payload });
+      const result = await updateMutation.mutateAsync({
+        id: data.id,
+        payload: updatePayload,
+      });
       router.push(`/action-templates/${result.id}`);
     } catch (err) {
       if (err instanceof AxiosError && err.response) {
         if (err.response.status === 409) {
-          setErrorMessage("Rekord o tej nazwie już istnieje.");
+          setErrorMessage("Szablon o tej nazwie już istnieje.");
           return;
         }
         if (err.response.status === 400) {
-          setErrorMessage("Błąd walidacji danych.");
+          const nextFieldErrors = extractFieldErrors(err.response.data);
+          setFieldErrors(nextFieldErrors);
+          setErrorMessage("Błąd walidacji danych. Sprawdź pola formularza.");
           return;
         }
         if (err.response.status === 404) {
@@ -100,6 +227,7 @@ export default function EditActionTemplatePage() {
         onSubmit={handleSubmit}
         isSubmitting={updateMutation.isPending}
         errorMessage={errorMessage}
+        fieldErrors={fieldErrors}
       />
     </section>
   );

@@ -1,9 +1,11 @@
 import type {
+  ActionTemplateType,
+  ActionTemplateEnvironment,
+  ActionTemplateTarget,
   CultivationEnvironment,
   CreateVegetablePayload,
   DemandLevel,
   Month,
-  SoilType,
   SowingMethodType,
 } from "@/app/api/api.types";
 import { DrainageLevel, SoilStructure } from "../soils/api/api.types";
@@ -63,18 +65,6 @@ export const monthLabels: Record<Month, string> = {
   december: "Grudzień",
 };
 
-// ---------- soil ----------
-export const soilTypeLabels: Record<SoilType, string> = {
-  SANDY: "Piaszczysta",
-  LOAMY: "Gliniasta",
-  CLAY: "Ilasta",
-  SILT: "Pyłowa",
-  PEAT: "Torfowa",
-  CHALK: "Wapienna",
-  COMPOST_RICH: "Kompostowa",
-  OTHER: "Inna",
-};
-
 export const soilStructureLabels: Record<SoilStructure, string> = {
   loose: "Luźna",
   crumbly: "Grudkowata",
@@ -98,6 +88,59 @@ export const cultivationEnvironmentLabels: Record<
   POT_INDOOR: "Donica (wewnątrz)",
   GREENHOUSE: "Szklarnia",
   TUNNEL: "Tunel",
+};
+
+export const actionTemplateTargetLabels: Record<ActionTemplateTarget, string> =
+  {
+    bed: "Grządka",
+    planting: "Nasadzenie",
+    space: "Przestrzeń uprawowa",
+  };
+
+export const actionTemplateEnvironmentLabels: Record<
+  ActionTemplateEnvironment,
+  string
+> = {
+  any: "Dowolne",
+  outdoor: "Uprawa zewnętrzna",
+  tunnel: "Tunel",
+  greenhouse: "Szklarnia",
+};
+
+export const actionTemplateTypeLabels: Record<ActionTemplateType, string> = {
+  sowing: "Siew",
+  transplanting: "Przesadzanie",
+  thinning: "Przerywanie",
+  hardening: "Hartowanie",
+  watering: "Podlewanie",
+  fertilization: "Nawożenie",
+  pruning: "Przycinanie",
+  weeding: "Odchwaszczanie",
+  staking: "Palikowanie i podpieranie",
+  harvest: "Zbiór",
+  pest_control: "Zwalczanie szkodników",
+  disease_control: "Zwalczanie chorób",
+  spraying: "Opryski",
+  physical_protection: "Ochrona fizyczna",
+  trap_setup: "Zakładanie pułapek",
+  soil_preparation: "Przygotowanie gleby",
+  soil_amendment: "Ulepszanie gleby",
+  mulching: "Ściółkowanie",
+  soil_testing: "Badanie gleby",
+  soil_regeneration: "Regeneracja gleby",
+  irrigation_setup: "Przygotowanie nawadniania",
+  monitoring: "Monitoring",
+  rotation_planning: "Planowanie zmianowania",
+  bed_ready: "Grządka gotowa",
+  climate_control: "Kontrola klimatu",
+  ventilation: "Wentylacja",
+  humidity_reduction: "Redukcja wilgotności",
+  shading: "Cieniowanie",
+  structure_inspection: "Kontrola konstrukcji",
+  structure_repair: "Naprawa konstrukcji",
+  space_hygiene: "Higiena przestrzeni",
+  seasonal_preparation: "Przygotowanie sezonowe",
+  manual_custom: "Ręczny (własny)",
 };
 
 // ---------- fertilizer ----------

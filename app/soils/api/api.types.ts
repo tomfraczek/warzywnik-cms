@@ -1,12 +1,3 @@
-export type SoilType =
-  | "SANDY"
-  | "LOAMY"
-  | "CLAY"
-  | "SILT"
-  | "PEAT"
-  | "CHALK"
-  | "COMPOST_RICH"
-  | "OTHER";
 export type SoilStructure = "loose" | "crumbly" | "compact";
 export type DemandLevel = "low" | "medium" | "high";
 export type DrainageLevel = "poor" | "medium" | "good";
@@ -15,7 +6,6 @@ export type Soil = {
   id: string;
   name: string;
   description: string;
-  soilType: SoilType;
   structure: SoilStructure;
   waterRetention: DemandLevel;
   drainage: DrainageLevel;
@@ -32,7 +22,6 @@ export type Soil = {
 export type SoilListItem = {
   id: string;
   name: string;
-  soilType: SoilType;
 };
 
 export type ListResponse<T> = {
@@ -45,7 +34,6 @@ export type ListResponse<T> = {
 export type CreateSoilPayload = {
   name: string;
   description: string;
-  soilType?: SoilType;
   structure: SoilStructure;
   waterRetention: DemandLevel;
   drainage: DrainageLevel;
@@ -58,17 +46,6 @@ export type CreateSoilPayload = {
 };
 
 export type UpdateSoilPayload = Partial<CreateSoilPayload>;
-
-export const soilTypeOptions: SoilType[] = [
-  "SANDY",
-  "LOAMY",
-  "CLAY",
-  "SILT",
-  "PEAT",
-  "CHALK",
-  "COMPOST_RICH",
-  "OTHER",
-];
 export const soilStructureOptions: SoilStructure[] = [
   "loose",
   "crumbly",

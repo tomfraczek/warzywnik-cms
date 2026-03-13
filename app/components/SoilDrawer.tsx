@@ -5,7 +5,6 @@ import {
   soilDrainageLabels,
   soilFertilityLabels,
   soilStructureLabels,
-  soilTypeLabels,
   soilWaterRetentionLabels,
 } from "@/app/utils/labels";
 
@@ -100,15 +99,6 @@ export const SoilDrawer = ({ soilId, onClose }: SoilDrawerProps) => {
               </section>
 
               <section className="grid gap-3 text-sm">
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                    Typ gleby
-                  </p>
-                  <p className="mt-1 font-medium text-zinc-900">
-                    {labelOrDash(soil.soilType ?? null, soilTypeLabels)}
-                  </p>
-                </div>
-
                 <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                     Struktura

@@ -5,12 +5,85 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
 import { useDeleteSoil } from "@/app/api/mutations/soils/useDeleteSoil";
+import { getSoil, getSoils } from "@/app/soils/api/api.requests";
+import type { Soil } from "@/app/soils/api/api.types";
+
+const csvHeaders = [
+  "id",
+  "name",
+  "description",
+  "structure",
+  "waterRetention",
+  "drainage",
+  "phMin",
+  "phMax",
+  "fertilityLevel",
+  "advantages",
+  "disadvantages",
+  "improvementTips",
+  "createdAt",
+  "updatedAt",
+];
+
+const escapeCsv = (value: unknown) => {
+  if (value === null || value === undefined) return "";
+  const stringValue = String(value);
+  const escaped = stringValue.replace(/"/g, '""');
+  return `"${escaped}"`;
+};
+
+const toCsv = (rows: Soil[]) => {
+  const header = csvHeaders.join(",");
+  const body = rows.map((row) => {
+    const values = [
+      row.id,
+      row.name,
+      row.description,
+      row.structure,
+      row.waterRetention,
+      row.drainage,
+      row.phMin ?? "",
+      row.phMax ?? "",
+      row.fertilityLevel,
+      row.advantages.join(" | "),
+      row.disadvantages.join(" | "),
+      row.improvementTips.join(" | "),
+      row.createdAt,
+      row.updatedAt,
+    ];
+
+    return values.map((value) => escapeCsv(value)).join(",");
+  });
+
+  return [header, ...body].join("\n");
+};
+
+const downloadCsv = (content: string, filename: string) => {
+  const blob = new Blob(["\uFEFF", content], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const getTimestamp = () => {
+  const date = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+};
 
 export default function SoilsPage() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -36,6 +109,53 @@ export default function SoilsPage() {
     }
   };
 
+  const handleExportCsv = async () => {
+    setNotice(null);
+    setIsExporting(true);
+
+    try {
+      const normalizedQuery = q.trim() || undefined;
+      const pageSize = 100;
+      const firstPage = await getSoils({
+        page: 1,
+        limit: pageSize,
+        q: normalizedQuery,
+      });
+
+      const allListItems = [...firstPage.items];
+      const totalPages = Math.ceil(firstPage.total / firstPage.limit);
+
+      for (let currentPage = 2; currentPage <= totalPages; currentPage += 1) {
+        const nextPage = await getSoils({
+          page: currentPage,
+          limit: pageSize,
+          q: normalizedQuery,
+        });
+        allListItems.push(...nextPage.items);
+      }
+
+      const fullDetails: Soil[] = [];
+      const batchSize = 20;
+
+      for (let index = 0; index < allListItems.length; index += batchSize) {
+        const batch = allListItems.slice(index, index + batchSize);
+        const batchDetails = await Promise.all(
+          batch.map((item) => getSoil(item.id)),
+        );
+        fullDetails.push(...batchDetails);
+      }
+
+      const csvContent = toCsv(fullDetails);
+      const filename = `soils_${getTimestamp()}.csv`;
+      downloadCsv(csvContent, filename);
+      setNotice(`Wyeksportowano ${fullDetails.length} gleb do CSV.`);
+    } catch {
+      setNotice("Nie udało się wyeksportować danych do CSV.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <section className="space-y-6">
       <header className="space-y-2">
@@ -44,12 +164,22 @@ export default function SoilsPage() {
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-3xl font-semibold text-zinc-900">Lista gleb</h1>
-          <Link
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-            href="/soils/new"
-          >
-            Dodaj glebę
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+              href="/soils/new"
+            >
+              Dodaj glebę
+            </Link>
+            <button
+              type="button"
+              className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleExportCsv}
+              disabled={isExporting}
+            >
+              {isExporting ? "Eksportowanie..." : "Eksport CSV"}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -73,28 +203,27 @@ export default function SoilsPage() {
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-400">
             <tr>
               <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Soil type</th>
               <th className="px-4 py-3 text-right">Akcje</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={3}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={2}>
                   Ładowanie...
                 </td>
               </tr>
             )}
             {error && (
               <tr>
-                <td className="px-4 py-6 text-red-500" colSpan={3}>
+                <td className="px-4 py-6 text-red-500" colSpan={2}>
                   Nie udało się pobrać listy.
                 </td>
               </tr>
             )}
             {!isLoading && data?.items.length === 0 && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={3}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={2}>
                   Brak gleb.
                 </td>
               </tr>
@@ -104,7 +233,6 @@ export default function SoilsPage() {
                 <td className="px-4 py-3 font-medium text-zinc-900">
                   {item.name}
                 </td>
-                <td className="px-4 py-3 text-zinc-500">{item.soilType}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-3 text-xs font-medium">
                     <Link

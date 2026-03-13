@@ -58,7 +58,14 @@ export type MiniRef = {
   name: string;
 };
 
-export type ActionTemplateScope = "bed" | "planting";
+export type ActionTemplateTarget = "bed" | "planting" | "space";
+export type ActionTemplateScope = ActionTemplateTarget;
+export type LegacyActionTemplateScope = "BED" | "PLANTING" | "SPACE";
+export type ActionTemplateEnvironment =
+  | "any"
+  | "outdoor"
+  | "tunnel"
+  | "greenhouse";
 export type ActionTemplateType =
   | "sowing"
   | "transplanting"
@@ -84,6 +91,14 @@ export type ActionTemplateType =
   | "monitoring"
   | "rotation_planning"
   | "bed_ready"
+  | "climate_control"
+  | "ventilation"
+  | "humidity_reduction"
+  | "shading"
+  | "structure_inspection"
+  | "structure_repair"
+  | "space_hygiene"
+  | "seasonal_preparation"
   | "manual_custom";
 
 export type ActionRuleTrigger =
@@ -121,8 +136,9 @@ export type ActionTemplateRef = {
 export type ActionTemplateListItem = {
   id: string;
   name: string;
-  scope?: ActionTemplateScope;
-  target: ActionTemplateScope;
+  scope?: ActionTemplateScope | LegacyActionTemplateScope;
+  target: ActionTemplateTarget;
+  environment: ActionTemplateEnvironment;
   type: ActionTemplateType;
   defaultDueOffsetDays?: number | null;
   updatedAt: string;
@@ -268,10 +284,11 @@ export type CreateDiseasePayload = {
 
 export type CreateActionTemplatePayload = {
   name: string;
-  target: ActionTemplateScope;
+  target: ActionTemplateTarget;
+  environment: ActionTemplateEnvironment;
   type: ActionTemplateType;
   defaultDueOffsetDays?: number | null;
-  description?: string;
+  description?: string | null;
 };
 
 export type UpdateActionTemplatePayload = Partial<CreateActionTemplatePayload>;
@@ -331,6 +348,14 @@ export const cultivationEnvironmentOptions: CultivationEnvironment[] = [
 export const actionTemplateScopeOptions: ActionTemplateScope[] = [
   "bed",
   "planting",
+  "space",
+];
+
+export const actionTemplateEnvironmentOptions: ActionTemplateEnvironment[] = [
+  "any",
+  "outdoor",
+  "tunnel",
+  "greenhouse",
 ];
 
 export const actionRuleTriggerOptions: ActionRuleTrigger[] = [
@@ -380,6 +405,14 @@ export const actionTemplateTypeOptions: ActionTemplateType[] = [
   "monitoring",
   "rotation_planning",
   "bed_ready",
+  "climate_control",
+  "ventilation",
+  "humidity_reduction",
+  "shading",
+  "structure_inspection",
+  "structure_repair",
+  "space_hygiene",
+  "seasonal_preparation",
   "manual_custom",
 ];
 
@@ -389,6 +422,7 @@ export type ActionTemplateTypeGroup = {
     | "Ochrona"
     | "Gleba i grządka"
     | "Monitoring i planowanie"
+    | "Klimat i przestrzeń"
     | "Systemowe"
     | "Ręczne";
   options: ActionTemplateType[];
@@ -436,6 +470,19 @@ export const actionTemplateTypeGroups: ActionTemplateTypeGroup[] = [
     options: ["monitoring", "rotation_planning"],
   },
   {
+    label: "Klimat i przestrzeń",
+    options: [
+      "climate_control",
+      "ventilation",
+      "humidity_reduction",
+      "shading",
+      "structure_inspection",
+      "structure_repair",
+      "space_hygiene",
+      "seasonal_preparation",
+    ],
+  },
+  {
     label: "Systemowe",
     options: ["bed_ready"],
   },
@@ -451,6 +498,43 @@ export const actionTemplateDefaultTypeByScope: Record<
 > = {
   planting: "monitoring",
   bed: "soil_preparation",
+  space: "monitoring",
+};
+
+export const normalizeActionTemplateTarget = (
+  target: string | null | undefined,
+): ActionTemplateTarget => {
+  const normalizedTarget = String(target ?? "")
+    .trim()
+    .toLowerCase();
+
+  if ((actionTemplateScopeOptions as string[]).includes(normalizedTarget)) {
+    return normalizedTarget as ActionTemplateTarget;
+  }
+
+  if (normalizedTarget === "bed") return "bed";
+  if (normalizedTarget === "planting") return "planting";
+  if (normalizedTarget === "space") return "space";
+
+  return "bed";
+};
+
+export const normalizeActionTemplateEnvironment = (
+  environment: string | null | undefined,
+): ActionTemplateEnvironment => {
+  const normalizedEnvironment = String(environment ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (
+    (actionTemplateEnvironmentOptions as string[]).includes(
+      normalizedEnvironment,
+    )
+  ) {
+    return normalizedEnvironment as ActionTemplateEnvironment;
+  }
+
+  return "any";
 };
 
 export const legacyActionTemplateTypeToNewType: Record<
@@ -472,7 +556,7 @@ export const legacyActionTemplateTypeToNewType: Record<
 
 export const mapActionTemplateType = (
   type: string | null | undefined,
-  scope: ActionTemplateScope,
+  target: ActionTemplateTarget,
 ): ActionTemplateType => {
   const normalizedType = String(type ?? "")
     .trim()
@@ -487,7 +571,7 @@ export const mapActionTemplateType = (
     return mappedLegacy;
   }
 
-  return actionTemplateDefaultTypeByScope[scope];
+  return actionTemplateDefaultTypeByScope[target];
 };
 
 export type ArticleStatus = "DRAFT" | "PUBLISHED";
