@@ -77,38 +77,60 @@ export default function ActionTemplateDetailsPage() {
         </div>
       </header>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-6 space-y-2 text-sm text-zinc-600">
-        <p>
-          <span className="font-medium text-zinc-900">Zakres:</span>{" "}
-          {
-            actionTemplateTargetLabels[
-              normalizeActionTemplateTarget(data.target ?? data.scope)
-            ]
-          }
-        </p>
-        <p>
-          <span className="font-medium text-zinc-900">Środowisko:</span>{" "}
-          {
-            actionTemplateEnvironmentLabels[
-              normalizeActionTemplateEnvironment(data.environment)
-            ]
-          }
-        </p>
-        <p>
-          <span className="font-medium text-zinc-900">Typ:</span>{" "}
-          {actionTemplateTypeLabels[data.type] ?? data.type}
-        </p>
-        <p>
-          <span className="font-medium text-zinc-900">
-            Opóźnienie terminu (dni):
-          </span>{" "}
-          {data.defaultDueOffsetDays ?? "-"}
-        </p>
-        <p>
-          <span className="font-medium text-zinc-900">Opis:</span>{" "}
-          {data.description || "-"}
-        </p>
-      </section>
+      <div className="grid gap-6 md:grid-cols-2">
+        <section className="rounded-xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-zinc-900">Parametry</h2>
+          <div className="mt-4 grid gap-3 text-sm">
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">
+                Zakres
+              </p>
+              <p className="mt-1 font-medium text-zinc-900">
+                {
+                  actionTemplateTargetLabels[
+                    normalizeActionTemplateTarget(data.target ?? data.scope)
+                  ]
+                }
+              </p>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">
+                Środowisko
+              </p>
+              <p className="mt-1 font-medium text-zinc-900">
+                {
+                  actionTemplateEnvironmentLabels[
+                    normalizeActionTemplateEnvironment(data.environment)
+                  ]
+                }
+              </p>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">
+                Typ
+              </p>
+              <p className="mt-1 font-medium text-zinc-900">
+                {actionTemplateTypeLabels[data.type] ?? data.type}
+              </p>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">
+                Opóźnienie terminu (dni)
+              </p>
+              <p className="mt-1 font-medium text-zinc-900">
+                {data.defaultDueOffsetDays ?? "-"}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-zinc-900">Opis</h2>
+          <p className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700">
+            {data.description || "-"}
+          </p>
+        </section>
+      </div>
     </section>
   );
 }

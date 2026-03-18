@@ -5,7 +5,96 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetFertilizers } from "@/app/api/queries/fertilizers/useGetFertilizers";
 import { useDeleteFertilizer } from "@/app/api/mutations/fertilizers/useDeleteFertilizer";
-import { fertilizerCategoryOptions } from "@/app/fertilizers/api/api.types";
+import {
+  getFertilizer,
+  getFertilizers,
+} from "@/app/fertilizers/api/api.requests";
+import {
+  fertilizerCategoryOptions,
+  type FertilizerType,
+} from "@/app/fertilizers/api/api.types";
+
+const csvHeaders = [
+  "id",
+  "name",
+  "description",
+  "category",
+  "form",
+  "applicationMethod",
+  "riskLevel",
+  "nitrogenEffect",
+  "phosphorusEffect",
+  "potassiumEffect",
+  "phEffect",
+  "soilStructureEffect",
+  "waterRetentionEffect",
+  "drainageEffect",
+  "recommendedFrequency",
+  "dosageGuidance",
+  "notes",
+  "isActive",
+  "createdAt",
+  "updatedAt",
+];
+
+const escapeCsv = (value: unknown) => {
+  if (value === null || value === undefined) return "";
+  const stringValue = String(value);
+  const escaped = stringValue.replace(/"/g, '""');
+  return `"${escaped}"`;
+};
+
+const toCsv = (rows: FertilizerType[]) => {
+  const header = csvHeaders.join(",");
+  const body = rows.map((row) => {
+    const values = [
+      row.id,
+      row.name,
+      row.description,
+      row.category,
+      row.form,
+      row.applicationMethod,
+      row.riskLevel,
+      row.nitrogenEffect,
+      row.phosphorusEffect,
+      row.potassiumEffect,
+      row.phEffect,
+      row.soilStructureEffect,
+      row.waterRetentionEffect,
+      row.drainageEffect,
+      row.recommendedFrequency,
+      row.dosageGuidance ?? "",
+      row.notes ?? "",
+      row.isActive,
+      row.createdAt,
+      row.updatedAt,
+    ];
+
+    return values.map((value) => escapeCsv(value)).join(",");
+  });
+
+  return [header, ...body].join("\n");
+};
+
+const downloadCsv = (content: string, filename: string) => {
+  const blob = new Blob(["\uFEFF", content], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const getTimestamp = () => {
+  const date = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+};
 
 const categoryLabels = {
   ORGANIC: "Organiczny",
@@ -24,6 +113,7 @@ export default function FertilizersPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -56,6 +146,70 @@ export default function FertilizersPage() {
     }
   };
 
+  const handleExportCsv = async () => {
+    setNotice(null);
+    setIsExporting(true);
+
+    try {
+      const normalizedParams = {
+        q: q.trim() || undefined,
+        category: category || undefined,
+        isActive:
+          isActive === "all" ? undefined : isActive === "true" ? true : false,
+      };
+      const pageSize = 20;
+      const firstPage = await getFertilizers({
+        page: 1,
+        limit: pageSize,
+        ...normalizedParams,
+      });
+
+      const allListItems = [...firstPage.items];
+      const totalPages = Math.ceil(firstPage.total / firstPage.limit);
+
+      for (let currentPage = 2; currentPage <= totalPages; currentPage += 1) {
+        const nextPage = await getFertilizers({
+          page: currentPage,
+          limit: pageSize,
+          ...normalizedParams,
+        });
+        allListItems.push(...nextPage.items);
+      }
+
+      const fullDetails: FertilizerType[] = [];
+      const batchSize = 5;
+      let failedDetails = 0;
+
+      for (let index = 0; index < allListItems.length; index += batchSize) {
+        const batch = allListItems.slice(index, index + batchSize);
+        const settled = await Promise.allSettled(
+          batch.map((item) => getFertilizer(item.id)),
+        );
+        const batchDetails = settled
+          .filter(
+            (result): result is PromiseFulfilledResult<FertilizerType> =>
+              result.status === "fulfilled",
+          )
+          .map((result) => result.value);
+        failedDetails += settled.length - batchDetails.length;
+        fullDetails.push(...batchDetails);
+      }
+
+      const csvContent = toCsv(fullDetails);
+      const filename = `fertilizers_${getTimestamp()}.csv`;
+      downloadCsv(csvContent, filename);
+      setNotice(
+        `Wyeksportowano ${fullDetails.length} nawozów do CSV${
+          failedDetails > 0 ? ` (pominięto ${failedDetails}).` : "."
+        }`,
+      );
+    } catch {
+      setNotice("Nie udało się wyeksportować danych do CSV.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <section className="space-y-6">
       <header className="space-y-2">
@@ -66,12 +220,22 @@ export default function FertilizersPage() {
           <h1 className="text-3xl font-semibold text-zinc-900">
             Lista nawozów
           </h1>
-          <Link
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-            href="/fertilizers/new"
-          >
-            Dodaj nawóz
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+              href="/fertilizers/new"
+            >
+              Dodaj nawóz
+            </Link>
+            <button
+              type="button"
+              className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleExportCsv}
+              disabled={isExporting}
+            >
+              {isExporting ? "Eksportowanie..." : "Eksport CSV"}
+            </button>
+          </div>
         </div>
       </header>
 

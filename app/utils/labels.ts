@@ -2,6 +2,7 @@ import type {
   ActionTemplateType,
   ActionTemplateEnvironment,
   ActionTemplateTarget,
+  BotanicalFamily,
   CultivationEnvironment,
   CreateVegetablePayload,
   DemandLevel,
@@ -63,6 +64,20 @@ export const monthLabels: Record<Month, string> = {
   october: "Październik",
   november: "Listopad",
   december: "Grudzień",
+};
+
+export const botanicalFamilyLabels: Record<BotanicalFamily, string> = {
+  allium: "Czosnkowate",
+  amaranth: "Szarłatowate",
+  apiaceae: "Selerowate",
+  asteraceae: "Astrowate",
+  brassicaceae: "Kapustowate",
+  cucurbitaceae: "Dyniowate",
+  fabaceae: "Bobowate",
+  lamiaceae: "Jasnotowate",
+  poaceae: "Wiechlinowate",
+  solanaceae: "Psiankowate",
+  other: "Inna",
 };
 
 export const soilStructureLabels: Record<SoilStructure, string> = {

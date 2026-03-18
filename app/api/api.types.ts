@@ -14,6 +14,18 @@ export type Month =
 
 export type DemandLevel = "low" | "medium" | "high";
 export type SunExposure = "full_sun" | "partial_shade" | "shade";
+export type BotanicalFamily =
+  | "allium"
+  | "amaranth"
+  | "apiaceae"
+  | "asteraceae"
+  | "brassicaceae"
+  | "cucurbitaceae"
+  | "fabaceae"
+  | "lamiaceae"
+  | "poaceae"
+  | "solanaceae"
+  | "other";
 export type SoilType =
   | "SANDY"
   | "LOAMY"
@@ -153,6 +165,7 @@ export type Vegetable = {
   id: string;
   name: string;
   latinName: string | null;
+  botanicalFamily: BotanicalFamily | null;
   imageUrl: string | null;
   description: string;
   sunExposure: SunExposure | null;
@@ -236,6 +249,7 @@ export type CreateVegetablePayload = {
   name: string;
   description: string;
   latinName?: string | null;
+  botanicalFamily?: BotanicalFamily | null;
   imageUrl?: string | null;
   sunExposure?: SunExposure | null;
   waterDemand?: DemandLevel | null;
@@ -315,6 +329,19 @@ export const sunExposureOptions: SunExposure[] = [
   "full_sun",
   "partial_shade",
   "shade",
+];
+export const botanicalFamilyOptions: BotanicalFamily[] = [
+  "allium",
+  "amaranth",
+  "apiaceae",
+  "asteraceae",
+  "brassicaceae",
+  "cucurbitaceae",
+  "fabaceae",
+  "lamiaceae",
+  "poaceae",
+  "solanaceae",
+  "other",
 ];
 export const soilTypeOptions: SoilType[] = [
   "SANDY",

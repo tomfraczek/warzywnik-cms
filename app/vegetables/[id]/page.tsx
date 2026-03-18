@@ -4,6 +4,7 @@ import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
 import { useGetVegetable } from "@/app/api/queries/vegetables/useGetVegetable";
 import { SoilDrawer } from "@/app/components/SoilDrawer";
 import {
+  botanicalFamilyLabels,
   sunExposureLabels,
   demandLevelLabels,
   sowingMethodLabels,
@@ -164,6 +165,12 @@ export default function VegetableDetailsPage() {
                   Nazwa łacińska:
                 </span>{" "}
                 {data.latinName || "-"}
+              </p>
+              <p>
+                <span className="font-medium text-zinc-900">Rodzina:</span>{" "}
+                {data.botanicalFamily
+                  ? botanicalFamilyLabels[data.botanicalFamily]
+                  : "-"}
               </p>
               <p>
                 <span className="font-medium text-zinc-900">Opis:</span>{" "}

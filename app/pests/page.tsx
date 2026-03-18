@@ -2,15 +2,77 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { getPest, getPests } from "@/app/api/api.requests";
+import type { Pest } from "@/app/api/api.types";
 import { useGetPests } from "@/app/api/queries/pests/useGetPests";
 import { useDeletePest } from "@/app/api/mutations/pests/useDeletePest";
 import { useQueryClient } from "@tanstack/react-query";
+
+const csvHeaders = [
+  "id",
+  "name",
+  "description",
+  "symptoms",
+  "prevention",
+  "treatment",
+  "recommendedActions",
+  "createdAt",
+  "updatedAt",
+];
+
+const escapeCsv = (value: unknown) => {
+  if (value === null || value === undefined) return "";
+  const stringValue = String(value);
+  const escaped = stringValue.replace(/"/g, '""');
+  return `"${escaped}"`;
+};
+
+const toCsv = (rows: Pest[]) => {
+  const header = csvHeaders.join(",");
+  const body = rows.map((row) => {
+    const values = [
+      row.id,
+      row.name,
+      row.description,
+      row.symptoms ?? "",
+      row.prevention ?? "",
+      row.treatment ?? "",
+      (row.recommendedActions ?? []).map((item) => item.name).join(" | "),
+      row.createdAt,
+      row.updatedAt,
+    ];
+    return values.map((value) => escapeCsv(value)).join(",");
+  });
+
+  return [header, ...body].join("\n");
+};
+
+const downloadCsv = (content: string, filename: string) => {
+  const blob = new Blob(["\uFEFF", content], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const getTimestamp = () => {
+  const date = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+};
 
 export default function PestsPage() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const queryClient = useQueryClient();
   const params = useMemo(
@@ -35,6 +97,65 @@ export default function PestsPage() {
     }
   };
 
+  const handleExportCsv = async () => {
+    setNotice(null);
+    setIsExporting(true);
+
+    try {
+      const normalizedQuery = q.trim() || undefined;
+      const pageSize = 20;
+      const firstPage = await getPests({
+        page: 1,
+        limit: pageSize,
+        q: normalizedQuery,
+      });
+
+      const allListItems = [...firstPage.items];
+      const totalPages = Math.ceil(firstPage.total / firstPage.limit);
+
+      for (let currentPage = 2; currentPage <= totalPages; currentPage += 1) {
+        const nextPage = await getPests({
+          page: currentPage,
+          limit: pageSize,
+          q: normalizedQuery,
+        });
+        allListItems.push(...nextPage.items);
+      }
+
+      const fullDetails: Pest[] = [];
+      const batchSize = 5;
+      let failedDetails = 0;
+
+      for (let index = 0; index < allListItems.length; index += batchSize) {
+        const batch = allListItems.slice(index, index + batchSize);
+        const settled = await Promise.allSettled(
+          batch.map((item) => getPest(item.id)),
+        );
+        const batchDetails = settled
+          .filter(
+            (result): result is PromiseFulfilledResult<Pest> =>
+              result.status === "fulfilled",
+          )
+          .map((result) => result.value);
+        failedDetails += settled.length - batchDetails.length;
+        fullDetails.push(...batchDetails);
+      }
+
+      const csvContent = toCsv(fullDetails);
+      const filename = `pests_${getTimestamp()}.csv`;
+      downloadCsv(csvContent, filename);
+      setNotice(
+        `Wyeksportowano ${fullDetails.length} szkodników do CSV${
+          failedDetails > 0 ? ` (pominięto ${failedDetails}).` : "."
+        }`,
+      );
+    } catch {
+      setNotice("Nie udało się wyeksportować danych do CSV.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <section className="space-y-6">
       <header className="space-y-2">
@@ -45,12 +166,22 @@ export default function PestsPage() {
           <h1 className="text-3xl font-semibold text-zinc-900">
             Lista szkodników
           </h1>
-          <Link
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-            href="/pests/new"
-          >
-            Dodaj szkodnika
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+              href="/pests/new"
+            >
+              Dodaj szkodnika
+            </Link>
+            <button
+              type="button"
+              className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleExportCsv}
+              disabled={isExporting}
+            >
+              {isExporting ? "Eksportowanie..." : "Eksport CSV"}
+            </button>
+          </div>
         </div>
       </header>
 

@@ -17,6 +17,7 @@ const mapVegetableToFormValues = (data: Vegetable): VegetableFormValues => ({
   name: data.name,
   description: data.description,
   latinName: data.latinName || "",
+  botanicalFamily: data.botanicalFamily || "",
   imageUrl: data.imageUrl || "",
   sunExposure: data.sunExposure || "",
   waterDemand: data.waterDemand || "",

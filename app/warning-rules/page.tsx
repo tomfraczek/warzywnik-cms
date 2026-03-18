@@ -6,9 +6,85 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useGetWarningRules } from "@/app/api/queries/warning-rules/useGetWarningRules";
 import { useDeleteWarningRule } from "@/app/api/mutations/warning-rules/useDeleteWarningRule";
 import {
+  getWarningRule,
+  getWarningRules,
+} from "@/app/warning-rules/api/api.requests";
+import {
+  type WarningRule,
   warningRuleHorizonOptions,
   warningSeverityOptions,
 } from "@/app/warning-rules/api/api.types";
+
+const csvHeaders = [
+  "id",
+  "code",
+  "title",
+  "severity",
+  "category",
+  "horizon",
+  "dayPart",
+  "generatesTask",
+  "enabled",
+  "messageTemplate",
+  "hintTemplate",
+  "blocking",
+  "cooldownDays",
+  "createdAt",
+  "updatedAt",
+];
+
+const escapeCsv = (value: unknown) => {
+  if (value === null || value === undefined) return "";
+  const stringValue = String(value);
+  const escaped = stringValue.replace(/"/g, '""');
+  return `"${escaped}"`;
+};
+
+const toCsv = (rows: WarningRule[]) => {
+  const header = csvHeaders.join(",");
+  const body = rows.map((row) => {
+    const values = [
+      row.id,
+      row.code,
+      row.title,
+      row.severity,
+      row.category ?? "",
+      row.horizon ?? "",
+      row.dayPart ?? "",
+      row.generatesTask ?? "",
+      row.enabled,
+      row.messageTemplate,
+      row.hintTemplate ?? "",
+      row.blocking,
+      row.cooldownDays ?? "",
+      row.createdAt,
+      row.updatedAt,
+    ];
+    return values.map((value) => escapeCsv(value)).join(",");
+  });
+
+  return [header, ...body].join("\n");
+};
+
+const downloadCsv = (content: string, filename: string) => {
+  const blob = new Blob(["\uFEFF", content], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const getTimestamp = () => {
+  const date = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+};
 
 const severityLabels = {
   INFO: "Informacja",
@@ -65,6 +141,7 @@ export default function WarningRulesPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -105,6 +182,79 @@ export default function WarningRulesPage() {
     }
   };
 
+  const handleExportCsv = async () => {
+    setNotice(null);
+    setIsExporting(true);
+
+    try {
+      const pageSize = 20;
+      const normalizedParams = {
+        q: q.trim() || undefined,
+        severity: severity || undefined,
+        enabled:
+          enabled === "all" ? undefined : enabled === "true" ? true : false,
+        horizon: horizon || undefined,
+        category: category.trim() || undefined,
+        generatesTask:
+          generatesTask === "all"
+            ? undefined
+            : generatesTask === "true"
+              ? true
+              : false,
+      };
+
+      const firstPage = await getWarningRules({
+        page: 1,
+        limit: pageSize,
+        ...normalizedParams,
+      });
+
+      const allListItems = [...firstPage.items];
+      const totalPages = Math.ceil(firstPage.total / firstPage.limit);
+
+      for (let currentPage = 2; currentPage <= totalPages; currentPage += 1) {
+        const nextPage = await getWarningRules({
+          page: currentPage,
+          limit: pageSize,
+          ...normalizedParams,
+        });
+        allListItems.push(...nextPage.items);
+      }
+
+      const fullDetails: WarningRule[] = [];
+      const batchSize = 5;
+      let failedDetails = 0;
+
+      for (let index = 0; index < allListItems.length; index += batchSize) {
+        const batch = allListItems.slice(index, index + batchSize);
+        const settled = await Promise.allSettled(
+          batch.map((item) => getWarningRule(item.id)),
+        );
+        const batchDetails = settled
+          .filter(
+            (result): result is PromiseFulfilledResult<WarningRule> =>
+              result.status === "fulfilled",
+          )
+          .map((result) => result.value);
+        failedDetails += settled.length - batchDetails.length;
+        fullDetails.push(...batchDetails);
+      }
+
+      const csvContent = toCsv(fullDetails);
+      const filename = `warning-rules_${getTimestamp()}.csv`;
+      downloadCsv(csvContent, filename);
+      setNotice(
+        `Wyeksportowano ${fullDetails.length} reguł ostrzeżeń do CSV${
+          failedDetails > 0 ? ` (pominięto ${failedDetails}).` : "."
+        }`,
+      );
+    } catch {
+      setNotice("Nie udało się wyeksportować danych do CSV.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const totalPages = data ? Math.ceil(data.total / data.limit) : 1;
   const currentPage = data?.page ?? page;
 
@@ -128,12 +278,22 @@ export default function WarningRulesPage() {
           <h1 className="text-3xl font-semibold text-zinc-900">
             Lista warning rules
           </h1>
-          <Link
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-            href="/warning-rules/new"
-          >
-            Dodaj regułę
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+              href="/warning-rules/new"
+            >
+              Dodaj regułę
+            </Link>
+            <button
+              type="button"
+              className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleExportCsv}
+              disabled={isExporting}
+            >
+              {isExporting ? "Eksportowanie..." : "Eksport CSV"}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -288,6 +448,12 @@ export default function WarningRulesPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-3 text-xs font-medium">
+                    <Link
+                      className="text-zinc-600 hover:text-zinc-900"
+                      href={`/warning-rules/${item.id}`}
+                    >
+                      View
+                    </Link>
                     <Link
                       className="text-zinc-600 hover:text-zinc-900"
                       href={`/warning-rules/${item.id}/edit`}

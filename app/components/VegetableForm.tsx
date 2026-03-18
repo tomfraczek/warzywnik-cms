@@ -21,6 +21,7 @@ import type {
   SowingMethodType,
 } from "@/app/api/api.types";
 import {
+  botanicalFamilyOptions,
   demandLevelOptions,
   dominantNutrientDemandOptions,
   monthOptions,
@@ -42,6 +43,7 @@ import {
 
 import {
   sunExposureLabels,
+  botanicalFamilyLabels,
   demandLevelLabels,
   sowingMethodLabels,
   monthLabels,
@@ -51,6 +53,7 @@ export type VegetableFormValues = {
   name: string;
   description: string;
   latinName: string;
+  botanicalFamily: "" | NonNullable<CreateVegetablePayload["botanicalFamily"]>;
   imageUrl: string;
   sunExposure: "" | CreateVegetablePayload["sunExposure"];
   waterDemand: "" | CreateVegetablePayload["waterDemand"];
@@ -155,6 +158,7 @@ const defaultValues: VegetableFormValues = {
   name: "",
   description: "",
   latinName: "",
+  botanicalFamily: "",
   imageUrl: "",
   sunExposure: "",
   waterDemand: "",
@@ -483,6 +487,7 @@ export const VegetableForm = ({
         name: values.name.trim(),
         description: values.description.trim(),
         latinName: toOptionalString(values.latinName),
+        botanicalFamily: values.botanicalFamily || null,
         imageUrl: toOptionalString(values.imageUrl),
         sunExposure: values.sunExposure || null,
         waterDemand: values.waterDemand || null,
@@ -599,6 +604,32 @@ export const VegetableForm = ({
               value={values.latinName}
               onChange={(event) => updateValue("latinName", event.target.value)}
             />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Rodzina</span>
+            <span className="text-xs text-zinc-500">
+              Rodzina botaniczna warzywa (opcjonalnie).
+            </span>
+            <select
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.botanicalFamily}
+              onChange={(event) =>
+                updateValue(
+                  "botanicalFamily",
+                  event.target.value as
+                    | ""
+                    | NonNullable<CreateVegetablePayload["botanicalFamily"]>,
+                )
+              }
+            >
+              <option value="">Brak</option>
+              {botanicalFamilyOptions.map((option) => (
+                <option key={option} value={option}>
+                  {botanicalFamilyLabels[option]}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="flex flex-col gap-1 text-sm">

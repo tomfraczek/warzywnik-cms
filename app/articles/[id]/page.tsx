@@ -29,8 +29,6 @@ export default function ArticlePreviewPage() {
     return <p className="text-sm text-red-500">Nie udało się pobrać danych.</p>;
   }
 
-  console.log("data", data);
-
   return (
     <section className="space-y-6">
       <header className="space-y-2">
@@ -46,12 +44,16 @@ export default function ArticlePreviewPage() {
             Edytuj artykuł
           </Link>
         </div>
-        <div className="text-sm text-zinc-500">
-          <span>Status: {data.status}</span>
-          <span className="mx-2">•</span>
-          <span>Opublikowano: {formatDateTime(data.publishedAt)}</span>
-          <span className="mx-2">•</span>
-          <span>Aktualizacja: {formatDateTime(data.updatedAt)}</span>
+        <div className="flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-zinc-600">
+            Status: {data.status}
+          </span>
+          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-zinc-600">
+            Opublikowano: {formatDateTime(data.publishedAt)}
+          </span>
+          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-zinc-600">
+            Aktualizacja: {formatDateTime(data.updatedAt)}
+          </span>
         </div>
       </header>
 

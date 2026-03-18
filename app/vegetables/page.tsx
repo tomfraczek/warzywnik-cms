@@ -2,11 +2,85 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { getVegetable, getVegetables } from "@/app/api/api.requests";
 import { useGetVegetables } from "@/app/api/queries/vegetables/useGetVegetables";
 import { useDeleteVegetable } from "@/app/api/mutations/vegetables/useDeleteVegetable";
 import { demandLevelOptions, sunExposureOptions } from "@/app/api/api.types";
-import type { DemandLevel, SunExposure } from "@/app/api/api.types";
+import type { DemandLevel, SunExposure, Vegetable } from "@/app/api/api.types";
 import { useQueryClient } from "@tanstack/react-query";
+
+const csvHeaders = [
+  "id",
+  "name",
+  "latinName",
+  "botanicalFamily",
+  "imageUrl",
+  "description",
+  "sunExposure",
+  "waterDemand",
+  "nutrientDemand",
+  "recommendedSoilIds",
+  "timeToHarvestDaysMin",
+  "timeToHarvestDaysMax",
+  "harvestStartMonth",
+  "harvestEndMonth",
+  "createdAt",
+  "updatedAt",
+];
+
+const escapeCsv = (value: unknown) => {
+  if (value === null || value === undefined) return "";
+  const stringValue = String(value);
+  const escaped = stringValue.replace(/"/g, '""');
+  return `"${escaped}"`;
+};
+
+const toCsv = (rows: Vegetable[]) => {
+  const header = csvHeaders.join(",");
+  const body = rows.map((row) => {
+    const values = [
+      row.id,
+      row.name,
+      row.latinName ?? "",
+      row.botanicalFamily ?? "",
+      row.imageUrl ?? "",
+      row.description,
+      row.sunExposure ?? "",
+      row.waterDemand ?? "",
+      row.nutrientDemand ?? "",
+      (row.recommendedSoilIds ?? []).join(" | "),
+      row.timeToHarvestDaysMin ?? "",
+      row.timeToHarvestDaysMax ?? "",
+      row.harvestStartMonth ?? "",
+      row.harvestEndMonth ?? "",
+      row.createdAt,
+      row.updatedAt,
+    ];
+    return values.map((value) => escapeCsv(value)).join(",");
+  });
+
+  return [header, ...body].join("\n");
+};
+
+const downloadCsv = (content: string, filename: string) => {
+  const blob = new Blob(["\uFEFF", content], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const getTimestamp = () => {
+  const date = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+};
 
 export default function VegetablesPage() {
   const [q, setQ] = useState("");
@@ -16,6 +90,7 @@ export default function VegetablesPage() {
   const [waterDemand, setWaterDemand] = useState<"" | DemandLevel>("");
   const [nutrientDemand, setNutrientDemand] = useState<"" | DemandLevel>("");
   const [notice, setNotice] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -48,6 +123,71 @@ export default function VegetablesPage() {
     }
   };
 
+  const handleExportCsv = async () => {
+    setNotice(null);
+    setIsExporting(true);
+
+    try {
+      const normalizedParams = {
+        q: q.trim() || undefined,
+        sunExposure: sunExposure || undefined,
+        waterDemand: waterDemand || undefined,
+        nutrientDemand: nutrientDemand || undefined,
+      };
+
+      const pageSize = 20;
+      const firstPage = await getVegetables({
+        page: 1,
+        limit: pageSize,
+        ...normalizedParams,
+      });
+
+      const allListItems = [...firstPage.items];
+      const totalPages = Math.ceil(firstPage.total / firstPage.limit);
+
+      for (let currentPage = 2; currentPage <= totalPages; currentPage += 1) {
+        const nextPage = await getVegetables({
+          page: currentPage,
+          limit: pageSize,
+          ...normalizedParams,
+        });
+        allListItems.push(...nextPage.items);
+      }
+
+      const fullDetails: Vegetable[] = [];
+      const batchSize = 5;
+      let failedDetails = 0;
+
+      for (let index = 0; index < allListItems.length; index += batchSize) {
+        const batch = allListItems.slice(index, index + batchSize);
+        const settled = await Promise.allSettled(
+          batch.map((item) => getVegetable(item.id)),
+        );
+        const batchDetails = settled
+          .filter(
+            (result): result is PromiseFulfilledResult<Vegetable> =>
+              result.status === "fulfilled",
+          )
+          .map((result) => result.value);
+        failedDetails += settled.length - batchDetails.length;
+        fullDetails.push(...batchDetails);
+      }
+
+      const csvContent = toCsv(fullDetails);
+      const filename = `vegetables_${getTimestamp()}.csv`;
+      downloadCsv(csvContent, filename);
+      setNotice(
+        `Wyeksportowano ${fullDetails.length} warzyw do CSV${
+          failedDetails > 0 ? ` (pominięto ${failedDetails}).` : "."
+        }`,
+      );
+    } catch {
+      setNotice("Nie udało się wyeksportować danych do CSV.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <section className="space-y-6">
       <header className="space-y-2">
@@ -56,12 +196,22 @@ export default function VegetablesPage() {
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-3xl font-semibold text-zinc-900">Lista warzyw</h1>
-          <Link
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-            href="/vegetables/new"
-          >
-            Dodaj warzywo
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+              href="/vegetables/new"
+            >
+              Dodaj warzywo
+            </Link>
+            <button
+              type="button"
+              className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleExportCsv}
+              disabled={isExporting}
+            >
+              {isExporting ? "Eksportowanie..." : "Eksport CSV"}
+            </button>
+          </div>
         </div>
         <p className="text-base text-zinc-600">
           Wyszukuj i zarządzaj warzywami w bazie danych.

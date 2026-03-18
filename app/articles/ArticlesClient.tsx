@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  type Article,
   articleContextOptions,
   articleSeasonOptions,
   articleStatusOptions,
@@ -12,8 +13,72 @@ import {
   type ArticleSeason,
   type ArticleStatus,
 } from "@/app/api/api.types";
+import { getArticle, getArticles } from "@/app/api/api.requests";
 import { useGetArticles } from "@/app/api/queries/articles/useGetArticles";
 import { useDeleteArticle } from "@/app/api/mutations/articles/useDeleteArticle";
+
+const csvHeaders = [
+  "id",
+  "title",
+  "excerpt",
+  "status",
+  "priority",
+  "months",
+  "seasons",
+  "contexts",
+  "publishedAt",
+  "createdAt",
+  "updatedAt",
+];
+
+const escapeCsv = (value: unknown) => {
+  if (value === null || value === undefined) return "";
+  const stringValue = String(value);
+  const escaped = stringValue.replace(/"/g, '""');
+  return `"${escaped}"`;
+};
+
+const toCsv = (rows: Article[]) => {
+  const header = csvHeaders.join(",");
+  const body = rows.map((row) => {
+    const values = [
+      row.id,
+      row.title,
+      row.excerpt,
+      row.status,
+      row.priority,
+      (row.months ?? []).join(" | "),
+      (row.seasons ?? []).join(" | "),
+      (row.contexts ?? []).join(" | "),
+      row.publishedAt ?? "",
+      row.createdAt,
+      row.updatedAt,
+    ];
+    return values.map((value) => escapeCsv(value)).join(",");
+  });
+
+  return [header, ...body].join("\n");
+};
+
+const downloadCsv = (content: string, filename: string) => {
+  const blob = new Blob(["\uFEFF", content], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const getTimestamp = () => {
+  const date = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+};
 
 const monthOptions = [
   { value: 1, label: "Styczeń" },
@@ -80,6 +145,7 @@ export default function ArticlesClient() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const queryClient = useQueryClient();
   const params = useMemo(
@@ -112,6 +178,72 @@ export default function ArticlesClient() {
     }
   };
 
+  const handleExportCsv = async () => {
+    setNotice(null);
+    setIsExporting(true);
+
+    try {
+      const normalizedParams = {
+        q: q.trim() || undefined,
+        status: status || undefined,
+        month: month || undefined,
+        season: season || undefined,
+        context: context || undefined,
+      };
+
+      const pageSize = 20;
+      const firstPage = await getArticles({
+        page: 1,
+        limit: pageSize,
+        ...normalizedParams,
+      });
+
+      const allListItems = [...firstPage.items];
+      const totalPages = Math.ceil(firstPage.total / firstPage.limit);
+
+      for (let currentPage = 2; currentPage <= totalPages; currentPage += 1) {
+        const nextPage = await getArticles({
+          page: currentPage,
+          limit: pageSize,
+          ...normalizedParams,
+        });
+        allListItems.push(...nextPage.items);
+      }
+
+      const fullDetails: Article[] = [];
+      const batchSize = 5;
+      let failedDetails = 0;
+
+      for (let index = 0; index < allListItems.length; index += batchSize) {
+        const batch = allListItems.slice(index, index + batchSize);
+        const settled = await Promise.allSettled(
+          batch.map((item) => getArticle(item.id)),
+        );
+        const batchDetails = settled
+          .filter(
+            (result): result is PromiseFulfilledResult<Article> =>
+              result.status === "fulfilled",
+          )
+          .map((result) => result.value);
+        failedDetails += settled.length - batchDetails.length;
+        fullDetails.push(...batchDetails);
+      }
+
+      const csvContent = toCsv(fullDetails);
+      const filename = `articles_${getTimestamp()}.csv`;
+      downloadCsv(csvContent, filename);
+      setNotice(
+        `Wyeksportowano ${fullDetails.length} artykułów do CSV${
+          failedDetails > 0 ? ` (pominięto ${failedDetails}).` : "."
+        }`,
+      );
+    } catch {
+      setNotice("Nie udało się wyeksportować danych do CSV.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const noticeParam = searchParams?.get("notice");
   const noticeFromQuery = noticeParam ? noticeLabels[noticeParam] : null;
 
@@ -125,12 +257,22 @@ export default function ArticlesClient() {
           <h1 className="text-3xl font-semibold text-zinc-900">
             Lista artykułów
           </h1>
-          <Link
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-            href="/articles/new"
-          >
-            Dodaj artykuł
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+              href="/articles/new"
+            >
+              Dodaj artykuł
+            </Link>
+            <button
+              type="button"
+              className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleExportCsv}
+              disabled={isExporting}
+            >
+              {isExporting ? "Eksportowanie..." : "Eksport CSV"}
+            </button>
+          </div>
         </div>
       </header>
 
