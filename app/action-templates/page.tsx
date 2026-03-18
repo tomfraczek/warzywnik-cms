@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getActionTemplate, getActionTemplates } from "@/app/api/api.requests";
 import { useGetActionTemplates } from "@/app/api/queries/action-templates/useGetActionTemplates";
@@ -96,6 +96,7 @@ export default function ActionTemplatesPage() {
   const [limit, setLimit] = useState(20);
   const [notice, setNotice] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const queryClient = useQueryClient();
   const params = useMemo(
@@ -112,6 +113,18 @@ export default function ActionTemplatesPage() {
 
   const { data, isLoading, error } = useGetActionTemplates(params);
   const deleteMutation = useDeleteActionTemplate();
+  const visibleIds = useMemo(
+    () => data?.items.map((item) => item.id) ?? [],
+    [data?.items],
+  );
+  const allSelectedOnPage =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+
+  useEffect(() => {
+    setSelectedIds((previous) =>
+      previous.filter((id) => visibleIds.includes(id)),
+    );
+  }, [visibleIds]);
 
   const handleDelete = async (id: string) => {
     const confirmed = window.confirm("Czy na pewno usunąć szablon zabiegu?");
@@ -121,9 +134,43 @@ export default function ActionTemplatesPage() {
     try {
       await deleteMutation.mutateAsync({ id });
       await queryClient.invalidateQueries({ queryKey: ["action-templates"] });
+      setSelectedIds((previous) =>
+        previous.filter((selectedId) => selectedId !== id),
+      );
       setNotice("Szablon został usunięty.");
     } catch {
       setNotice("Nie udało się usunąć szablonu.");
+    }
+  };
+
+  const handleToggleAllOnPage = () => {
+    setSelectedIds(allSelectedOnPage ? [] : visibleIds);
+  };
+
+  const handleToggleSingle = (id: string) => {
+    setSelectedIds((previous) =>
+      previous.includes(id)
+        ? previous.filter((selectedId) => selectedId !== id)
+        : [...previous, id],
+    );
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+
+    const confirmed = window.confirm(
+      `Czy na pewno usunąć ${selectedIds.length} zaznaczonych rekordów?`,
+    );
+    if (!confirmed) return;
+
+    setNotice(null);
+    try {
+      await deleteMutation.mutateAsync({ ids: selectedIds });
+      await queryClient.invalidateQueries({ queryKey: ["action-templates"] });
+      setSelectedIds([]);
+      setNotice(`Usunięto ${selectedIds.length} rekordów.`);
+    } catch {
+      setNotice("Nie udało się usunąć zaznaczonych rekordów.");
     }
   };
 
@@ -204,6 +251,16 @@ export default function ActionTemplatesPage() {
               disabled={isExporting}
             >
               {isExporting ? "Eksportowanie..." : "Eksport CSV"}
+            </button>
+            <button
+              type="button"
+              className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.length === 0 || deleteMutation.isPending}
+            >
+              {deleteMutation.isPending
+                ? "Usuwanie..."
+                : `Usuń zaznaczone (${selectedIds.length})`}
             </button>
           </div>
         </div>
@@ -293,6 +350,14 @@ export default function ActionTemplatesPage() {
         <table className="w-full text-left text-sm">
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-400">
             <tr>
+              <th className="px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={allSelectedOnPage}
+                  onChange={handleToggleAllOnPage}
+                  aria-label="Zaznacz wszystkie rekordy na stronie"
+                />
+              </th>
               <th className="px-4 py-3">Nazwa</th>
               <th className="px-4 py-3">Zakres</th>
               <th className="px-4 py-3">Środowisko</th>
@@ -305,27 +370,35 @@ export default function ActionTemplatesPage() {
           <tbody>
             {isLoading && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={7}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={8}>
                   Ładowanie...
                 </td>
               </tr>
             )}
             {error && (
               <tr>
-                <td className="px-4 py-6 text-red-500" colSpan={7}>
+                <td className="px-4 py-6 text-red-500" colSpan={8}>
                   Nie udało się pobrać listy.
                 </td>
               </tr>
             )}
             {!isLoading && data?.items.length === 0 && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={7}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={8}>
                   Brak szablonów zabiegów.
                 </td>
               </tr>
             )}
             {data?.items.map((item) => (
               <tr key={item.id} className="border-t border-zinc-100">
+                <td className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(item.id)}
+                    onChange={() => handleToggleSingle(item.id)}
+                    aria-label={`Zaznacz rekord ${item.name}`}
+                  />
+                </td>
                 <td className="px-4 py-3 font-medium text-zinc-900">
                   {item.name}
                 </td>

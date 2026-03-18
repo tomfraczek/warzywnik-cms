@@ -22,6 +22,10 @@ export type GetWarningRulesParams = {
   generatesTask?: boolean;
 };
 
+type DeleteManyDto = {
+  ids: string[];
+};
+
 type WarningCodesResponse =
   | WarningCode[]
   | {
@@ -88,4 +92,15 @@ export const updateWarningRule = async (
 
 export const deleteWarningRule = async (id: string): Promise<void> => {
   await apiClient.delete(`/warning-rules/${id}`);
+};
+
+export const deleteManyWarningRules = async (
+  payload: DeleteManyDto,
+): Promise<void> => {
+  await apiClient.delete("/warning-rules", {
+    data: payload,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 };

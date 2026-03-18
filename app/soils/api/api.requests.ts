@@ -13,6 +13,10 @@ export type GetSoilsParams = {
   q?: string;
 };
 
+type DeleteManyDto = {
+  ids: string[];
+};
+
 export const getSoils = async (
   params: GetSoilsParams = {},
 ): Promise<ListResponse<SoilListItem>> => {
@@ -42,4 +46,15 @@ export const updateSoil = async (
 
 export const deleteSoil = async (id: string): Promise<void> => {
   await apiClient.delete(`/soils/${id}`);
+};
+
+export const deleteManySoils = async (
+  payload: DeleteManyDto,
+): Promise<void> => {
+  await apiClient.delete("/soils", {
+    data: payload,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 };

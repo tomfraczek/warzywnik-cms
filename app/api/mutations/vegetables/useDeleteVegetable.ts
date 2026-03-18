@@ -1,12 +1,25 @@
 import { useMutation } from "@tanstack/react-query";
-import { deleteVegetable } from "@/app/api/api.requests";
+import { deleteManyVegetables, deleteVegetable } from "@/app/api/api.requests";
 
-type DeleteVegetableInput = {
+type DeleteVegetableByIdInput = {
   id: string;
 };
 
-const deleteVegetableMutation = async ({ id }: DeleteVegetableInput) => {
-  await deleteVegetable(id);
+type DeleteVegetablesManyInput = {
+  ids: string[];
+};
+
+type DeleteVegetableInput =
+  | DeleteVegetableByIdInput
+  | DeleteVegetablesManyInput;
+
+const deleteVegetableMutation = async (input: DeleteVegetableInput) => {
+  if ("ids" in input) {
+    await deleteManyVegetables({ ids: [...new Set(input.ids)] });
+    return;
+  }
+
+  await deleteVegetable(input.id);
 };
 
 export const useDeleteVegetable = () => {

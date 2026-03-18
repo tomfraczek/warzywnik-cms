@@ -7,6 +7,7 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import type {
   ActionTemplate,
@@ -28,11 +29,13 @@ import {
   sowingMethodOptions,
   sunExposureOptions,
 } from "@/app/api/api.types";
-import { useGetPests } from "@/app/api/queries/pests/useGetPests";
-import { useGetDiseases } from "@/app/api/queries/diseases/useGetDiseases";
-import { useGetVegetables } from "@/app/api/queries/vegetables/useGetVegetables";
-import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
-import { useGetActionTemplates } from "@/app/api/queries/action-templates/useGetActionTemplates";
+import {
+  getActionTemplates,
+  getDiseases,
+  getPests,
+  getVegetables,
+} from "@/app/api/api.requests";
+import { getSoils } from "@/app/soils/api/api.requests";
 import { useGetActionTemplatesByIds } from "@/app/api/queries/action-templates/useGetActionTemplatesByIds";
 import { MediaLibraryModal } from "@/app/components/MediaLibraryModal";
 import type { MediaLibraryItem } from "@/app/api/api.types";
@@ -134,6 +137,40 @@ const toOptionalString = (value: string) => {
     return null;
   }
   return value;
+};
+
+type PaginatedListResponse<T> = {
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+};
+
+const MAX_DICTIONARY_PAGES = 500;
+
+const fetchAllPages = async <T,>(
+  fetchPage: (page: number) => Promise<PaginatedListResponse<T>>,
+) => {
+  const firstPage = await fetchPage(1);
+  const allItems = [...firstPage.items];
+
+  if (firstPage.limit <= 0 || firstPage.total <= firstPage.items.length) {
+    return allItems;
+  }
+
+  const totalPages = Math.ceil(firstPage.total / firstPage.limit);
+  const lastPage = Math.min(totalPages, MAX_DICTIONARY_PAGES);
+
+  for (let page = 2; page <= lastPage; page += 1) {
+    const nextPage = await fetchPage(page);
+    allItems.push(...nextPage.items);
+
+    if (allItems.length >= firstPage.total) {
+      break;
+    }
+  }
+
+  return allItems;
 };
 
 const isUuid = (value: string) =>
@@ -241,28 +278,60 @@ export const VegetableForm = ({
     return () => clearTimeout(timeout);
   }, [actionTemplateQuery]);
 
-  const listParams = useMemo(() => ({ page: 1, limit: 100 }), []);
-  const { data: pestsData } = useGetPests(listParams);
-  const { data: diseasesData } = useGetDiseases(listParams);
-  const { data: vegetablesData } = useGetVegetables(listParams);
-  const { data: soilsData, isLoading: soilsLoading } = useGetSoils(listParams);
-  const { data: actionTemplatesData, isFetching: actionTemplatesFetching } =
-    useGetActionTemplates({
-      page: 1,
-      limit: 20,
-      q: debouncedActionTemplateQuery || undefined,
-    });
+  const actionTemplateFilters = useMemo(
+    () => ({ q: debouncedActionTemplateQuery || undefined }),
+    [debouncedActionTemplateQuery],
+  );
+
+  const { data: pestItems = [] } = useQuery({
+    queryKey: ["pests", "all-for-vegetable-form"],
+    queryFn: () => fetchAllPages((page) => getPests({ page })),
+  });
+
+  const { data: diseaseItems = [] } = useQuery({
+    queryKey: ["diseases", "all-for-vegetable-form"],
+    queryFn: () => fetchAllPages((page) => getDiseases({ page })),
+  });
+
+  const { data: vegetableItems = [] } = useQuery({
+    queryKey: ["vegetables", "all-for-vegetable-form"],
+    queryFn: () => fetchAllPages((page) => getVegetables({ page })),
+  });
+
+  const { data: soilItems = [], isLoading: soilsLoading } = useQuery({
+    queryKey: ["soils", "all-for-vegetable-form"],
+    queryFn: () => fetchAllPages((page) => getSoils({ page })),
+  });
+
+  const {
+    data: actionTemplateItems = [],
+    isFetching: actionTemplatesFetching,
+  } = useQuery({
+    queryKey: [
+      "action-templates",
+      "all-for-vegetable-form",
+      actionTemplateFilters,
+    ],
+    queryFn: () =>
+      fetchAllPages((page) =>
+        getActionTemplates({
+          page,
+          ...actionTemplateFilters,
+        }),
+      ),
+  });
+
   const { data: selectedActionTemplateDetails } = useGetActionTemplatesByIds(
     values.postHarvestActionTemplateIds,
   );
 
   const companionOptions = useMemo(() => {
-    const items = vegetablesData?.items ?? [];
+    const items = vegetableItems;
     if (!excludeCompanionId) {
       return items;
     }
     return items.filter((item) => item.id !== excludeCompanionId);
-  }, [vegetablesData, excludeCompanionId]);
+  }, [vegetableItems, excludeCompanionId]);
 
   const selectedActionTemplateMap = useMemo(() => {
     const map = new Map<string, ActionTemplateRef>();
@@ -279,7 +348,7 @@ export const VegetableForm = ({
       });
     });
 
-    (actionTemplatesData?.items ?? []).forEach((item) => {
+    actionTemplateItems.forEach((item) => {
       map.set(item.id, {
         id: item.id,
         name: item.name,
@@ -289,7 +358,7 @@ export const VegetableForm = ({
 
     return map;
   }, [
-    actionTemplatesData?.items,
+    actionTemplateItems,
     initialPostHarvestActions,
     selectedActionTemplateDetails,
   ]);
@@ -880,7 +949,7 @@ export const VegetableForm = ({
               }
               disabled={soilsLoading}
             >
-              {soilsData?.items.map((soil) => (
+              {soilItems.map((soil) => (
                 <option key={soil.id} value={soil.id}>
                   {soil.name}
                 </option>
@@ -1375,7 +1444,7 @@ export const VegetableForm = ({
           />
 
           <div className="max-h-56 overflow-auto rounded-lg border border-zinc-200 p-2">
-            {(actionTemplatesData?.items ?? []).map((item) => (
+            {actionTemplateItems.map((item) => (
               <label
                 key={item.id}
                 className="flex items-center gap-2 px-1 py-1 text-sm"
@@ -1404,10 +1473,9 @@ export const VegetableForm = ({
               <p className="px-1 py-1 text-xs text-zinc-500">Ładowanie...</p>
             )}
 
-            {!actionTemplatesFetching &&
-              (actionTemplatesData?.items.length ?? 0) === 0 && (
-                <p className="px-1 py-1 text-xs text-zinc-500">Brak wyników.</p>
-              )}
+            {!actionTemplatesFetching && actionTemplateItems.length === 0 && (
+              <p className="px-1 py-1 text-xs text-zinc-500">Brak wyników.</p>
+            )}
           </div>
 
           {values.postHarvestActionTemplateIds.length > 0 && (
@@ -1554,7 +1622,7 @@ export const VegetableForm = ({
               Pests.
             </p>
             <div className="mt-2 space-y-2">
-              {(pestsData?.items ?? []).map((pest) => (
+              {pestItems.map((pest) => (
                 <label
                   key={pest.id}
                   className="flex items-center gap-2 text-sm"
@@ -1573,7 +1641,7 @@ export const VegetableForm = ({
                 </label>
               ))}
 
-              {pestsData?.items?.length === 0 && (
+              {pestItems.length === 0 && (
                 <p className="text-sm text-zinc-500">Brak danych.</p>
               )}
             </div>
@@ -1586,7 +1654,7 @@ export const VegetableForm = ({
               Diseases.
             </p>
             <div className="mt-2 space-y-2">
-              {(diseasesData?.items ?? []).map((disease) => (
+              {diseaseItems.map((disease) => (
                 <label
                   key={disease.id}
                   className="flex items-center gap-2 text-sm"
@@ -1605,7 +1673,7 @@ export const VegetableForm = ({
                 </label>
               ))}
 
-              {diseasesData?.items?.length === 0 && (
+              {diseaseItems.length === 0 && (
                 <p className="text-sm text-zinc-500">Brak danych.</p>
               )}
             </div>

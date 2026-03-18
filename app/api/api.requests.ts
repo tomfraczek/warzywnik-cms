@@ -29,6 +29,7 @@ import type {
   ActionTemplateTarget,
   ActionTemplateEnvironment,
   ActionTemplateType,
+  DeleteManyDto,
 } from "@/app/api/api.types";
 
 export type GetVegetablesParams = {
@@ -106,6 +107,17 @@ export const deleteVegetable = async (id: string): Promise<void> => {
   await apiClient.delete(`/vegetables/${id}`);
 };
 
+export const deleteManyVegetables = async (
+  payload: DeleteManyDto,
+): Promise<void> => {
+  await apiClient.delete("/vegetables", {
+    data: payload,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+};
+
 export const uploadVegetableImage = async (
   id: string,
   file: File,
@@ -158,6 +170,17 @@ export const deletePest = async (id: string): Promise<void> => {
   await apiClient.delete(`/pests/${id}`);
 };
 
+export const deleteManyPests = async (
+  payload: DeleteManyDto,
+): Promise<void> => {
+  await apiClient.delete("/pests", {
+    data: payload,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+};
+
 export const getDiseases = async (
   params: { page?: number; limit?: number; q?: string } = {},
 ): Promise<ListResponse<{ id: string; name: string }>> => {
@@ -193,6 +216,17 @@ export const updateDisease = async (
 
 export const deleteDisease = async (id: string): Promise<void> => {
   await apiClient.delete(`/diseases/${id}`);
+};
+
+export const deleteManyDiseases = async (
+  payload: DeleteManyDto,
+): Promise<void> => {
+  await apiClient.delete("/diseases", {
+    data: payload,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 };
 
 export const getActionTemplates = async (
@@ -251,6 +285,17 @@ export const deleteActionTemplate = async (id: string): Promise<void> => {
   await apiClient.delete(`/action-templates/${id}`);
 };
 
+export const deleteManyActionTemplates = async (
+  payload: DeleteManyDto,
+): Promise<void> => {
+  await apiClient.delete("/action-templates", {
+    data: payload,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+};
+
 export type GetArticlesParams = {
   page?: number;
   limit?: number;
@@ -297,6 +342,17 @@ export const updateArticle = async (
 
 export const deleteArticle = async (id: string): Promise<void> => {
   await apiClient.delete(`/articles/${id}`);
+};
+
+export const deleteManyArticles = async (
+  payload: DeleteManyDto,
+): Promise<void> => {
+  await apiClient.delete("/articles", {
+    data: payload,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 };
 
 export const uploadArticleCover = async (

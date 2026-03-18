@@ -245,6 +245,10 @@ export type ListResponse<T> = {
   total: number;
 };
 
+export type DeleteManyDto = {
+  ids: string[];
+};
+
 export type CreateVegetablePayload = {
   name: string;
   description: string;

@@ -1,12 +1,23 @@
 import { useMutation } from "@tanstack/react-query";
-import { deleteSoil } from "@/app/soils/api/api.requests";
+import { deleteManySoils, deleteSoil } from "@/app/soils/api/api.requests";
 
-type DeleteSoilInput = {
+type DeleteSoilByIdInput = {
   id: string;
 };
 
-const deleteSoilMutation = async ({ id }: DeleteSoilInput) => {
-  await deleteSoil(id);
+type DeleteSoilsManyInput = {
+  ids: string[];
+};
+
+type DeleteSoilInput = DeleteSoilByIdInput | DeleteSoilsManyInput;
+
+const deleteSoilMutation = async (input: DeleteSoilInput) => {
+  if ("ids" in input) {
+    await deleteManySoils({ ids: [...new Set(input.ids)] });
+    return;
+  }
+
+  await deleteSoil(input.id);
 };
 
 export const useDeleteSoil = () => {

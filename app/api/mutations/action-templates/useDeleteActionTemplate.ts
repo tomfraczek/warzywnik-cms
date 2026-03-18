@@ -1,14 +1,30 @@
 import { useMutation } from "@tanstack/react-query";
-import { deleteActionTemplate } from "@/app/api/api.requests";
+import {
+  deleteActionTemplate,
+  deleteManyActionTemplates,
+} from "@/app/api/api.requests";
 
-type DeleteActionTemplateInput = {
+type DeleteActionTemplateByIdInput = {
   id: string;
 };
 
-const deleteActionTemplateMutation = async ({
-  id,
-}: DeleteActionTemplateInput) => {
-  await deleteActionTemplate(id);
+type DeleteActionTemplatesManyInput = {
+  ids: string[];
+};
+
+type DeleteActionTemplateInput =
+  | DeleteActionTemplateByIdInput
+  | DeleteActionTemplatesManyInput;
+
+const deleteActionTemplateMutation = async (
+  input: DeleteActionTemplateInput,
+) => {
+  if ("ids" in input) {
+    await deleteManyActionTemplates({ ids: [...new Set(input.ids)] });
+    return;
+  }
+
+  await deleteActionTemplate(input.id);
 };
 
 export const useDeleteActionTemplate = () => {

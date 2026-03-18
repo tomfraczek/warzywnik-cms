@@ -1,13 +1,29 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { deleteFertilizer } from "@/app/fertilizers/api/api.requests";
+import {
+  deleteFertilizer,
+  deleteManyFertilizers,
+} from "@/app/fertilizers/api/api.requests";
 import { fertilizerKeys } from "@/app/api/queries/fertilizers/useGetFertilizers";
 
-type DeleteFertilizerInput = {
+type DeleteFertilizerByIdInput = {
   id: string;
 };
 
-const deleteFertilizerMutation = async ({ id }: DeleteFertilizerInput) => {
-  await deleteFertilizer(id);
+type DeleteFertilizersManyInput = {
+  ids: string[];
+};
+
+type DeleteFertilizerInput =
+  | DeleteFertilizerByIdInput
+  | DeleteFertilizersManyInput;
+
+const deleteFertilizerMutation = async (input: DeleteFertilizerInput) => {
+  if ("ids" in input) {
+    await deleteManyFertilizers({ ids: [...new Set(input.ids)] });
+    return;
+  }
+
+  await deleteFertilizer(input.id);
 };
 
 export const useDeleteFertilizer = () => {
@@ -17,6 +33,10 @@ export const useDeleteFertilizer = () => {
     mutationFn: deleteFertilizerMutation,
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: fertilizerKeys.all });
+      if ("ids" in variables) {
+        return;
+      }
+
       queryClient.invalidateQueries({
         queryKey: fertilizerKeys.detail(variables.id),
       });

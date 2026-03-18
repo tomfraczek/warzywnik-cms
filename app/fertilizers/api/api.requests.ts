@@ -16,6 +16,10 @@ export type GetFertilizersParams = {
   isActive?: boolean;
 };
 
+type DeleteManyDto = {
+  ids: string[];
+};
+
 export const getFertilizers = async (
   params: GetFertilizersParams = {},
 ): Promise<ListResponse<FertilizerListItem>> => {
@@ -54,4 +58,15 @@ export const updateFertilizer = async (
 
 export const deleteFertilizer = async (id: string): Promise<void> => {
   await apiClient.delete(`/fertilizers/${id}`);
+};
+
+export const deleteManyFertilizers = async (
+  payload: DeleteManyDto,
+): Promise<void> => {
+  await apiClient.delete("/fertilizers", {
+    data: payload,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 };

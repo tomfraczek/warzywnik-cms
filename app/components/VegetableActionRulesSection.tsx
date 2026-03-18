@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getActionTemplates } from "@/app/api/api.requests";
 import type {
   ActionRuleSchedule,
   ActionRuleTrigger,
   ActionTemplate,
+  ActionTemplateListItem,
   PlantingStartMethod,
 } from "@/app/api/api.types";
 import {
@@ -12,8 +15,35 @@ import {
   actionRuleTriggerOptions,
   plantingStartMethodOptions,
 } from "@/app/api/api.types";
-import { useGetActionTemplates } from "@/app/api/queries/action-templates/useGetActionTemplates";
 import { useGetActionTemplatesByIds } from "@/app/api/queries/action-templates/useGetActionTemplatesByIds";
+
+const MAX_TEMPLATE_PAGES = 500;
+
+const fetchAllTemplatePages = async (params: {
+  q?: string;
+  scope?: "bed" | "planting" | "space";
+}) => {
+  const firstPage = await getActionTemplates({ page: 1, ...params });
+  const allItems: ActionTemplateListItem[] = [...firstPage.items];
+
+  if (firstPage.limit <= 0 || firstPage.total <= firstPage.items.length) {
+    return allItems;
+  }
+
+  const totalPages = Math.ceil(firstPage.total / firstPage.limit);
+  const lastPage = Math.min(totalPages, MAX_TEMPLATE_PAGES);
+
+  for (let page = 2; page <= lastPage; page += 1) {
+    const nextPage = await getActionTemplates({ page, ...params });
+    allItems.push(...nextPage.items);
+
+    if (allItems.length >= firstPage.total) {
+      break;
+    }
+  }
+
+  return allItems;
+};
 
 export type VegetableActionRuleFormValue = {
   uid: string;
@@ -136,14 +166,18 @@ const RuleRow = ({
     return () => clearTimeout(timeout);
   }, [query]);
 
-  const { data: templatesData, isFetching } = useGetActionTemplates({
-    page: 1,
-    limit: 20,
-    q: debouncedQuery || undefined,
-    scope: "planting",
-  });
+  const templateFilters = useMemo(
+    () => ({
+      q: debouncedQuery || undefined,
+      scope: "planting" as const,
+    }),
+    [debouncedQuery],
+  );
 
-  const options = templatesData?.items ?? [];
+  const { data: options = [], isFetching } = useQuery({
+    queryKey: ["action-templates", "all-for-vegetable-rules", templateFilters],
+    queryFn: () => fetchAllTemplatePages(templateFilters),
+  });
 
   const selectedOptionMissing =
     Boolean(rule.actionTemplateId) &&

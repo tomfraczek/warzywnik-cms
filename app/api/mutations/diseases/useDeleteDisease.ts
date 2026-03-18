@@ -1,12 +1,23 @@
 import { useMutation } from "@tanstack/react-query";
-import { deleteDisease } from "@/app/api/api.requests";
+import { deleteDisease, deleteManyDiseases } from "@/app/api/api.requests";
 
-type DeleteDiseaseInput = {
+type DeleteDiseaseByIdInput = {
   id: string;
 };
 
-const deleteDiseaseMutation = async ({ id }: DeleteDiseaseInput) => {
-  await deleteDisease(id);
+type DeleteDiseasesManyInput = {
+  ids: string[];
+};
+
+type DeleteDiseaseInput = DeleteDiseaseByIdInput | DeleteDiseasesManyInput;
+
+const deleteDiseaseMutation = async (input: DeleteDiseaseInput) => {
+  if ("ids" in input) {
+    await deleteManyDiseases({ ids: [...new Set(input.ids)] });
+    return;
+  }
+
+  await deleteDisease(input.id);
 };
 
 export const useDeleteDisease = () => {
