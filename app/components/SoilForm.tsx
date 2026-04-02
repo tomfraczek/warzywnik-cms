@@ -10,6 +10,7 @@ import {
 
 export type SoilFormValues = {
   name: string;
+  slug: string;
   description: string;
   structure: CreateSoilPayload["structure"] | "";
   waterRetention: CreateSoilPayload["waterRetention"] | "";
@@ -42,6 +43,7 @@ const drainageLevelLabels = {
 
 const defaultValues: SoilFormValues = {
   name: "",
+  slug: "",
   description: "",
   structure: "",
   waterRetention: "",
@@ -66,6 +68,7 @@ const normalizeList = (items: string[]) =>
   items.map((item) => item.trim()).filter(Boolean);
 
 export type SoilFormProps = {
+  formId?: string;
   initialValues?: Partial<SoilFormValues>;
   onSubmit: (payload: CreateSoilPayload) => void;
   submitLabel: string;
@@ -74,6 +77,7 @@ export type SoilFormProps = {
 };
 
 export const SoilForm = ({
+  formId,
   initialValues,
   onSubmit,
   submitLabel,
@@ -160,6 +164,7 @@ export const SoilForm = ({
 
     const payload: CreateSoilPayload = {
       name: values.name.trim(),
+      slug: values.slug.trim() || null,
       description: values.description.trim(),
       structure: values.structure,
       waterRetention: values.waterRetention,
@@ -176,7 +181,7 @@ export const SoilForm = ({
   };
 
   return (
-    <form className="space-y-8" onSubmit={handleSubmit}>
+    <form id={formId} className="space-y-8" onSubmit={handleSubmit}>
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Podstawy</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -190,6 +195,18 @@ export const SoilForm = ({
               value={values.name}
               onChange={(event) => updateValue("name", event.target.value)}
               required
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Slug</span>
+            <span className="text-xs text-zinc-500">
+              Przyjazny identyfikator URL (opcjonalnie).
+            </span>
+            <input
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.slug}
+              onChange={(event) => updateValue("slug", event.target.value)}
+              placeholder="np. gleba-piaszczysta"
             />
           </label>
         </div>

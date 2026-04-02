@@ -1,14 +1,22 @@
 "use client";
 import { useDeleteVegetable } from "@/app/api/mutations/vegetables/useDeleteVegetable";
-import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
 import { useGetVegetable } from "@/app/api/queries/vegetables/useGetVegetable";
+import { getSoils } from "@/app/soils/api/api.requests";
 import { SoilDrawer } from "@/app/components/SoilDrawer";
+import { useQuery } from "@tanstack/react-query";
 import {
+  actionRuleScheduleLabels,
+  actionRuleTriggerLabels,
+  actionTemplateTypeLabels,
   botanicalFamilyLabels,
-  sunExposureLabels,
   demandLevelLabels,
-  sowingMethodLabels,
+  dominantNutrientDemandLabels,
   monthLabels,
+  nutrientNeedsLabels,
+  plantingStartMethodLabels,
+  rotationGroupLabels,
+  sowingMethodLabels,
+  sunExposureLabels,
 } from "@/app/utils/labels";
 import { AxiosError } from "axios";
 import Link from "next/link";
@@ -20,24 +28,123 @@ export default function VegetableDetailsPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const { data, isLoading, error } = useGetVegetable(params?.id);
+  const dataWithLegacy = data as
+    | (typeof data & {
+        recommendedSoilIds?: string[];
+        postHarvestActionTemplateIds?: string[];
+        actionRules?: Array<{
+          actionTemplateSlug?: string;
+          actionTemplateId?: string;
+          trigger?: string;
+          offsetDays?: number;
+          schedule?: string;
+          everyNDays?: number | null;
+          occurrencesLimit?: number | null;
+          applyIfStartMethod?: string[] | null;
+          isEnabled?: boolean;
+          enabled?: boolean;
+        }>;
+      })
+    | undefined;
   const deleteMutation = useDeleteVegetable();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const listParams = useMemo(() => ({ page: 1, limit: 100 }), []);
-  const { data: soilsData, isLoading: soilsLoading } = useGetSoils(listParams);
+  const { data: soilItems = [], isLoading: soilsLoading } = useQuery({
+    queryKey: ["soils", "all-for-vegetable-details"],
+    queryFn: async () => {
+      const firstPage = await getSoils({ page: 1 });
+      const allItems = [...firstPage.items];
 
-  const soilNameById = useMemo(() => {
-    return new Map(
-      (soilsData?.items ?? []).map((soil) => [soil.id, soil.name]),
-    );
-  }, [soilsData]);
+      if (firstPage.limit <= 0 || firstPage.total <= firstPage.items.length) {
+        return allItems;
+      }
+
+      const totalPages = Math.ceil(firstPage.total / firstPage.limit);
+      const lastPage = Math.min(totalPages, 500);
+
+      for (let page = 2; page <= lastPage; page += 1) {
+        const nextPage = await getSoils({ page });
+        allItems.push(...nextPage.items);
+
+        if (allItems.length >= firstPage.total) {
+          break;
+        }
+      }
+
+      return allItems;
+    },
+  });
+
+  const soilByRelationValue = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    soilItems.forEach((soil) => {
+      if (soil.slug?.trim()) {
+        map.set(soil.slug, { id: soil.id, name: soil.name });
+      }
+      map.set(soil.id, { id: soil.id, name: soil.name });
+    });
+    return map;
+  }, [soilItems]);
 
   const recommendedSoilsForUi = useMemo(() => {
-    const ids = data?.recommendedSoilIds ?? [];
-    return ids
-      .map((id) => ({ id, name: soilNameById.get(id) }))
-      .filter((x): x is { id: string; name: string } => Boolean(x.name));
-  }, [data?.recommendedSoilIds, soilNameById]);
+    const relationValues =
+      data?.recommendedSoilSlugs ?? dataWithLegacy?.recommendedSoilIds ?? [];
+    return relationValues
+      .map((value) => {
+        const matched = soilByRelationValue.get(value);
+        if (!matched) {
+          return null;
+        }
+
+        return {
+          relationValue: value,
+          soilId: matched.id,
+          name: matched.name,
+        };
+      })
+      .filter(
+        (
+          item,
+        ): item is { relationValue: string; soilId: string; name: string } =>
+          Boolean(item),
+      );
+  }, [
+    data?.recommendedSoilSlugs,
+    dataWithLegacy?.recommendedSoilIds,
+    soilByRelationValue,
+  ]);
+
+  const commonPestSlugs = useMemo(
+    () =>
+      data?.commonPestSlugs ??
+      data?.commonPests?.map((item) => item.slug ?? item.id) ??
+      [],
+    [data?.commonPestSlugs, data?.commonPests],
+  );
+
+  const commonDiseaseSlugs = useMemo(
+    () =>
+      data?.commonDiseaseSlugs ??
+      data?.commonDiseases?.map((item) => item.slug ?? item.id) ??
+      [],
+    [data?.commonDiseaseSlugs, data?.commonDiseases],
+  );
+
+  const goodCompanionSlugs = useMemo(
+    () =>
+      data?.goodCompanionSlugs ??
+      data?.goodCompanions?.map((item) => item.slug ?? item.id) ??
+      [],
+    [data?.goodCompanionSlugs, data?.goodCompanions],
+  );
+
+  const badCompanionSlugs = useMemo(
+    () =>
+      data?.badCompanionSlugs ??
+      data?.badCompanions?.map((item) => item.slug ?? item.id) ??
+      [],
+    [data?.badCompanionSlugs, data?.badCompanions],
+  );
 
   const [openSoilId, setOpenSoilId] = useState<string | null>(null);
 
@@ -168,8 +275,22 @@ export default function VegetableDetailsPage() {
               </p>
               <p>
                 <span className="font-medium text-zinc-900">Rodzina:</span>{" "}
-                {data.botanicalFamily
-                  ? botanicalFamilyLabels[data.botanicalFamily]
+                {data.family ? botanicalFamilyLabels[data.family] : "-"}
+              </p>
+              <p>
+                <span className="font-medium text-zinc-900">
+                  Potrzeby składnikowe:
+                </span>{" "}
+                {data.nutrientNeeds
+                  ? nutrientNeedsLabels[data.nutrientNeeds]
+                  : "-"}
+              </p>
+              <p>
+                <span className="font-medium text-zinc-900">
+                  Grupa płodozmianu:
+                </span>{" "}
+                {data.rotationGroup
+                  ? rotationGroupLabels[data.rotationGroup]
                   : "-"}
               </p>
               <p>
@@ -230,9 +351,9 @@ export default function VegetableDetailsPage() {
                   <div className="flex flex-wrap gap-2">
                     {recommendedSoilsForUi.map((soil) => (
                       <button
-                        key={soil.id}
+                        key={soil.relationValue}
                         type="button"
-                        onClick={() => setOpenSoilId(soil.id)}
+                        onClick={() => setOpenSoilId(soil.soilId)}
                         className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
                         title="Pokaż szczegóły gleby"
                       >
@@ -263,7 +384,9 @@ export default function VegetableDetailsPage() {
                 Dominujący składnik
               </p>
               <p className="mt-1 text-sm font-medium text-zinc-900">
-                {data.dominantNutrientDemand || "-"}
+                {data.dominantNutrientDemand
+                  ? dominantNutrientDemandLabels[data.dominantNutrientDemand]
+                  : "-"}
               </p>
             </div>
           </div>
@@ -293,6 +416,47 @@ export default function VegetableDetailsPage() {
                     </span>{" "}
                     {method.underCover ? "Tak" : "Nie"}
                   </p>
+                  <p>
+                    <span className="font-medium text-zinc-900">
+                      Kiełkowanie:
+                    </span>{" "}
+                    {method.germinationDaysMin ?? "-"} -{" "}
+                    {method.germinationDaysMax ?? "-"} dni
+                  </p>
+                  <p>
+                    <span className="font-medium text-zinc-900">
+                      Głębokość siewu:
+                    </span>{" "}
+                    {method.seedDepthCm ?? "-"} cm
+                  </p>
+                  <p>
+                    <span className="font-medium text-zinc-900">
+                      Rozstaw rzędów:
+                    </span>{" "}
+                    {method.rowSpacingCm ?? "-"} cm
+                  </p>
+                  <p>
+                    <span className="font-medium text-zinc-900">
+                      Rozstaw roślin:
+                    </span>{" "}
+                    {method.plantSpacingCm ?? "-"} cm
+                  </p>
+                  <p>
+                    <span className="font-medium text-zinc-900">
+                      Początek przesadzania:
+                    </span>{" "}
+                    {method.transplantingStartMonth
+                      ? monthLabels[method.transplantingStartMonth]
+                      : "-"}
+                  </p>
+                  <p>
+                    <span className="font-medium text-zinc-900">
+                      Koniec przesadzania:
+                    </span>{" "}
+                    {method.transplantingEndMonth
+                      ? monthLabels[method.transplantingEndMonth]
+                      : "-"}
+                  </p>
                 </div>
               ))
             ) : (
@@ -320,6 +484,23 @@ export default function VegetableDetailsPage() {
               {data.timeToHarvestDaysMin ?? "-"} -{" "}
               {data.timeToHarvestDaysMax ?? "-"} dni
             </p>
+            <p>
+              <span className="font-medium text-zinc-900">
+                Siew sukcesywny:
+              </span>{" "}
+              {data.successionSowing ? "Tak" : "Nie"}
+            </p>
+            {data.successionSowing && (
+              <p>
+                <span className="font-medium text-zinc-900">
+                  Interwał siewu:
+                </span>{" "}
+                {data.successionIntervalDays !== null &&
+                data.successionIntervalDays !== undefined
+                  ? `${data.successionIntervalDays} dni`
+                  : "-"}
+              </p>
+            )}
           </div>
         </section>
 
@@ -332,8 +513,111 @@ export default function VegetableDetailsPage() {
               data.postHarvestActions.map((item) => (
                 <p key={item.id}>
                   <span className="font-medium text-zinc-900">{item.name}</span>{" "}
-                  <span className="text-zinc-500">({item.type})</span>
+                  <span className="text-zinc-500">
+                    ({actionTemplateTypeLabels[item.type] ?? item.type})
+                  </span>
                 </p>
+              ))
+            ) : dataWithLegacy?.postHarvestActionTemplateIds?.length ? (
+              dataWithLegacy.postHarvestActionTemplateIds.map((item) => (
+                <p key={item}>
+                  <span className="font-medium text-zinc-900">{item}</span>
+                </p>
+              ))
+            ) : (
+              <p className="text-sm text-zinc-500">Brak danych.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-zinc-900">Reguły akcji</h2>
+          <div className="mt-4 space-y-3 text-sm text-zinc-600">
+            {dataWithLegacy?.actionRules?.length ? (
+              dataWithLegacy.actionRules.map((rule, index) => (
+                <div
+                  key={`rule-${index}`}
+                  className="rounded-lg border border-zinc-200 p-3"
+                >
+                  <p>
+                    <span className="font-medium text-zinc-900">Szablon:</span>{" "}
+                    {(
+                      rule as {
+                        actionTemplateSlug?: string;
+                        actionTemplateId?: string;
+                      }
+                    ).actionTemplateSlug ??
+                      (
+                        rule as {
+                          actionTemplateSlug?: string;
+                          actionTemplateId?: string;
+                        }
+                      ).actionTemplateId ??
+                      "-"}
+                  </p>
+                  <p>
+                    <span className="font-medium text-zinc-900">Trigger:</span>{" "}
+                    {rule.trigger
+                      ? (actionRuleTriggerLabels[
+                          rule.trigger as keyof typeof actionRuleTriggerLabels
+                        ] ?? rule.trigger)
+                      : "-"}
+                  </p>
+                  <p>
+                    <span className="font-medium text-zinc-900">
+                      Opóźnienie:
+                    </span>{" "}
+                    {rule.offsetDays ?? "-"} dni
+                  </p>
+                  <p>
+                    <span className="font-medium text-zinc-900">
+                      Harmonogram:
+                    </span>{" "}
+                    {rule.schedule
+                      ? (actionRuleScheduleLabels[
+                          rule.schedule as keyof typeof actionRuleScheduleLabels
+                        ] ?? rule.schedule)
+                      : "-"}
+                  </p>
+                  <p>
+                    <span className="font-medium text-zinc-900">Co N dni:</span>{" "}
+                    {rule.everyNDays ?? "-"}
+                  </p>
+                  <p>
+                    <span className="font-medium text-zinc-900">
+                      Limit powtórzeń:
+                    </span>{" "}
+                    {rule.occurrencesLimit ?? "-"}
+                  </p>
+                  <p>
+                    <span className="font-medium text-zinc-900">
+                      Dotyczy metody:
+                    </span>{" "}
+                    {rule.applyIfStartMethod?.length
+                      ? rule.applyIfStartMethod
+                          .map(
+                            (m) =>
+                              plantingStartMethodLabels[
+                                m as keyof typeof plantingStartMethodLabels
+                              ] ?? m,
+                          )
+                          .join(", ")
+                      : "Wszystkie"}
+                  </p>
+                  <p>
+                    <span className="font-medium text-zinc-900">Aktywna:</span>{" "}
+                    {typeof rule.isEnabled === "boolean"
+                      ? rule.isEnabled
+                        ? "Tak"
+                        : "Nie"
+                      : typeof (rule as { enabled?: unknown }).enabled ===
+                          "boolean"
+                        ? (rule as { enabled?: boolean }).enabled
+                          ? "Tak"
+                          : "Nie"
+                        : "-"}
+                  </p>
+                </div>
               ))
             ) : (
               <p className="text-sm text-zinc-500">Brak danych.</p>
@@ -369,7 +653,7 @@ export default function VegetableDetailsPage() {
             <div>
               <p className="font-medium text-zinc-900">Szkodniki</p>
               <div className="mt-2 space-y-1 text-zinc-600">
-                {data.commonPests.length ? (
+                {data.commonPests?.length ? (
                   data.commonPests.map((pest) => (
                     <Link
                       key={pest.id}
@@ -379,6 +663,8 @@ export default function VegetableDetailsPage() {
                       {pest.name}
                     </Link>
                   ))
+                ) : commonPestSlugs.length ? (
+                  commonPestSlugs.map((slug) => <p key={slug}>{slug}</p>)
                 ) : (
                   <p className="text-zinc-500">Brak.</p>
                 )}
@@ -387,7 +673,7 @@ export default function VegetableDetailsPage() {
             <div>
               <p className="font-medium text-zinc-900">Choroby</p>
               <div className="mt-2 space-y-1 text-zinc-600">
-                {data.commonDiseases.length ? (
+                {data.commonDiseases?.length ? (
                   data.commonDiseases.map((disease) => (
                     <Link
                       key={disease.id}
@@ -397,6 +683,8 @@ export default function VegetableDetailsPage() {
                       {disease.name}
                     </Link>
                   ))
+                ) : commonDiseaseSlugs.length ? (
+                  commonDiseaseSlugs.map((slug) => <p key={slug}>{slug}</p>)
                 ) : (
                   <p className="text-zinc-500">Brak.</p>
                 )}
@@ -405,7 +693,7 @@ export default function VegetableDetailsPage() {
             <div>
               <p className="font-medium text-zinc-900">Dobre sąsiedztwo</p>
               <div className="mt-2 space-y-1 text-zinc-600">
-                {data.goodCompanions.length ? (
+                {data.goodCompanions?.length ? (
                   data.goodCompanions.map((companion) => (
                     <Link
                       key={companion.id}
@@ -415,6 +703,8 @@ export default function VegetableDetailsPage() {
                       {companion.name}
                     </Link>
                   ))
+                ) : goodCompanionSlugs.length ? (
+                  goodCompanionSlugs.map((slug) => <p key={slug}>{slug}</p>)
                 ) : (
                   <p className="text-zinc-500">Brak.</p>
                 )}
@@ -423,7 +713,7 @@ export default function VegetableDetailsPage() {
             <div>
               <p className="font-medium text-zinc-900">Złe sąsiedztwo</p>
               <div className="mt-2 space-y-1 text-zinc-600">
-                {data.badCompanions.length ? (
+                {data.badCompanions?.length ? (
                   data.badCompanions.map((companion) => (
                     <Link
                       key={companion.id}
@@ -433,6 +723,8 @@ export default function VegetableDetailsPage() {
                       {companion.name}
                     </Link>
                   ))
+                ) : badCompanionSlugs.length ? (
+                  badCompanionSlugs.map((slug) => <p key={slug}>{slug}</p>)
                 ) : (
                   <p className="text-zinc-500">Brak.</p>
                 )}

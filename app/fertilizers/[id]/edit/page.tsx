@@ -16,6 +16,7 @@ const mapFertilizerToFormValues = (
   data: FertilizerType,
 ): FertilizerFormValues => ({
   name: data.name,
+  slug: data.slug ?? "",
   description: data.description,
   category: data.category,
   form: data.form,
@@ -35,6 +36,7 @@ const mapFertilizerToFormValues = (
 });
 
 export default function EditFertilizerPage() {
+  const formId = "fertilizer-edit-form";
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -92,13 +94,24 @@ export default function EditFertilizerPage() {
 
   return (
     <section className="space-y-6">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Nawozy
-        </p>
+      <header className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Nawozy
+          </p>
+          <button
+            type="submit"
+            form={formId}
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+            disabled={updateMutation.isPending}
+          >
+            {updateMutation.isPending ? "Zapisywanie..." : "Zapisz zmiany"}
+          </button>
+        </div>
         <h1 className="text-3xl font-semibold text-zinc-900">Edytuj nawóz</h1>
       </header>
       <FertilizerForm
+        formId={formId}
         initialValues={initialValues}
         submitLabel="Zapisz zmiany"
         onSubmit={handleSubmit}

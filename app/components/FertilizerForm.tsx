@@ -16,6 +16,7 @@ import {
 
 export type FertilizerFormValues = {
   name: string;
+  slug: string;
   description: string;
   category: CreateFertilizerTypePayload["category"] | "";
   form: CreateFertilizerTypePayload["form"] | "";
@@ -40,6 +41,7 @@ export type FertilizerFormValues = {
 
 const defaultValues: FertilizerFormValues = {
   name: "",
+  slug: "",
   description: "",
   category: "",
   form: "",
@@ -122,6 +124,7 @@ const recommendedFrequencyLabels = {
 } as const;
 
 export type FertilizerFormProps = {
+  formId?: string;
   initialValues?: Partial<FertilizerFormValues>;
   onSubmit: (payload: CreateFertilizerTypePayload) => void;
   submitLabel: string;
@@ -130,6 +133,7 @@ export type FertilizerFormProps = {
 };
 
 export const FertilizerForm = ({
+  formId,
   initialValues,
   onSubmit,
   submitLabel,
@@ -183,6 +187,7 @@ export const FertilizerForm = ({
 
     const payload: CreateFertilizerTypePayload = {
       name: values.name.trim(),
+      slug: values.slug.trim() || null,
       description: values.description.trim(),
       category: values.category,
       form: values.form,
@@ -205,7 +210,7 @@ export const FertilizerForm = ({
   };
 
   return (
-    <form className="space-y-8" onSubmit={handleSubmit}>
+    <form id={formId} className="space-y-8" onSubmit={handleSubmit}>
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Podstawy</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -219,6 +224,18 @@ export const FertilizerForm = ({
               value={values.name}
               onChange={(event) => updateValue("name", event.target.value)}
               required
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Slug</span>
+            <span className="text-xs text-zinc-500">
+              Przyjazny identyfikator URL (opcjonalnie).
+            </span>
+            <input
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.slug}
+              onChange={(event) => updateValue("slug", event.target.value)}
+              placeholder="np. obornik-granulowany"
             />
           </label>
         </div>

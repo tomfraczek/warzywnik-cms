@@ -13,6 +13,7 @@ export default function PestDetailsPage() {
   const params = useParams<{ id: string }>();
   const { data, isLoading, error } = useGetPest(params?.id);
   const deleteMutation = useDeletePest();
+  console.log("data", data);
 
   const recommendedActionIds = useMemo(() => {
     const fromRefs = (data?.recommendedActions ?? []).map((item) => item.id);

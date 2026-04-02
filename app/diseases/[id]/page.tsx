@@ -13,7 +13,7 @@ export default function DiseaseDetailsPage() {
   const params = useParams<{ id: string }>();
   const { data, isLoading, error } = useGetDisease(params?.id);
   const deleteMutation = useDeleteDisease();
-
+  console.log("data", data);
   const recommendedActionIds = useMemo(() => {
     const fromRefs = (data?.recommendedActions ?? []).map((item) => item.id);
     const fromIds = data?.recommendedActionTemplateIds ?? [];

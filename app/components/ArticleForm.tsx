@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   articleContextOptions,
   articleSeasonOptions,
@@ -11,13 +12,11 @@ import {
   type ArticleStatus,
   type CreateArticlePayload,
 } from "@/app/api/api.types";
+import { getDiseases, getPests, getVegetables } from "@/app/api/api.requests";
+import { getFertilizers } from "@/app/fertilizers/api/api.requests";
+import { getSoils } from "@/app/soils/api/api.requests";
 import { MediaLibraryModal } from "@/app/components/MediaLibraryModal";
 import { QuillEditor } from "@/app/components/richtext/QuillEditor";
-import { useGetVegetables } from "@/app/api/queries/vegetables/useGetVegetables";
-import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
-import { useGetFertilizers } from "@/app/api/queries/fertilizers/useGetFertilizers";
-import { useGetDiseases } from "@/app/api/queries/diseases/useGetDiseases";
-import { useGetPests } from "@/app/api/queries/pests/useGetPests";
 import type { MediaLibraryItem } from "@/app/api/api.types";
 import { AxiosError } from "axios";
 
@@ -100,6 +99,40 @@ const isValidUrl = (value: string) => {
   } catch {
     return false;
   }
+};
+
+type PaginatedListResponse<T> = {
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+};
+
+const MAX_DICTIONARY_PAGES = 500;
+
+const fetchAllPages = async <T,>(
+  fetchPage: (page: number) => Promise<PaginatedListResponse<T>>,
+) => {
+  const firstPage = await fetchPage(1);
+  const allItems = [...firstPage.items];
+
+  if (firstPage.limit <= 0 || firstPage.total <= firstPage.items.length) {
+    return allItems;
+  }
+
+  const totalPages = Math.ceil(firstPage.total / firstPage.limit);
+  const lastPage = Math.min(totalPages, MAX_DICTIONARY_PAGES);
+
+  for (let page = 2; page <= lastPage; page += 1) {
+    const nextPage = await fetchPage(page);
+    allItems.push(...nextPage.items);
+
+    if (allItems.length >= firstPage.total) {
+      break;
+    }
+  }
+
+  return allItems;
 };
 
 type TiptapNode = {
@@ -256,21 +289,26 @@ export const ArticleForm = ({
   const uploadResolveRef = useRef<((url: string | null) => void) | null>(null);
   const pickResolveRef = useRef<((url: string | null) => void) | null>(null);
 
-  const { data: vegetablesData, isLoading: vegetablesLoading } =
-    useGetVegetables({ page: 1, limit: 100 });
-  const { data: soilsData, isLoading: soilsLoading } = useGetSoils({
-    page: 1,
-    limit: 100,
+  const { data: vegetableItems = [], isLoading: vegetablesLoading } = useQuery({
+    queryKey: ["vegetables", "all-for-article-form"],
+    queryFn: () => fetchAllPages((page) => getVegetables({ page })),
   });
-  const { data: fertilizersData, isLoading: fertilizersLoading } =
-    useGetFertilizers({ page: 1, limit: 100 });
-  const { data: diseasesData, isLoading: diseasesLoading } = useGetDiseases({
-    page: 1,
-    limit: 100,
+  const { data: soilItems = [], isLoading: soilsLoading } = useQuery({
+    queryKey: ["soils", "all-for-article-form"],
+    queryFn: () => fetchAllPages((page) => getSoils({ page })),
   });
-  const { data: pestsData, isLoading: pestsLoading } = useGetPests({
-    page: 1,
-    limit: 100,
+  const { data: fertilizerItems = [], isLoading: fertilizersLoading } =
+    useQuery({
+      queryKey: ["fertilizers", "all-for-article-form"],
+      queryFn: () => fetchAllPages((page) => getFertilizers({ page })),
+    });
+  const { data: diseaseItems = [], isLoading: diseasesLoading } = useQuery({
+    queryKey: ["diseases", "all-for-article-form"],
+    queryFn: () => fetchAllPages((page) => getDiseases({ page })),
+  });
+  const { data: pestItems = [], isLoading: pestsLoading } = useQuery({
+    queryKey: ["pests", "all-for-article-form"],
+    queryFn: () => fetchAllPages((page) => getPests({ page })),
   });
 
   const publishedLabel = useMemo(() => {
@@ -679,7 +717,7 @@ export const ArticleForm = ({
               }
               disabled={vegetablesLoading}
             >
-              {vegetablesData?.items.map((item) => (
+              {vegetableItems.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
                 </option>
@@ -702,7 +740,7 @@ export const ArticleForm = ({
               }
               disabled={soilsLoading}
             >
-              {soilsData?.items.map((item) => (
+              {soilItems.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
                 </option>
@@ -725,7 +763,7 @@ export const ArticleForm = ({
               }
               disabled={fertilizersLoading}
             >
-              {fertilizersData?.items.map((item) => (
+              {fertilizerItems.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
                 </option>
@@ -748,7 +786,7 @@ export const ArticleForm = ({
               }
               disabled={diseasesLoading}
             >
-              {diseasesData?.items.map((item) => (
+              {diseaseItems.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
                 </option>
@@ -771,7 +809,7 @@ export const ArticleForm = ({
               }
               disabled={pestsLoading}
             >
-              {pestsData?.items.map((item) => (
+              {pestItems.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
                 </option>

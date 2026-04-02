@@ -23,10 +23,9 @@ type FieldErrors = Partial<Record<keyof ActionTemplateFormValues, string>>;
 const mapBackendFieldToFormField = (
   field: string,
 ): keyof ActionTemplateFormValues | null => {
-  if (field === "scope") return "target";
-
   const mapping: Record<string, keyof ActionTemplateFormValues> = {
     name: "name",
+    slug: "slug",
     target: "target",
     environment: "environment",
     type: "type",
@@ -46,8 +45,8 @@ const extractFieldErrors = (payload: unknown): FieldErrors => {
     const normalized = text.trim();
     const knownFields = [
       "name",
+      "slug",
       "target",
-      "scope",
       "environment",
       "type",
       "defaultDueOffsetDays",
@@ -102,11 +101,13 @@ const buildUpdatePayload = (
   initial: ActionTemplateFormValues,
 ): UpdateActionTemplatePayload => {
   const initialName = initial.name.trim();
+  const initialSlug = initial.slug.trim() || null;
   const initialDescription = initial.description.trim() || null;
 
   const next: UpdateActionTemplatePayload = {};
 
   if (current.name !== initialName) next.name = current.name;
+  if ((current.slug ?? null) !== initialSlug) next.slug = current.slug ?? null;
   if (current.target !== initial.target) next.target = current.target;
   if (current.environment !== initial.environment) {
     next.environment = current.environment;
@@ -127,10 +128,11 @@ const buildUpdatePayload = (
 const mapActionTemplateFromApi = (
   data: ActionTemplate,
 ): ActionTemplateFormValues => {
-  const target = normalizeActionTemplateTarget(data.target ?? data.scope);
+  const target = normalizeActionTemplateTarget(data.target);
 
   return {
     name: data.name,
+    slug: data.slug ?? "",
     target,
     environment: normalizeActionTemplateEnvironment(data.environment),
     type: mapActionTemplateType(data.type, target),
@@ -140,6 +142,7 @@ const mapActionTemplateFromApi = (
 };
 
 export default function EditActionTemplatePage() {
+  const formId = "action-template-edit-form";
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -212,16 +215,27 @@ export default function EditActionTemplatePage() {
 
   return (
     <section className="space-y-6">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Szablony zabiegów
-        </p>
+      <header className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Szablony zabiegów
+          </p>
+          <button
+            type="submit"
+            form={formId}
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+            disabled={updateMutation.isPending}
+          >
+            {updateMutation.isPending ? "Zapisywanie..." : "Zapisz zmiany"}
+          </button>
+        </div>
         <h1 className="text-3xl font-semibold text-zinc-900">
           Edytuj szablon zabiegu
         </h1>
       </header>
 
       <ActionTemplateForm
+        formId={formId}
         initialValues={initialValues}
         submitLabel="Zapisz zmiany"
         onSubmit={handleSubmit}

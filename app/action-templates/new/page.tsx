@@ -13,10 +13,9 @@ type FieldErrors = Partial<Record<keyof ActionTemplateFormValues, string>>;
 const mapBackendFieldToFormField = (
   field: string,
 ): keyof ActionTemplateFormValues | null => {
-  if (field === "scope") return "target";
-
   const mapping: Record<string, keyof ActionTemplateFormValues> = {
     name: "name",
+    slug: "slug",
     target: "target",
     environment: "environment",
     type: "type",
@@ -36,8 +35,8 @@ const extractFieldErrors = (payload: unknown): FieldErrors => {
     const normalized = text.trim();
     const knownFields = [
       "name",
+      "slug",
       "target",
-      "scope",
       "environment",
       "type",
       "defaultDueOffsetDays",

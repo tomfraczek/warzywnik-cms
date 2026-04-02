@@ -11,6 +11,7 @@ import {
 } from "@/app/warning-rules/api/api.types";
 
 export type WarningRuleFormValues = {
+  slug: string;
   code: CreateWarningRulePayload["code"] | "";
   category: string;
   horizon: NonNullable<CreateWarningRulePayload["horizon"]> | "";
@@ -26,6 +27,7 @@ export type WarningRuleFormValues = {
 };
 
 const defaultValues: WarningRuleFormValues = {
+  slug: "",
   code: "",
   category: "SEED_ONLY",
   horizon: "RADAR",
@@ -103,6 +105,7 @@ const toNumberOrNull = (value: string) => {
 };
 
 export type WarningRuleFormProps = {
+  formId?: string;
   initialValues?: Partial<WarningRuleFormValues>;
   onSubmit: (payload: CreateWarningRulePayload) => void;
   submitLabel: string;
@@ -112,6 +115,7 @@ export type WarningRuleFormProps = {
 };
 
 export const WarningRuleForm = ({
+  formId,
   initialValues,
   onSubmit,
   submitLabel,
@@ -189,6 +193,7 @@ export const WarningRuleForm = ({
     }
 
     const payload: CreateWarningRulePayload = {
+      slug: values.slug.trim() || null,
       code: values.code,
       enabled: values.enabled,
       severity: values.severity,
@@ -207,9 +212,19 @@ export const WarningRuleForm = ({
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
+    <form id={formId} className="space-y-6" onSubmit={handleSubmit}>
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="grid gap-4 md:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Slug</span>
+            <input
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.slug}
+              onChange={(event) => updateValue("slug", event.target.value)}
+              placeholder="np. ph-out-of-range"
+            />
+          </label>
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Kod</span>
             <select

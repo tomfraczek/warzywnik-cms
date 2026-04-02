@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getActionTemplates } from "@/app/api/api.requests";
 import type {
@@ -15,14 +15,17 @@ import {
   actionRuleTriggerOptions,
   plantingStartMethodOptions,
 } from "@/app/api/api.types";
-import { useGetActionTemplatesByIds } from "@/app/api/queries/action-templates/useGetActionTemplatesByIds";
+
+import {
+  actionRuleScheduleLabels,
+  actionRuleTriggerLabels,
+  actionTemplateTypeLabels,
+  plantingStartMethodLabels,
+} from "../utils/labels";
 
 const MAX_TEMPLATE_PAGES = 500;
 
-const fetchAllTemplatePages = async (params: {
-  q?: string;
-  scope?: "bed" | "planting" | "space";
-}) => {
+const fetchAllTemplatePages = async (params: { q?: string }) => {
   const firstPage = await getActionTemplates({ page: 1, ...params });
   const allItems: ActionTemplateListItem[] = [...firstPage.items];
 
@@ -45,16 +48,19 @@ const fetchAllTemplatePages = async (params: {
   return allItems;
 };
 
+const getTemplateRelationValue = (item: { id: string; slug?: string | null }) =>
+  item.slug?.trim() || item.id;
+
 export type VegetableActionRuleFormValue = {
   uid: string;
-  actionTemplateId: string;
+  actionTemplateSlug: string;
   trigger: ActionRuleTrigger;
   offsetDays: string;
   schedule: ActionRuleSchedule;
   everyNDays: string;
   occurrencesLimit: string;
   applyIfStartMethod: PlantingStartMethod[];
-  enabled: boolean;
+  isEnabled: boolean;
 };
 
 const makeUid = () => {
@@ -71,37 +77,15 @@ export const createEmptyVegetableActionRule = (
   trigger: ActionRuleTrigger = "ON_SOWED",
 ): VegetableActionRuleFormValue => ({
   uid: makeUid(),
-  actionTemplateId: "",
+  actionTemplateSlug: "",
   trigger,
   offsetDays: "0",
   schedule: "ONCE",
   everyNDays: "",
   occurrencesLimit: "",
   applyIfStartMethod: [],
-  enabled: true,
+  isEnabled: true,
 });
-
-const triggerLabels: Record<ActionRuleTrigger, string> = {
-  ON_SOWED: "Siew zakończony",
-  AFTER_SOWING_DAYS: "Po X dniach od siewu",
-  BEFORE_TRANSPLANT_DAYS: "X dni przed przesadzeniem",
-  ON_TRANSPLANTED: "Przesadzenie zakończone",
-  AFTER_TRANSPLANT_DAYS: "Po X dniach od przesadzenia",
-  ON_HARVEST_WINDOW_START: "Początek okna zbioru",
-  BEFORE_HARVEST_WINDOW_START_DAYS: "X dni przed oknem zbioru",
-  ON_HARVEST_CONFIRMED: "Zbiór potwierdzony",
-  AFTER_HARVEST_DAYS: "Po X dniach od zbioru",
-};
-
-const scheduleLabels: Record<ActionRuleSchedule, string> = {
-  ONCE: "Jednorazowo",
-  EVERY_N_DAYS: "Co N dni",
-};
-
-const startMethodLabels: Record<PlantingStartMethod, string> = {
-  DIRECT_SOW: "Siew bezpośredni",
-  TRANSPLANT: "Rozsada/przesadzenie",
-};
 
 const groupedTriggers: Array<{
   key: string;
@@ -144,19 +128,18 @@ const groupedTriggers: Array<{
 
 type RuleRowProps = {
   rule: VegetableActionRuleFormValue;
-  selectedTemplateName: string;
   onUpdate: (next: VegetableActionRuleFormValue) => void;
   onDelete: () => void;
 };
 
-const RuleRow = ({
-  rule,
-  selectedTemplateName,
-  onUpdate,
-  onDelete,
-}: RuleRowProps) => {
+const RuleRow = ({ rule, onUpdate, onDelete }: RuleRowProps) => {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [resolvedNames, setResolvedNames] = useState<Record<string, string>>(
+    {},
+  );
+  const comboboxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -166,10 +149,23 @@ const RuleRow = ({
     return () => clearTimeout(timeout);
   }, [query]);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        comboboxRef.current &&
+        !comboboxRef.current.contains(e.target as Node)
+      ) {
+        setIsOpen(false);
+        setQuery("");
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const templateFilters = useMemo(
     () => ({
       q: debouncedQuery || undefined,
-      scope: "planting" as const,
     }),
     [debouncedQuery],
   );
@@ -179,9 +175,19 @@ const RuleRow = ({
     queryFn: () => fetchAllTemplatePages(templateFilters),
   });
 
-  const selectedOptionMissing =
-    Boolean(rule.actionTemplateId) &&
-    !options.some((item) => item.id === rule.actionTemplateId);
+  useEffect(() => {
+    if (options.length > 0) {
+      setResolvedNames((prev) => {
+        const next = { ...prev };
+        for (const item of options) {
+          const value = getTemplateRelationValue(item);
+          next[value] =
+            `${item.name} (${actionTemplateTypeLabels[item.type] ?? item.type})`;
+        }
+        return next;
+      });
+    }
+  }, [options]);
 
   const toggleStartMethod = (method: PlantingStartMethod) => {
     const next = rule.applyIfStartMethod.includes(method)
@@ -197,38 +203,76 @@ const RuleRow = ({
   return (
     <div className="rounded-lg border border-zinc-200 p-4">
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <label className="flex flex-col gap-1 text-xs">
+        <div className="flex flex-col gap-1 text-xs">
           <span className="font-medium">Szablon zabiegu</span>
-          <input
-            className="rounded-lg border border-zinc-200 px-3 py-2"
-            placeholder="Szukaj szablonów zabiegów"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <select
-            className="rounded-lg border border-zinc-200 px-3 py-2"
-            value={rule.actionTemplateId}
-            onChange={(event) =>
-              onUpdate({
-                ...rule,
-                actionTemplateId: event.target.value,
-              })
-            }
-          >
-            <option value="">Wybierz szablon</option>
-            {selectedOptionMissing && (
-              <option value={rule.actionTemplateId}>
-                {selectedTemplateName}
-              </option>
+          <div className="relative" ref={comboboxRef}>
+            <input
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 pr-8"
+              placeholder="Szukaj szablonów zabiegów…"
+              value={
+                isOpen
+                  ? query
+                  : (resolvedNames[rule.actionTemplateSlug] ??
+                    rule.actionTemplateSlug ??
+                    "")
+              }
+              onFocus={() => setIsOpen(true)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setIsOpen(true);
+              }}
+            />
+            {isFetching && (
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400">
+                …
+              </span>
             )}
-            {options.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name} ({item.type})
-              </option>
-            ))}
-          </select>
-          {isFetching && <span className="text-zinc-500">Ładowanie…</span>}
-        </label>
+            {isOpen && (
+              <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-zinc-200 bg-white shadow-lg">
+                {options.length === 0 && !isFetching && (
+                  <li className="px-3 py-2 text-zinc-500">Brak wyników.</li>
+                )}
+                {options.map((item) => {
+                  const value = getTemplateRelationValue(item);
+                  const isSelected = rule.actionTemplateSlug === value;
+                  return (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        className={`w-full text-left px-3 py-2 hover:bg-zinc-50 ${
+                          isSelected ? "bg-zinc-100 font-medium" : ""
+                        }`}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          onUpdate({ ...rule, actionTemplateSlug: value });
+                          setIsOpen(false);
+                          setQuery("");
+                        }}
+                      >
+                        {item.name}{" "}
+                        <span className="text-zinc-400">
+                          ({actionTemplateTypeLabels[item.type] ?? item.type})
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+          {rule.actionTemplateSlug && !isOpen && (
+            <button
+              type="button"
+              className="self-start text-xs text-zinc-400 hover:text-zinc-600"
+              onClick={() => {
+                onUpdate({ ...rule, actionTemplateSlug: "" });
+                setQuery("");
+              }}
+            >
+              Wyczyść
+            </button>
+          )}
+        </div>
 
         <label className="flex flex-col gap-1 text-xs">
           <span className="font-medium">Trigger</span>
@@ -244,7 +288,7 @@ const RuleRow = ({
           >
             {actionRuleTriggerOptions.map((trigger) => (
               <option key={trigger} value={trigger}>
-                {triggerLabels[trigger]}
+                {actionRuleTriggerLabels[trigger]}
               </option>
             ))}
           </select>
@@ -283,7 +327,7 @@ const RuleRow = ({
           >
             {actionRuleScheduleOptions.map((schedule) => (
               <option key={schedule} value={schedule}>
-                {scheduleLabels[schedule]}
+                {actionRuleScheduleLabels[schedule]}
               </option>
             ))}
           </select>
@@ -340,7 +384,7 @@ const RuleRow = ({
                   checked={rule.applyIfStartMethod.includes(method)}
                   onChange={() => toggleStartMethod(method)}
                 />
-                {startMethodLabels[method]}
+                {plantingStartMethodLabels[method]}
               </label>
             ))}
           </div>
@@ -350,11 +394,11 @@ const RuleRow = ({
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={rule.enabled}
+              checked={rule.isEnabled}
               onChange={(event) =>
                 onUpdate({
                   ...rule,
-                  enabled: event.target.checked,
+                  isEnabled: event.target.checked,
                 })
               }
             />
@@ -385,23 +429,6 @@ export const VegetableActionRulesSection = ({
   rules,
   onChange,
 }: VegetableActionRulesSectionProps) => {
-  const selectedIds = useMemo(
-    () => rules.map((rule) => rule.actionTemplateId).filter(Boolean),
-    [rules],
-  );
-
-  const { data: selectedTemplates } = useGetActionTemplatesByIds(selectedIds);
-
-  const selectedTemplateMap = useMemo(() => {
-    const map = new Map<string, string>();
-
-    (selectedTemplates ?? []).forEach((item: ActionTemplate) => {
-      map.set(item.id, `${item.name} (${item.type})`);
-    });
-
-    return map;
-  }, [selectedTemplates]);
-
   return (
     <section className="rounded-xl border border-zinc-200 bg-white p-6">
       <div className="space-y-2">
@@ -468,10 +495,6 @@ export const VegetableActionRulesSection = ({
                   <RuleRow
                     key={rule.uid}
                     rule={rule}
-                    selectedTemplateName={
-                      selectedTemplateMap.get(rule.actionTemplateId) ??
-                      rule.actionTemplateId
-                    }
                     onUpdate={(nextRule) =>
                       onChange(
                         rules.map((current) =>

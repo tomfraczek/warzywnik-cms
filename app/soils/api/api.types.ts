@@ -5,6 +5,7 @@ export type DrainageLevel = "poor" | "medium" | "good";
 export type Soil = {
   id: string;
   name: string;
+  slug: string | null;
   description: string;
   structure: SoilStructure;
   waterRetention: DemandLevel;
@@ -22,6 +23,7 @@ export type Soil = {
 export type SoilListItem = {
   id: string;
   name: string;
+  slug: string | null;
 };
 
 export type ListResponse<T> = {
@@ -33,6 +35,7 @@ export type ListResponse<T> = {
 
 export type CreateSoilPayload = {
   name: string;
+  slug?: string | null;
   description: string;
   structure: SoilStructure;
   waterRetention: DemandLevel;

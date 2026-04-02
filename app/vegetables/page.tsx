@@ -12,21 +12,48 @@ import { useQueryClient } from "@tanstack/react-query";
 const csvHeaders = [
   "id",
   "name",
+  "slug",
   "latinName",
+  "family",
   "botanicalFamily",
+  "nutrientNeeds",
+  "rotationGroup",
   "imageUrl",
   "description",
   "sunExposure",
   "waterDemand",
   "nutrientDemand",
-  "recommendedSoilIds",
+  "recommendedSoilSlugs",
+  "minSoilDepthCm",
+  "dominantNutrientDemand",
+  "sowingMethods",
   "timeToHarvestDaysMin",
   "timeToHarvestDaysMax",
+  "successionSowing",
+  "successionIntervalDays",
   "harvestStartMonth",
   "harvestEndMonth",
+  "harvestSigns",
+  "fertilizationStages",
+  "postHarvestActions",
+  "actionRules",
+  "rulesVersion",
+  "commonPestSlugs",
+  "commonPests",
+  "commonDiseaseSlugs",
+  "commonDiseases",
+  "goodCompanionSlugs",
+  "goodCompanions",
+  "badCompanionSlugs",
+  "badCompanions",
   "createdAt",
   "updatedAt",
 ];
+
+const toJson = (value: unknown) => {
+  if (value === null || value === undefined) return "";
+  return JSON.stringify(value);
+};
 
 const escapeCsv = (value: unknown) => {
   if (value === null || value === undefined) return "";
@@ -38,21 +65,69 @@ const escapeCsv = (value: unknown) => {
 const toCsv = (rows: Vegetable[]) => {
   const header = csvHeaders.join(",");
   const body = rows.map((row) => {
+    const rowWithLegacy = row as Vegetable & {
+      family?: string | null;
+      nutrientNeeds?: string | null;
+      rotationGroup?: string | null;
+      commonPestSlugs?: string[];
+      commonDiseaseSlugs?: string[];
+      goodCompanionSlugs?: string[];
+      badCompanionSlugs?: string[];
+    };
+
     const values = [
       row.id,
       row.name,
+      row.slug ?? "",
       row.latinName ?? "",
+      rowWithLegacy.family ?? "",
       row.botanicalFamily ?? "",
+      rowWithLegacy.nutrientNeeds ?? "",
+      rowWithLegacy.rotationGroup ?? "",
       row.imageUrl ?? "",
       row.description,
       row.sunExposure ?? "",
       row.waterDemand ?? "",
       row.nutrientDemand ?? "",
-      (row.recommendedSoilIds ?? []).join(" | "),
+      (row.recommendedSoilSlugs ?? []).join(" | "),
+      row.minSoilDepthCm ?? "",
+      row.dominantNutrientDemand ?? "",
+      toJson(row.sowingMethods),
       row.timeToHarvestDaysMin ?? "",
       row.timeToHarvestDaysMax ?? "",
+      row.successionSowing,
+      row.successionIntervalDays ?? "",
       row.harvestStartMonth ?? "",
       row.harvestEndMonth ?? "",
+      row.harvestSigns ?? "",
+      toJson(row.fertilizationStages),
+      toJson(row.postHarvestActions),
+      toJson(row.actionRules),
+      row.rulesVersion,
+      toJson(
+        rowWithLegacy.commonPestSlugs ??
+          row.commonPests?.map((item) => item.slug ?? item.id) ??
+          [],
+      ),
+      toJson(row.commonPests),
+      toJson(
+        rowWithLegacy.commonDiseaseSlugs ??
+          row.commonDiseases?.map((item) => item.slug ?? item.id) ??
+          [],
+      ),
+      toJson(row.commonDiseases),
+      toJson(
+        rowWithLegacy.goodCompanionSlugs ??
+          row.goodCompanions?.map((item) => item.slug ?? item.id) ??
+          [],
+      ),
+      toJson(row.goodCompanions),
+      toJson(
+        rowWithLegacy.badCompanionSlugs ??
+          row.badCompanions?.map((item) => item.slug ?? item.id) ??
+          [],
+      ),
+      toJson(row.badCompanions),
       row.createdAt,
       row.updatedAt,
     ];

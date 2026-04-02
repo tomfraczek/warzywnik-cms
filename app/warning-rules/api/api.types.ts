@@ -7,6 +7,7 @@ export type WarningRuleCategory = string;
 
 export type WarningRule = {
   id: string;
+  slug: string | null;
   code: WarningCode;
   enabled: boolean;
   severity: WarningSeverity;
@@ -25,6 +26,7 @@ export type WarningRule = {
 
 export type WarningRuleListItem = {
   id: string;
+  slug: string | null;
   code: WarningCode;
   title: string;
   severity: WarningSeverity;

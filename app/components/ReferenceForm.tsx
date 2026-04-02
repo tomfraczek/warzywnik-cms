@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type {
   ActionTemplate,
+  ActionTemplateListItem,
   ActionTemplateRef,
   CreateDiseasePayload,
   CreatePestPayload,
 } from "@/app/api/api.types";
-import { useGetActionTemplates } from "@/app/api/queries/action-templates/useGetActionTemplates";
+import { getActionTemplates } from "@/app/api/api.requests";
 import { useGetActionTemplatesByIds } from "@/app/api/queries/action-templates/useGetActionTemplatesByIds";
 
 export type ReferenceFormValues = {
   name: string;
+  slug: string;
   description: string;
   symptoms: string;
   prevention: string;
@@ -21,6 +24,7 @@ export type ReferenceFormValues = {
 
 const defaultValues: ReferenceFormValues = {
   name: "",
+  slug: "",
   description: "",
   symptoms: "",
   prevention: "",
@@ -28,7 +32,33 @@ const defaultValues: ReferenceFormValues = {
   recommendedActionTemplateIds: [],
 };
 
+const MAX_TEMPLATE_PAGES = 500;
+
+const fetchAllTemplatePages = async (params: { q?: string }) => {
+  const firstPage = await getActionTemplates({ page: 1, ...params });
+  const allItems: ActionTemplateListItem[] = [...firstPage.items];
+
+  if (firstPage.limit <= 0 || firstPage.total <= firstPage.items.length) {
+    return allItems;
+  }
+
+  const totalPages = Math.ceil(firstPage.total / firstPage.limit);
+  const lastPage = Math.min(totalPages, MAX_TEMPLATE_PAGES);
+
+  for (let page = 2; page <= lastPage; page += 1) {
+    const nextPage = await getActionTemplates({ page, ...params });
+    allItems.push(...nextPage.items);
+
+    if (allItems.length >= firstPage.total) {
+      break;
+    }
+  }
+
+  return allItems;
+};
+
 export type ReferenceFormProps = {
+  formId?: string;
   initialValues?: Partial<ReferenceFormValues>;
   initialRecommendedActions?: ActionTemplateRef[];
   onSubmit: (payload: CreatePestPayload | CreateDiseasePayload) => void;
@@ -38,6 +68,7 @@ export type ReferenceFormProps = {
 };
 
 export const ReferenceForm = ({
+  formId,
   initialValues,
   initialRecommendedActions,
   onSubmit,
@@ -62,12 +93,22 @@ export const ReferenceForm = ({
     return () => clearTimeout(timeout);
   }, [actionTemplateQuery]);
 
-  const { data: actionTemplatesData, isFetching: actionTemplatesFetching } =
-    useGetActionTemplates({
-      page: 1,
-      limit: 20,
-      q: debouncedActionTemplateQuery || undefined,
-    });
+  const actionTemplateFilters = useMemo(
+    () => ({ q: debouncedActionTemplateQuery || undefined }),
+    [debouncedActionTemplateQuery],
+  );
+
+  const {
+    data: actionTemplateItems = [],
+    isFetching: actionTemplatesFetching,
+  } = useQuery({
+    queryKey: [
+      "action-templates",
+      "all-for-reference-form",
+      actionTemplateFilters,
+    ],
+    queryFn: () => fetchAllTemplatePages(actionTemplateFilters),
+  });
 
   const { data: selectedTemplateDetails } = useGetActionTemplatesByIds(
     values.recommendedActionTemplateIds,
@@ -84,24 +125,22 @@ export const ReferenceForm = ({
       map.set(item.id, {
         id: item.id,
         name: item.name,
+        slug: item.slug,
         type: item.type,
       });
     });
 
-    (actionTemplatesData?.items ?? []).forEach((item) => {
+    actionTemplateItems.forEach((item) => {
       map.set(item.id, {
         id: item.id,
         name: item.name,
+        slug: item.slug,
         type: item.type,
       });
     });
 
     return map;
-  }, [
-    actionTemplatesData?.items,
-    initialRecommendedActions,
-    selectedTemplateDetails,
-  ]);
+  }, [actionTemplateItems, initialRecommendedActions, selectedTemplateDetails]);
 
   const updateValue = <K extends keyof ReferenceFormValues>(
     key: K,
@@ -123,6 +162,7 @@ export const ReferenceForm = ({
 
     onSubmit({
       name: values.name.trim(),
+      slug: values.slug.trim() || null,
       description: values.description.trim(),
       symptoms: values.symptoms.trim() || null,
       prevention: values.prevention.trim() || null,
@@ -141,7 +181,7 @@ export const ReferenceForm = ({
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
+    <form id={formId} className="space-y-6" onSubmit={handleSubmit}>
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="grid gap-4 md:grid-cols-2">
           <label className="flex flex-col gap-2 text-sm">
@@ -151,6 +191,15 @@ export const ReferenceForm = ({
               value={values.name}
               onChange={(event) => updateValue("name", event.target.value)}
               required
+            />
+          </label>
+          <label className="flex flex-col gap-2 text-sm">
+            Slug
+            <input
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.slug}
+              onChange={(event) => updateValue("slug", event.target.value)}
+              placeholder="np. maczniak-prawdziwy"
             />
           </label>
         </div>
@@ -191,7 +240,7 @@ export const ReferenceForm = ({
         <div className="mt-4 space-y-2 text-sm">
           <p className="font-medium">Rekomendowane zabiegi</p>
           <p className="text-xs text-zinc-500">
-            Szukaj i przypisz szablony zabiegów (limit 20 wyników).
+            Szukaj i przypisz szablony zabiegów.
           </p>
 
           <input
@@ -202,7 +251,7 @@ export const ReferenceForm = ({
           />
 
           <div className="max-h-56 overflow-auto rounded-lg border border-zinc-200 p-2">
-            {(actionTemplatesData?.items ?? []).map((item) => {
+            {actionTemplateItems.map((item) => {
               const checked = values.recommendedActionTemplateIds.includes(
                 item.id,
               );
@@ -226,10 +275,9 @@ export const ReferenceForm = ({
               <p className="px-1 py-1 text-xs text-zinc-500">Ładowanie...</p>
             )}
 
-            {!actionTemplatesFetching &&
-              (actionTemplatesData?.items.length ?? 0) === 0 && (
-                <p className="px-1 py-1 text-xs text-zinc-500">Brak wyników.</p>
-              )}
+            {!actionTemplatesFetching && actionTemplateItems.length === 0 && (
+              <p className="px-1 py-1 text-xs text-zinc-500">Brak wyników.</p>
+            )}
           </div>
 
           {values.recommendedActionTemplateIds.length > 0 && (

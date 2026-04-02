@@ -8,7 +8,7 @@ import { useGetActionTemplates } from "@/app/api/queries/action-templates/useGet
 import { useDeleteActionTemplate } from "@/app/api/mutations/action-templates/useDeleteActionTemplate";
 import {
   actionTemplateEnvironmentOptions,
-  actionTemplateScopeOptions,
+  actionTemplateTargetOptions,
   actionTemplateTypeOptions,
   normalizeActionTemplateEnvironment,
   normalizeActionTemplateTarget,
@@ -23,7 +23,6 @@ import {
 const csvHeaders = [
   "id",
   "name",
-  "scope",
   "target",
   "environment",
   "type",
@@ -46,7 +45,6 @@ const toCsv = (rows: ActionTemplate[]) => {
     const values = [
       row.id,
       row.name,
-      row.scope ?? "",
       row.target,
       row.environment,
       row.type,
@@ -84,7 +82,7 @@ const getTimestamp = () => {
 export default function ActionTemplatesPage() {
   const [q, setQ] = useState("");
   const [target, setTarget] = useState<
-    "all" | (typeof actionTemplateScopeOptions)[number]
+    "all" | (typeof actionTemplateTargetOptions)[number]
   >("all");
   const [environment, setEnvironment] = useState<
     "all" | (typeof actionTemplateEnvironmentOptions)[number]
@@ -286,12 +284,12 @@ export default function ActionTemplatesPage() {
               setTarget(
                 event.target.value as
                   | "all"
-                  | (typeof actionTemplateScopeOptions)[number],
+                  | (typeof actionTemplateTargetOptions)[number],
               );
             }}
           >
             <option value="all">Wszystkie zakresy</option>
-            {actionTemplateScopeOptions.map((option) => (
+            {actionTemplateTargetOptions.map((option) => (
               <option key={option} value={option}>
                 {actionTemplateTargetLabels[option]}
               </option>
@@ -405,7 +403,7 @@ export default function ActionTemplatesPage() {
                 <td className="px-4 py-3 text-zinc-500">
                   {
                     actionTemplateTargetLabels[
-                      normalizeActionTemplateTarget(item.target ?? item.scope)
+                      normalizeActionTemplateTarget(item.target)
                     ]
                   }
                 </td>

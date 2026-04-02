@@ -11,18 +11,41 @@ import { useDeleteVegetableImage } from "@/app/api/mutations/vegetables/useDelet
 import { useQueryClient } from "@tanstack/react-query";
 import { vegetableKeys } from "@/app/api/queries/vegetables/useGetVegetables";
 import type { VegetableFormValues } from "@/app/components/VegetableForm";
-import type { CreateVegetablePayload, Vegetable } from "@/app/api/api.types";
+import type {
+  BotanicalFamily,
+  CreateVegetablePayload,
+  Vegetable,
+} from "@/app/api/api.types";
 
 const mapVegetableToFormValues = (data: Vegetable): VegetableFormValues => ({
   name: data.name,
   description: data.description,
   latinName: data.latinName || "",
-  botanicalFamily: data.botanicalFamily || "",
+  family: (data.family || "") as "" | BotanicalFamily,
+  nutrientNeeds: data.nutrientNeeds || "",
+  rotationGroup: data.rotationGroup || "",
   imageUrl: data.imageUrl || "",
   sunExposure: data.sunExposure || "",
   waterDemand: data.waterDemand || "",
   nutrientDemand: data.nutrientDemand || "",
-  recommendedSoilIds: data.recommendedSoilIds ?? [],
+  recommendedSoilSlugs: (
+    data.recommendedSoilSlugs ??
+    (
+      data as Vegetable & {
+        recommendedSoilIds?: string[];
+        recommendedSoils?: Array<{ slug?: string | null; id?: string | null }>;
+      }
+    ).recommendedSoilIds ??
+    (
+      data as Vegetable & {
+        recommendedSoils?: Array<{ slug?: string | null; id?: string | null }>;
+      }
+    ).recommendedSoils?.map((soil) => soil.slug ?? soil.id ?? "") ??
+    []
+  ).filter(
+    (value): value is string =>
+      typeof value === "string" && value.trim().length > 0,
+  ),
   minSoilDepthCm: data.minSoilDepthCm?.toString() ?? "",
   dominantNutrientDemand: data.dominantNutrientDemand || "",
   sowingMethods:
@@ -46,30 +69,83 @@ const mapVegetableToFormValues = (data: Vegetable): VegetableFormValues => ({
       ...stage,
       timing: stage.timing || "",
     })) ?? [],
-  postHarvestActionTemplateIds:
-    data.postHarvestActions?.map((item) => item.id) ??
-    data.postHarvestActionTemplateIds ??
-    [],
   actionRules:
     data.actionRules?.map((rule, index) => ({
       uid: rule.id ?? `${data.id}-rule-${index}`,
-      actionTemplateId: rule.actionTemplateId,
+      actionTemplateSlug:
+        typeof rule.actionTemplateSlug === "string"
+          ? rule.actionTemplateSlug
+          : typeof (
+                rule as {
+                  actionTemplate?: { slug?: unknown; id?: unknown };
+                }
+              ).actionTemplate?.slug === "string"
+            ? (
+                rule as unknown as {
+                  actionTemplate: { slug: string; id?: unknown };
+                }
+              ).actionTemplate.slug
+            : typeof (
+                  rule as {
+                    actionTemplate?: { slug?: unknown; id?: unknown };
+                  }
+                ).actionTemplate?.id === "string"
+              ? (
+                  rule as unknown as {
+                    actionTemplate: { slug?: unknown; id: string };
+                  }
+                ).actionTemplate.id
+              : typeof (rule as { actionTemplateId?: unknown })
+                    .actionTemplateId === "string"
+                ? (rule as unknown as { actionTemplateId: string })
+                    .actionTemplateId
+                : "",
       trigger: rule.trigger,
       offsetDays: rule.offsetDays.toString(),
       schedule: rule.schedule,
       everyNDays: rule.everyNDays?.toString() ?? "",
       occurrencesLimit: rule.occurrencesLimit?.toString() ?? "",
       applyIfStartMethod: rule.applyIfStartMethod ?? [],
-      enabled: rule.enabled,
+      isEnabled:
+        typeof rule.isEnabled === "boolean"
+          ? rule.isEnabled
+          : typeof (rule as { enabled?: unknown }).enabled === "boolean"
+            ? Boolean((rule as { enabled?: unknown }).enabled)
+            : true,
     })) ?? [],
   rulesVersion: data.rulesVersion?.toString() ?? "",
-  commonPestIds: data.commonPests.map((pest) => pest.id),
-  commonDiseaseIds: data.commonDiseases.map((disease) => disease.id),
-  goodCompanionIds: data.goodCompanions.map((companion) => companion.id),
-  badCompanionIds: data.badCompanions.map((companion) => companion.id),
+  commonPestSlugs: (
+    data.commonPestSlugs ??
+    data.commonPests?.map((pest) => pest.slug ?? pest.id)
+  ).filter(
+    (value): value is string =>
+      typeof value === "string" && value.trim().length > 0,
+  ),
+  commonDiseaseSlugs: (
+    data.commonDiseaseSlugs ??
+    data.commonDiseases?.map((disease) => disease.slug ?? disease.id)
+  ).filter(
+    (value): value is string =>
+      typeof value === "string" && value.trim().length > 0,
+  ),
+  goodCompanionSlugs: (
+    data.goodCompanionSlugs ??
+    data.goodCompanions?.map((companion) => companion.slug ?? companion.id)
+  ).filter(
+    (value): value is string =>
+      typeof value === "string" && value.trim().length > 0,
+  ),
+  badCompanionSlugs: (
+    data.badCompanionSlugs ??
+    data.badCompanions?.map((companion) => companion.slug ?? companion.id)
+  ).filter(
+    (value): value is string =>
+      typeof value === "string" && value.trim().length > 0,
+  ),
 });
 
 export default function EditVegetablePage() {
+  const formId = "vegetable-edit-form";
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const queryClient = useQueryClient();
@@ -171,18 +247,31 @@ export default function EditVegetablePage() {
 
   return (
     <section className="space-y-6">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Warzywa
-        </p>
+      <header className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Warzywa
+          </p>
+          <button
+            type="submit"
+            form={formId}
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+            disabled={updateMutation.isPending || uploadMutation.isPending}
+          >
+            {updateMutation.isPending || uploadMutation.isPending
+              ? "Zapisywanie..."
+              : "Zapisz zmiany"}
+          </button>
+        </div>
         <h1 className="text-3xl font-semibold text-zinc-900">Edytuj warzywo</h1>
         <p className="text-base text-zinc-600">
           Aktualizuj dane warzywa i zapisz zmiany.
         </p>
       </header>
       <VegetableForm
+        key={data.id}
+        formId={formId}
         initialValues={initialValues}
-        initialPostHarvestActions={data.postHarvestActions ?? []}
         submitLabel="Zapisz zmiany"
         onSubmit={handleSubmit}
         isSubmitting={updateMutation.isPending || uploadMutation.isPending}

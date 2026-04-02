@@ -11,6 +11,7 @@ import type { CreateSoilPayload, Soil } from "@/app/soils/api/api.types";
 
 const mapSoilToFormValues = (data: Soil): SoilFormValues => ({
   name: data.name,
+  slug: data.slug ?? "",
   description: data.description,
   structure: data.structure,
   waterRetention: data.waterRetention,
@@ -24,6 +25,7 @@ const mapSoilToFormValues = (data: Soil): SoilFormValues => ({
 });
 
 export default function EditSoilPage() {
+  const formId = "soil-edit-form";
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -78,13 +80,24 @@ export default function EditSoilPage() {
 
   return (
     <section className="space-y-6">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Gleby
-        </p>
+      <header className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Gleby
+          </p>
+          <button
+            type="submit"
+            form={formId}
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+            disabled={updateMutation.isPending}
+          >
+            {updateMutation.isPending ? "Zapisywanie..." : "Zapisz zmiany"}
+          </button>
+        </div>
         <h1 className="text-3xl font-semibold text-zinc-900">Edytuj glebę</h1>
       </header>
       <SoilForm
+        formId={formId}
         initialValues={initialValues}
         submitLabel="Zapisz zmiany"
         onSubmit={handleSubmit}

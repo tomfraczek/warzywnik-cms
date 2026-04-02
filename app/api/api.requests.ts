@@ -25,7 +25,6 @@ import type {
   VegetableListResponse,
   DemandLevel,
   SunExposure,
-  ActionTemplateScope,
   ActionTemplateTarget,
   ActionTemplateEnvironment,
   ActionTemplateType,
@@ -137,9 +136,9 @@ export const deleteVegetableImage = async (id: string): Promise<void> => {
 
 export const getPests = async (
   params: { page?: number; limit?: number; q?: string } = {},
-): Promise<ListResponse<{ id: string; name: string }>> => {
+): Promise<ListResponse<{ id: string; name: string; slug: string | null }>> => {
   const { data } = await apiClient.get<
-    ListResponse<{ id: string; name: string }>
+    ListResponse<{ id: string; name: string; slug: string | null }>
   >("/pests", { params });
   return data;
 };
@@ -183,9 +182,9 @@ export const deleteManyPests = async (
 
 export const getDiseases = async (
   params: { page?: number; limit?: number; q?: string } = {},
-): Promise<ListResponse<{ id: string; name: string }>> => {
+): Promise<ListResponse<{ id: string; name: string; slug: string | null }>> => {
   const { data } = await apiClient.get<
-    ListResponse<{ id: string; name: string }>
+    ListResponse<{ id: string; name: string; slug: string | null }>
   >("/diseases", { params });
   return data;
 };
@@ -234,7 +233,6 @@ export const getActionTemplates = async (
     page?: number;
     limit?: number;
     q?: string;
-    scope?: ActionTemplateScope;
     target?: ActionTemplateTarget;
     environment?: ActionTemplateEnvironment;
     type?: ActionTemplateType;

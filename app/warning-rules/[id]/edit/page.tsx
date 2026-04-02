@@ -13,6 +13,7 @@ import type {
 } from "@/app/warning-rules/api/api.types";
 
 const mapRuleToFormValues = (data: WarningRule): WarningRuleFormValues => ({
+  slug: data.slug ?? "",
   code: data.code,
   category: data.category ?? "SEED_ONLY",
   horizon: data.horizon ?? "RADAR",
@@ -29,6 +30,7 @@ const mapRuleToFormValues = (data: WarningRule): WarningRuleFormValues => ({
 });
 
 export default function EditWarningRulePage() {
+  const formId = "warning-rule-edit-form";
   const params = useParams<{ id: string }>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { data, isLoading, error } = useGetWarningRule(params?.id);
@@ -81,13 +83,24 @@ export default function EditWarningRulePage() {
 
   return (
     <section className="space-y-6">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Warning rules
-        </p>
+      <header className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Warning rules
+          </p>
+          <button
+            type="submit"
+            form={formId}
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+            disabled={updateMutation.isPending}
+          >
+            {updateMutation.isPending ? "Zapisywanie..." : "Zapisz zmiany"}
+          </button>
+        </div>
         <h1 className="text-3xl font-semibold text-zinc-900">Edytuj regułę</h1>
       </header>
       <WarningRuleForm
+        formId={formId}
         initialValues={initialValues}
         submitLabel="Zapisz zmiany"
         onSubmit={handleSubmit}

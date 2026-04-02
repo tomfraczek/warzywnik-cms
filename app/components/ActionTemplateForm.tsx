@@ -3,10 +3,10 @@
 import { useState } from "react";
 import type { CreateActionTemplatePayload } from "@/app/api/api.types";
 import {
-  actionTemplateDefaultTypeByScope,
+  actionTemplateDefaultTypeByTarget,
   actionTemplateEnvironmentOptions,
   actionTemplateTypeGroups,
-  actionTemplateScopeOptions,
+  actionTemplateTargetOptions,
   mapActionTemplateType,
 } from "@/app/api/api.types";
 import {
@@ -17,6 +17,7 @@ import {
 
 export type ActionTemplateFormValues = {
   name: string;
+  slug: string;
   target: CreateActionTemplatePayload["target"];
   environment: CreateActionTemplatePayload["environment"];
   type: CreateActionTemplatePayload["type"];
@@ -26,14 +27,16 @@ export type ActionTemplateFormValues = {
 
 const defaultValues: ActionTemplateFormValues = {
   name: "",
+  slug: "",
   target: "bed",
   environment: "any",
-  type: actionTemplateDefaultTypeByScope.bed,
+  type: actionTemplateDefaultTypeByTarget.bed,
   defaultDueOffsetDays: null,
   description: "",
 };
 
 export type ActionTemplateFormProps = {
+  formId?: string;
   initialValues?: Partial<ActionTemplateFormValues>;
   onSubmit: (payload: CreateActionTemplatePayload) => void;
   submitLabel: string;
@@ -43,6 +46,7 @@ export type ActionTemplateFormProps = {
 };
 
 export const ActionTemplateForm = ({
+  formId,
   initialValues,
   onSubmit,
   submitLabel,
@@ -87,6 +91,7 @@ export const ActionTemplateForm = ({
 
     onSubmit({
       name: values.name.trim(),
+      slug: values.slug.trim() || null,
       target: values.target,
       environment: values.environment,
       type: mapActionTemplateType(values.type, values.target),
@@ -96,7 +101,7 @@ export const ActionTemplateForm = ({
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
+    <form id={formId} className="space-y-6" onSubmit={handleSubmit}>
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="grid gap-4 md:grid-cols-2">
           <label className="flex flex-col gap-2 text-sm">
@@ -111,6 +116,19 @@ export const ActionTemplateForm = ({
             />
             {fieldErrors?.name && (
               <span className="text-xs text-red-600">{fieldErrors.name}</span>
+            )}
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm">
+            Slug
+            <input
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.slug}
+              onChange={(event) => updateValue("slug", event.target.value)}
+              placeholder="np. podlewanie-po-siewie"
+            />
+            {fieldErrors?.slug && (
+              <span className="text-xs text-red-600">{fieldErrors.slug}</span>
             )}
           </label>
 
@@ -130,7 +148,7 @@ export const ActionTemplateForm = ({
 
                   if (!didUserPickType) {
                     nextValues.type =
-                      actionTemplateDefaultTypeByScope[nextTarget];
+                      actionTemplateDefaultTypeByTarget[nextTarget];
                   }
 
                   return nextValues;
@@ -138,7 +156,7 @@ export const ActionTemplateForm = ({
               }}
               required
             >
-              {actionTemplateScopeOptions.map((option) => (
+              {actionTemplateTargetOptions.map((option) => (
                 <option key={option} value={option}>
                   {actionTemplateTargetLabels[option] ?? option}
                 </option>

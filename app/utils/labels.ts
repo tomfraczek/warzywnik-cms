@@ -1,4 +1,6 @@
 import type {
+  ActionRuleSchedule,
+  ActionRuleTrigger,
   ActionTemplateType,
   ActionTemplateEnvironment,
   ActionTemplateTarget,
@@ -6,7 +8,11 @@ import type {
   CultivationEnvironment,
   CreateVegetablePayload,
   DemandLevel,
+  DominantNutrientDemand,
   Month,
+  NutrientNeeds,
+  PlantingStartMethod,
+  RotationGroup,
   SowingMethodType,
 } from "@/app/api/api.types";
 import { DrainageLevel, SoilStructure } from "../soils/api/api.types";
@@ -43,7 +49,7 @@ export const sunExposureLabels: Record<
 > = {
   full_sun: "Pełne słońce",
   partial_shade: "Półcień",
-  shade: "Cień",
+  full_shade: "Cień",
 };
 
 export const sowingMethodLabels: Record<SowingMethodType, string> = {
@@ -67,17 +73,66 @@ export const monthLabels: Record<Month, string> = {
 };
 
 export const botanicalFamilyLabels: Record<BotanicalFamily, string> = {
-  allium: "Czosnkowate",
-  amaranth: "Szarłatowate",
-  apiaceae: "Selerowate",
-  asteraceae: "Astrowate",
-  brassicaceae: "Kapustowate",
-  cucurbitaceae: "Dyniowate",
-  fabaceae: "Bobowate",
-  lamiaceae: "Jasnotowate",
-  poaceae: "Wiechlinowate",
-  solanaceae: "Psiankowate",
-  other: "Inna",
+  SOLANACEAE: "Psiankowate",
+  CUCURBITACEAE: "Dyniowate",
+  BRASSICACEAE: "Kapustowate",
+  AMARYLLIDACEAE: "Amarylkowate",
+  APIACEAE: "Selerowate",
+  FABACEAE: "Bobowate",
+  AMARANTHACEAE: "Szarłatowate",
+  ASTERACEAE: "Astrowate",
+  ASPARAGACEAE: "Szparagowate",
+  POLYGONACEAE: "Rdestowate",
+  MALVACEAE: "Ślazowate",
+  POACEAE: "Wiechlinowate",
+};
+
+export const nutrientNeedsLabels: Record<NutrientNeeds, string> = {
+  LOW: "Niskie",
+  MEDIUM: "Średnie",
+  HIGH: "Wysokie",
+};
+
+export const rotationGroupLabels: Record<RotationGroup, string> = {
+  HEAVY_FEEDER: "Silny biornik",
+  LIGHT_FEEDER: "Słaby biornik",
+  LEGUME: "Rośliny strączkowe",
+  ROOT: "Warzywa korzeniowe",
+  LEAF: "Warzywa liściowe",
+  FRUITING: "Owocujące",
+  OTHER: "Inne",
+};
+
+export const dominantNutrientDemandLabels: Record<
+  DominantNutrientDemand,
+  string
+> = {
+  N: "Azot (N)",
+  P: "Fosfor (P)",
+  K: "Potas (K)",
+  BALANCED: "Zrównoważone",
+};
+
+export const actionRuleTriggerLabels: Record<ActionRuleTrigger, string> = {
+  ON_SOWED: "Siew zakończony",
+  AFTER_SOWING_DAYS: "Po X dniach od siewu",
+  BEFORE_TRANSPLANT_DAYS: "X dni przed przesadzeniem",
+  ON_TRANSPLANTED: "Przesadzenie zakończone",
+  AFTER_TRANSPLANT_DAYS: "Po X dniach od przesadzenia",
+  ON_HARVEST_WINDOW_START: "Początek okna zbioru",
+  BEFORE_HARVEST_WINDOW_START_DAYS: "X dni przed oknem zbioru",
+  ON_HARVEST_CONFIRMED: "Zbiór potwierdzony",
+  AFTER_HARVEST_DAYS: "Po X dniach od zbioru",
+};
+
+export const actionRuleScheduleLabels: Record<ActionRuleSchedule, string> = {
+  ONCE: "Jednorazowo",
+  EVERY_N_DAYS: "Co N dni",
+};
+
+export const plantingStartMethodLabels: Record<PlantingStartMethod, string> = {
+  DIRECT_SOW: "Siew bezpośredni",
+  TRANSPLANT: "Rozsada/przesadzenie",
 };
 
 export const soilStructureLabels: Record<SoilStructure, string> = {

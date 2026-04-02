@@ -11,6 +11,7 @@ import type { CreatePestPayload, Pest } from "@/app/api/api.types";
 
 const mapPestToFormValues = (data: Pest): ReferenceFormValues => ({
   name: data.name,
+  slug: data.slug ?? "",
   description: data.description,
   symptoms: data.symptoms || "",
   prevention: data.prevention || "",
@@ -22,6 +23,7 @@ const mapPestToFormValues = (data: Pest): ReferenceFormValues => ({
 });
 
 export default function EditPestPage() {
+  const formId = "pest-edit-form";
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -76,15 +78,26 @@ export default function EditPestPage() {
 
   return (
     <section className="space-y-6">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Szkodniki
-        </p>
+      <header className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Szkodniki
+          </p>
+          <button
+            type="submit"
+            form={formId}
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+            disabled={updateMutation.isPending}
+          >
+            {updateMutation.isPending ? "Zapisywanie..." : "Zapisz zmiany"}
+          </button>
+        </div>
         <h1 className="text-3xl font-semibold text-zinc-900">
           Edytuj szkodnika
         </h1>
       </header>
       <ReferenceForm
+        formId={formId}
         initialValues={initialValues}
         initialRecommendedActions={data.recommendedActions ?? []}
         submitLabel="Zapisz zmiany"

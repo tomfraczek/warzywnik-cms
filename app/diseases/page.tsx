@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { getDisease, getDiseases } from "@/app/api/api.requests";
+import {
+  getActionTemplate,
+  getDisease,
+  getDiseases,
+} from "@/app/api/api.requests";
 import type { Disease } from "@/app/api/api.types";
 import { useGetDiseases } from "@/app/api/queries/diseases/useGetDiseases";
 import { useDeleteDisease } from "@/app/api/mutations/diseases/useDeleteDisease";
@@ -27,9 +31,18 @@ const escapeCsv = (value: unknown) => {
   return `"${escaped}"`;
 };
 
-const toCsv = (rows: Disease[]) => {
+const toCsv = (rows: Disease[], actionNamesById: Map<string, string>) => {
   const header = csvHeaders.join(",");
   const body = rows.map((row) => {
+    const actionNames = Array.from(
+      new Set([
+        ...(row.recommendedActions ?? []).map((item) => item.name),
+        ...(row.recommendedActionTemplateIds ?? [])
+          .map((id) => actionNamesById.get(id))
+          .filter((name): name is string => Boolean(name)),
+      ]),
+    ).join(" | ");
+
     const values = [
       row.id,
       row.name,
@@ -37,7 +50,7 @@ const toCsv = (rows: Disease[]) => {
       row.symptoms ?? "",
       row.prevention ?? "",
       row.treatment ?? "",
-      (row.recommendedActions ?? []).map((item) => item.name).join(" | "),
+      actionNames,
       row.createdAt,
       row.updatedAt,
     ];
@@ -188,7 +201,34 @@ export default function DiseasesPage() {
         fullDetails.push(...batchDetails);
       }
 
-      const csvContent = toCsv(fullDetails);
+      const actionTemplateIds = Array.from(
+        new Set(
+          fullDetails.flatMap((item) => [
+            ...(item.recommendedActions ?? []).map((action) => action.id),
+            ...(item.recommendedActionTemplateIds ?? []),
+          ]),
+        ),
+      );
+
+      const actionNamesById = new Map<string, string>();
+      for (
+        let index = 0;
+        index < actionTemplateIds.length;
+        index += batchSize
+      ) {
+        const batch = actionTemplateIds.slice(index, index + batchSize);
+        const settled = await Promise.allSettled(
+          batch.map((id) => getActionTemplate(id)),
+        );
+
+        settled.forEach((result, resultIndex) => {
+          if (result.status === "fulfilled") {
+            actionNamesById.set(batch[resultIndex], result.value.name);
+          }
+        });
+      }
+
+      const csvContent = toCsv(fullDetails, actionNamesById);
       const filename = `diseases_${getTimestamp()}.csv`;
       downloadCsv(csvContent, filename);
       setNotice(

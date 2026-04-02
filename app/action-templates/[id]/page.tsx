@@ -88,7 +88,7 @@ export default function ActionTemplateDetailsPage() {
               <p className="mt-1 font-medium text-zinc-900">
                 {
                   actionTemplateTargetLabels[
-                    normalizeActionTemplateTarget(data.target ?? data.scope)
+                    normalizeActionTemplateTarget(data.target)
                   ]
                 }
               </p>

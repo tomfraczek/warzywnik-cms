@@ -13,19 +13,20 @@ export type Month =
   | "december";
 
 export type DemandLevel = "low" | "medium" | "high";
-export type SunExposure = "full_sun" | "partial_shade" | "shade";
+export type SunExposure = "full_sun" | "partial_shade" | "full_shade";
 export type BotanicalFamily =
-  | "allium"
-  | "amaranth"
-  | "apiaceae"
-  | "asteraceae"
-  | "brassicaceae"
-  | "cucurbitaceae"
-  | "fabaceae"
-  | "lamiaceae"
-  | "poaceae"
-  | "solanaceae"
-  | "other";
+  | "SOLANACEAE"
+  | "CUCURBITACEAE"
+  | "BRASSICACEAE"
+  | "AMARYLLIDACEAE"
+  | "APIACEAE"
+  | "FABACEAE"
+  | "AMARANTHACEAE"
+  | "ASTERACEAE"
+  | "ASPARAGACEAE"
+  | "POLYGONACEAE"
+  | "MALVACEAE"
+  | "POACEAE";
 export type SoilType =
   | "SANDY"
   | "LOAMY"
@@ -37,6 +38,15 @@ export type SoilType =
   | "OTHER";
 export type SowingMethodType = "direct_sow" | "seedlings";
 export type DominantNutrientDemand = "N" | "P" | "K" | "BALANCED";
+export type NutrientNeeds = "LOW" | "MEDIUM" | "HIGH";
+export type RotationGroup =
+  | "HEAVY_FEEDER"
+  | "LIGHT_FEEDER"
+  | "LEGUME"
+  | "ROOT"
+  | "LEAF"
+  | "FRUITING"
+  | "OTHER";
 export type CultivationEnvironment =
   | "GROUND_OUTDOOR"
   | "RAISED_BED_OUTDOOR"
@@ -68,11 +78,10 @@ export type FertilizationStage = {
 export type MiniRef = {
   id: string;
   name: string;
+  slug: string | null;
 };
 
 export type ActionTemplateTarget = "bed" | "planting" | "space";
-export type ActionTemplateScope = ActionTemplateTarget;
-export type LegacyActionTemplateScope = "BED" | "PLANTING" | "SPACE";
 export type ActionTemplateEnvironment =
   | "any"
   | "outdoor"
@@ -129,26 +138,27 @@ export type PlantingStartMethod = "DIRECT_SOW" | "TRANSPLANT";
 
 export type VegetableActionRule = {
   id?: string;
-  actionTemplateId: string;
+  actionTemplateSlug: string;
   trigger: ActionRuleTrigger;
   offsetDays: number;
   schedule: ActionRuleSchedule;
   everyNDays: number | null;
   occurrencesLimit: number | null;
-  applyIfStartMethod: PlantingStartMethod[];
-  enabled: boolean;
+  applyIfStartMethod: PlantingStartMethod[] | null;
+  isEnabled: boolean;
 };
 
 export type ActionTemplateRef = {
   id: string;
   name: string;
+  slug: string | null;
   type: ActionTemplateType;
 };
 
 export type ActionTemplateListItem = {
   id: string;
   name: string;
-  scope?: ActionTemplateScope | LegacyActionTemplateScope;
+  slug: string | null;
   target: ActionTemplateTarget;
   environment: ActionTemplateEnvironment;
   type: ActionTemplateType;
@@ -164,14 +174,17 @@ export type ActionTemplate = ActionTemplateListItem & {
 export type Vegetable = {
   id: string;
   name: string;
+  slug: string | null;
+  family: BotanicalFamily | null;
   latinName: string | null;
-  botanicalFamily: BotanicalFamily | null;
+  nutrientNeeds: NutrientNeeds | null;
+  rotationGroup: RotationGroup | null;
   imageUrl: string | null;
   description: string;
   sunExposure: SunExposure | null;
   waterDemand: DemandLevel | null;
   nutrientDemand: DemandLevel | null;
-  recommendedSoilIds: string[];
+  recommendedSoilSlugs: string[];
   minSoilDepthCm: number | null;
   dominantNutrientDemand: DominantNutrientDemand | null;
   sowingMethods: SowingMethod[] | null;
@@ -184,9 +197,12 @@ export type Vegetable = {
   harvestSigns: string | null;
   fertilizationStages: FertilizationStage[] | null;
   postHarvestActions: ActionTemplateRef[];
-  postHarvestActionTemplateIds?: string[];
   actionRules: VegetableActionRule[];
   rulesVersion: number;
+  commonPestSlugs?: string[];
+  commonDiseaseSlugs?: string[];
+  goodCompanionSlugs?: string[];
+  badCompanionSlugs?: string[];
   commonPests: MiniRef[];
   commonDiseases: MiniRef[];
   goodCompanions: MiniRef[];
@@ -198,6 +214,7 @@ export type Vegetable = {
 export type VegetableListItem = {
   id: string;
   name: string;
+  slug: string | null;
   latinName: string | null;
   imageUrl: string | null;
 };
@@ -215,6 +232,7 @@ export type DiseaseListItem = MiniRef;
 export type Pest = {
   id: string;
   name: string;
+  slug: string | null;
   description: string;
   symptoms: string | null;
   prevention: string | null;
@@ -228,6 +246,7 @@ export type Pest = {
 export type Disease = {
   id: string;
   name: string;
+  slug: string | null;
   description: string;
   symptoms: string | null;
   prevention: string | null;
@@ -253,12 +272,14 @@ export type CreateVegetablePayload = {
   name: string;
   description: string;
   latinName?: string | null;
-  botanicalFamily?: BotanicalFamily | null;
+  family?: BotanicalFamily | null;
+  nutrientNeeds?: NutrientNeeds | null;
+  rotationGroup?: RotationGroup | null;
   imageUrl?: string | null;
   sunExposure?: SunExposure | null;
   waterDemand?: DemandLevel | null;
   nutrientDemand?: DemandLevel | null;
-  recommendedSoilIds?: string[];
+  recommendedSoilSlugs?: string[];
   minSoilDepthCm?: number | null;
   dominantNutrientDemand?: DominantNutrientDemand | null;
   sowingMethods?: SowingMethod[] | null;
@@ -270,18 +291,18 @@ export type CreateVegetablePayload = {
   harvestEndMonth?: Month | null;
   harvestSigns?: string | null;
   fertilizationStages?: FertilizationStage[] | null;
-  postHarvestActionTemplateIds?: string[];
   actionRules?: VegetableActionRule[];
-  commonPestIds?: string[];
-  commonDiseaseIds?: string[];
-  goodCompanionIds?: string[];
-  badCompanionIds?: string[];
+  commonPestSlugs?: string[];
+  commonDiseaseSlugs?: string[];
+  goodCompanionSlugs?: string[];
+  badCompanionSlugs?: string[];
 };
 
 export type UpdateVegetablePayload = Partial<CreateVegetablePayload>;
 
 export type CreatePestPayload = {
   name: string;
+  slug?: string | null;
   description: string;
   symptoms?: string | null;
   prevention?: string | null;
@@ -293,6 +314,7 @@ export type UpdatePestPayload = Partial<CreatePestPayload>;
 
 export type CreateDiseasePayload = {
   name: string;
+  slug?: string | null;
   description: string;
   symptoms?: string | null;
   prevention?: string | null;
@@ -302,6 +324,7 @@ export type CreateDiseasePayload = {
 
 export type CreateActionTemplatePayload = {
   name: string;
+  slug?: string | null;
   target: ActionTemplateTarget;
   environment: ActionTemplateEnvironment;
   type: ActionTemplateType;
@@ -332,20 +355,21 @@ export const demandLevelOptions: DemandLevel[] = ["low", "medium", "high"];
 export const sunExposureOptions: SunExposure[] = [
   "full_sun",
   "partial_shade",
-  "shade",
+  "full_shade",
 ];
 export const botanicalFamilyOptions: BotanicalFamily[] = [
-  "allium",
-  "amaranth",
-  "apiaceae",
-  "asteraceae",
-  "brassicaceae",
-  "cucurbitaceae",
-  "fabaceae",
-  "lamiaceae",
-  "poaceae",
-  "solanaceae",
-  "other",
+  "SOLANACEAE",
+  "CUCURBITACEAE",
+  "BRASSICACEAE",
+  "AMARYLLIDACEAE",
+  "APIACEAE",
+  "FABACEAE",
+  "AMARANTHACEAE",
+  "ASTERACEAE",
+  "ASPARAGACEAE",
+  "POLYGONACEAE",
+  "MALVACEAE",
+  "POACEAE",
 ];
 export const soilTypeOptions: SoilType[] = [
   "SANDY",
@@ -367,6 +391,16 @@ export const dominantNutrientDemandOptions: DominantNutrientDemand[] = [
   "K",
   "BALANCED",
 ];
+export const nutrientNeedsOptions: NutrientNeeds[] = ["LOW", "MEDIUM", "HIGH"];
+export const rotationGroupOptions: RotationGroup[] = [
+  "HEAVY_FEEDER",
+  "LIGHT_FEEDER",
+  "LEGUME",
+  "ROOT",
+  "LEAF",
+  "FRUITING",
+  "OTHER",
+];
 export const cultivationEnvironmentOptions: CultivationEnvironment[] = [
   "GROUND_OUTDOOR",
   "RAISED_BED_OUTDOOR",
@@ -376,7 +410,7 @@ export const cultivationEnvironmentOptions: CultivationEnvironment[] = [
   "TUNNEL",
 ];
 
-export const actionTemplateScopeOptions: ActionTemplateScope[] = [
+export const actionTemplateTargetOptions: ActionTemplateTarget[] = [
   "bed",
   "planting",
   "space",
@@ -523,8 +557,8 @@ export const actionTemplateTypeGroups: ActionTemplateTypeGroup[] = [
   },
 ];
 
-export const actionTemplateDefaultTypeByScope: Record<
-  ActionTemplateScope,
+export const actionTemplateDefaultTypeByTarget: Record<
+  ActionTemplateTarget,
   ActionTemplateType
 > = {
   planting: "monitoring",
@@ -539,7 +573,7 @@ export const normalizeActionTemplateTarget = (
     .trim()
     .toLowerCase();
 
-  if ((actionTemplateScopeOptions as string[]).includes(normalizedTarget)) {
+  if ((actionTemplateTargetOptions as string[]).includes(normalizedTarget)) {
     return normalizedTarget as ActionTemplateTarget;
   }
 
@@ -602,7 +636,7 @@ export const mapActionTemplateType = (
     return mappedLegacy;
   }
 
-  return actionTemplateDefaultTypeByScope[target];
+  return actionTemplateDefaultTypeByTarget[target];
 };
 
 export type ArticleStatus = "DRAFT" | "PUBLISHED";

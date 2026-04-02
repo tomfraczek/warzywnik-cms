@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
   type FormEvent,
@@ -10,14 +11,15 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import type {
-  ActionTemplate,
-  ActionTemplateRef,
   ActionRuleSchedule,
   ActionRuleTrigger,
+  BotanicalFamily,
   CreateVegetablePayload,
   FertilizationStage,
   Month,
+  NutrientNeeds,
   PlantingStartMethod,
+  RotationGroup,
   SowingMethod,
   SowingMethodType,
 } from "@/app/api/api.types";
@@ -26,17 +28,13 @@ import {
   demandLevelOptions,
   dominantNutrientDemandOptions,
   monthOptions,
+  nutrientNeedsOptions,
+  rotationGroupOptions,
   sowingMethodOptions,
   sunExposureOptions,
 } from "@/app/api/api.types";
-import {
-  getActionTemplates,
-  getDiseases,
-  getPests,
-  getVegetables,
-} from "@/app/api/api.requests";
+import { getDiseases, getPests, getVegetables } from "@/app/api/api.requests";
 import { getSoils } from "@/app/soils/api/api.requests";
-import { useGetActionTemplatesByIds } from "@/app/api/queries/action-templates/useGetActionTemplatesByIds";
 import { MediaLibraryModal } from "@/app/components/MediaLibraryModal";
 import type { MediaLibraryItem } from "@/app/api/api.types";
 import {
@@ -48,20 +46,24 @@ import {
   sunExposureLabels,
   botanicalFamilyLabels,
   demandLevelLabels,
-  sowingMethodLabels,
   monthLabels,
+  nutrientNeedsLabels,
+  rotationGroupLabels,
+  sowingMethodLabels,
 } from "../utils/labels";
 
 export type VegetableFormValues = {
   name: string;
   description: string;
   latinName: string;
-  botanicalFamily: "" | NonNullable<CreateVegetablePayload["botanicalFamily"]>;
+  family: "" | BotanicalFamily;
+  nutrientNeeds: "" | NutrientNeeds;
+  rotationGroup: "" | RotationGroup;
   imageUrl: string;
   sunExposure: "" | CreateVegetablePayload["sunExposure"];
   waterDemand: "" | CreateVegetablePayload["waterDemand"];
   nutrientDemand: "" | CreateVegetablePayload["nutrientDemand"];
-  recommendedSoilIds: string[];
+  recommendedSoilSlugs: string[];
   minSoilDepthCm: string;
   dominantNutrientDemand:
     | ""
@@ -92,13 +94,12 @@ export type VegetableFormValues = {
   fertilizationStages: Array<
     Omit<FertilizationStage, "timing"> & { timing: string }
   >;
-  postHarvestActionTemplateIds: string[];
   actionRules: VegetableActionRuleFormValue[];
   rulesVersion: string;
-  commonPestIds: string[];
-  commonDiseaseIds: string[];
-  goodCompanionIds: string[];
-  badCompanionIds: string[];
+  commonPestSlugs: string[];
+  commonDiseaseSlugs: string[];
+  goodCompanionSlugs: string[];
+  badCompanionSlugs: string[];
 };
 
 const createEmptySowingMethod =
@@ -173,10 +174,14 @@ const fetchAllPages = async <T,>(
   return allItems;
 };
 
-const isUuid = (value: string) =>
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value,
-  );
+const normalizeRelationValue = (value: unknown) =>
+  typeof value === "string" ? value.trim() : "";
+
+const getRelationValue = (item: { id?: unknown; slug?: unknown }) =>
+  normalizeRelationValue(item.slug) || normalizeRelationValue(item.id);
+
+const isValidRelationValue = (value: unknown) =>
+  normalizeRelationValue(value).length > 0;
 
 const parseInteger = (value: string) => {
   if (value.trim() === "") {
@@ -195,12 +200,14 @@ const defaultValues: VegetableFormValues = {
   name: "",
   description: "",
   latinName: "",
-  botanicalFamily: "",
+  family: "",
+  nutrientNeeds: "",
+  rotationGroup: "",
   imageUrl: "",
   sunExposure: "",
   waterDemand: "",
   nutrientDemand: "",
-  recommendedSoilIds: [],
+  recommendedSoilSlugs: [],
   minSoilDepthCm: "",
   dominantNutrientDemand: "",
   sowingMethods: [],
@@ -212,18 +219,17 @@ const defaultValues: VegetableFormValues = {
   harvestEndMonth: "",
   harvestSigns: "",
   fertilizationStages: [],
-  postHarvestActionTemplateIds: [],
   actionRules: [],
   rulesVersion: "",
-  commonPestIds: [],
-  commonDiseaseIds: [],
-  goodCompanionIds: [],
-  badCompanionIds: [],
+  commonPestSlugs: [],
+  commonDiseaseSlugs: [],
+  goodCompanionSlugs: [],
+  badCompanionSlugs: [],
 };
 
 export type VegetableFormProps = {
+  formId?: string;
   initialValues?: Partial<VegetableFormValues>;
-  initialPostHarvestActions?: ActionTemplateRef[];
   onSubmit: (payload: CreateVegetablePayload, imageFile: File | null) => void;
   submitLabel: string;
   isSubmitting?: boolean;
@@ -236,8 +242,8 @@ export type VegetableFormProps = {
 };
 
 export const VegetableForm = ({
+  formId,
   initialValues,
-  initialPostHarvestActions,
   onSubmit,
   submitLabel,
   isSubmitting,
@@ -252,15 +258,19 @@ export const VegetableForm = ({
     ...defaultValues,
     ...initialValues,
   });
+  const syncedRef = useRef(false);
+  useEffect(() => {
+    if (initialValues && !syncedRef.current) {
+      syncedRef.current = true;
+      setValues({ ...defaultValues, ...initialValues });
+    }
+  }, [initialValues]);
   const [clientError, setClientError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [imageUrlValid, setImageUrlValid] = useState<boolean | null>(null);
   const [imageUrlChecking, setImageUrlChecking] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
-  const [actionTemplateQuery, setActionTemplateQuery] = useState("");
-  const [debouncedActionTemplateQuery, setDebouncedActionTemplateQuery] =
-    useState("");
 
   useEffect(() => {
     return () => {
@@ -269,19 +279,6 @@ export const VegetableForm = ({
       }
     };
   }, [imagePreviewUrl]);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedActionTemplateQuery(actionTemplateQuery.trim());
-    }, 250);
-
-    return () => clearTimeout(timeout);
-  }, [actionTemplateQuery]);
-
-  const actionTemplateFilters = useMemo(
-    () => ({ q: debouncedActionTemplateQuery || undefined }),
-    [debouncedActionTemplateQuery],
-  );
 
   const { data: pestItems = [] } = useQuery({
     queryKey: ["pests", "all-for-vegetable-form"],
@@ -303,28 +300,6 @@ export const VegetableForm = ({
     queryFn: () => fetchAllPages((page) => getSoils({ page })),
   });
 
-  const {
-    data: actionTemplateItems = [],
-    isFetching: actionTemplatesFetching,
-  } = useQuery({
-    queryKey: [
-      "action-templates",
-      "all-for-vegetable-form",
-      actionTemplateFilters,
-    ],
-    queryFn: () =>
-      fetchAllPages((page) =>
-        getActionTemplates({
-          page,
-          ...actionTemplateFilters,
-        }),
-      ),
-  });
-
-  const { data: selectedActionTemplateDetails } = useGetActionTemplatesByIds(
-    values.postHarvestActionTemplateIds,
-  );
-
   const companionOptions = useMemo(() => {
     const items = vegetableItems;
     if (!excludeCompanionId) {
@@ -332,36 +307,6 @@ export const VegetableForm = ({
     }
     return items.filter((item) => item.id !== excludeCompanionId);
   }, [vegetableItems, excludeCompanionId]);
-
-  const selectedActionTemplateMap = useMemo(() => {
-    const map = new Map<string, ActionTemplateRef>();
-
-    (initialPostHarvestActions ?? []).forEach((item) => {
-      map.set(item.id, item);
-    });
-
-    (selectedActionTemplateDetails ?? []).forEach((item: ActionTemplate) => {
-      map.set(item.id, {
-        id: item.id,
-        name: item.name,
-        type: item.type,
-      });
-    });
-
-    actionTemplateItems.forEach((item) => {
-      map.set(item.id, {
-        id: item.id,
-        name: item.name,
-        type: item.type,
-      });
-    });
-
-    return map;
-  }, [
-    actionTemplateItems,
-    initialPostHarvestActions,
-    selectedActionTemplateDetails,
-  ]);
 
   const isValidUrl = (url: string) => {
     try {
@@ -441,30 +386,27 @@ export const VegetableForm = ({
 
       if (values.successionSowing) {
         const interval = toNumberOrNull(values.successionIntervalDays);
-        if (!interval || interval <= 0) {
-          setClientError("Podaj dodatni interwał dla siewu sukcesywnego.");
+        if (interval === null || interval < 0) {
+          setClientError("Podaj interwał >= 0 dla siewu sukcesywnego.");
           return;
         }
       }
 
-      if (values.recommendedSoilIds.some((soilId) => !isUuid(soilId))) {
-        setClientError("Każda rekomendowana gleba musi mieć poprawny UUID.");
-        return;
-      }
-
       if (
-        values.postHarvestActionTemplateIds.some(
-          (templateId) => !isUuid(templateId),
+        values.recommendedSoilSlugs.some(
+          (soilId) => !isValidRelationValue(soilId),
         )
       ) {
-        setClientError("Każda akcja po zbiorach musi mieć poprawny UUID.");
+        setClientError(
+          "Każda rekomendowana gleba musi mieć poprawną wartość relacji.",
+        );
         return;
       }
 
       const normalizedActionRules = values.actionRules.map((rule, index) => {
-        if (!isUuid(rule.actionTemplateId)) {
+        if (!isValidRelationValue(rule.actionTemplateSlug)) {
           throw new Error(
-            `Reguła #${index + 1}: ActionTemplate musi mieć poprawny UUID.`,
+            `Reguła #${index + 1}: ActionTemplate musi mieć poprawną wartość relacji.`,
           );
         }
 
@@ -495,21 +437,23 @@ export const VegetableForm = ({
         }
 
         return {
-          actionTemplateId: rule.actionTemplateId,
+          actionTemplateSlug: rule.actionTemplateSlug,
           trigger: rule.trigger as ActionRuleTrigger,
           offsetDays,
           schedule,
           everyNDays,
           occurrencesLimit,
-          applyIfStartMethod: rule.applyIfStartMethod as PlantingStartMethod[],
-          enabled: rule.enabled,
+          applyIfStartMethod: rule.applyIfStartMethod.length
+            ? (rule.applyIfStartMethod as PlantingStartMethod[])
+            : null,
+          isEnabled: rule.isEnabled,
         };
       });
 
       const duplicateRuleSet = new Set<string>();
       for (const rule of normalizedActionRules) {
         const duplicateKey = [
-          rule.actionTemplateId,
+          rule.actionTemplateSlug,
           rule.trigger,
           rule.offsetDays,
           rule.schedule,
@@ -518,7 +462,7 @@ export const VegetableForm = ({
 
         if (duplicateRuleSet.has(duplicateKey)) {
           setClientError(
-            "Zduplikowana reguła. Unikalność: templateId + trigger + offsetDays + schedule + everyNDays.",
+            "Zduplikowana reguła. Unikalność: templateSlug + trigger + offsetDays + schedule + everyNDays.",
           );
           return;
         }
@@ -556,12 +500,14 @@ export const VegetableForm = ({
         name: values.name.trim(),
         description: values.description.trim(),
         latinName: toOptionalString(values.latinName),
-        botanicalFamily: values.botanicalFamily || null,
+        family: values.family || null,
+        nutrientNeeds: values.nutrientNeeds || null,
+        rotationGroup: values.rotationGroup || null,
         imageUrl: toOptionalString(values.imageUrl),
         sunExposure: values.sunExposure || null,
         waterDemand: values.waterDemand || null,
         nutrientDemand: values.nutrientDemand || null,
-        recommendedSoilIds: values.recommendedSoilIds,
+        recommendedSoilSlugs: values.recommendedSoilSlugs,
         minSoilDepthCm,
         dominantNutrientDemand: values.dominantNutrientDemand || null,
         sowingMethods,
@@ -575,12 +521,11 @@ export const VegetableForm = ({
         harvestEndMonth: values.harvestEndMonth || null,
         harvestSigns: toOptionalString(values.harvestSigns),
         fertilizationStages,
-        postHarvestActionTemplateIds: values.postHarvestActionTemplateIds,
         actionRules: normalizedActionRules,
-        commonPestIds: values.commonPestIds,
-        commonDiseaseIds: values.commonDiseaseIds,
-        goodCompanionIds: values.goodCompanionIds,
-        badCompanionIds: values.badCompanionIds,
+        commonPestSlugs: values.commonPestSlugs,
+        commonDiseaseSlugs: values.commonDiseaseSlugs,
+        goodCompanionSlugs: values.goodCompanionSlugs,
+        badCompanionSlugs: values.badCompanionSlugs,
       };
 
       onSubmit(payload, imageFile);
@@ -646,7 +591,7 @@ export const VegetableForm = ({
   };
 
   return (
-    <form className="space-y-8" onSubmit={handleSubmit}>
+    <form id={formId} className="space-y-8" onSubmit={handleSubmit}>
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Podstawy</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -676,19 +621,17 @@ export const VegetableForm = ({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Rodzina</span>
+            <span className="font-medium">Rodzina botaniczna</span>
             <span className="text-xs text-zinc-500">
               Rodzina botaniczna warzywa (opcjonalnie).
             </span>
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.botanicalFamily}
+              value={values.family}
               onChange={(event) =>
                 updateValue(
-                  "botanicalFamily",
-                  event.target.value as
-                    | ""
-                    | NonNullable<CreateVegetablePayload["botanicalFamily"]>,
+                  "family",
+                  event.target.value as "" | BotanicalFamily,
                 )
               }
             >
@@ -696,6 +639,48 @@ export const VegetableForm = ({
               {botanicalFamilyOptions.map((option) => (
                 <option key={option} value={option}>
                   {botanicalFamilyLabels[option]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Potrzeby składnikowe</span>
+            <select
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.nutrientNeeds}
+              onChange={(event) =>
+                updateValue(
+                  "nutrientNeeds",
+                  event.target.value as "" | NutrientNeeds,
+                )
+              }
+            >
+              <option value="">Brak</option>
+              {nutrientNeedsOptions.map((option) => (
+                <option key={option} value={option}>
+                  {nutrientNeedsLabels[option]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Grupa płodozmianu</span>
+            <select
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.rotationGroup}
+              onChange={(event) =>
+                updateValue(
+                  "rotationGroup",
+                  event.target.value as "" | RotationGroup,
+                )
+              }
+            >
+              <option value="">Brak</option>
+              {rotationGroupOptions.map((option) => (
+                <option key={option} value={option}>
+                  {rotationGroupLabels[option]}
                 </option>
               ))}
             </select>
@@ -938,10 +923,10 @@ export const VegetableForm = ({
             <select
               multiple
               className="min-h-28 rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.recommendedSoilIds}
+              value={values.recommendedSoilSlugs}
               onChange={(event) =>
                 updateValue(
-                  "recommendedSoilIds",
+                  "recommendedSoilSlugs",
                   Array.from(event.target.selectedOptions, (option) =>
                     option.value.trim(),
                   ).filter(Boolean),
@@ -950,7 +935,7 @@ export const VegetableForm = ({
               disabled={soilsLoading}
             >
               {soilItems.map((soil) => (
-                <option key={soil.id} value={soil.id}>
+                <option key={soil.id} value={getRelationValue(soil)}>
                   {soil.name}
                 </option>
               ))}
@@ -1432,68 +1417,9 @@ export const VegetableForm = ({
           Zabiegi po zbiorach
         </h2>
         <p className="mt-2 text-xs text-zinc-500">
-          Szukaj i przypisz szablony zabiegów wykonywanych po zbiorze.
+          Skonfiguruj je w regułach poniżej z triggerem
+          <span className="font-medium"> ON_HARVEST_CONFIRMED</span>.
         </p>
-
-        <div className="mt-4 space-y-2">
-          <input
-            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-            placeholder="Szukaj szablonów zabiegów po nazwie"
-            value={actionTemplateQuery}
-            onChange={(event) => setActionTemplateQuery(event.target.value)}
-          />
-
-          <div className="max-h-56 overflow-auto rounded-lg border border-zinc-200 p-2">
-            {actionTemplateItems.map((item) => (
-              <label
-                key={item.id}
-                className="flex items-center gap-2 px-1 py-1 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  checked={values.postHarvestActionTemplateIds.includes(
-                    item.id,
-                  )}
-                  onChange={() =>
-                    updateValue(
-                      "postHarvestActionTemplateIds",
-                      toggleSelection(
-                        values.postHarvestActionTemplateIds,
-                        item.id,
-                      ),
-                    )
-                  }
-                />
-                <span className="text-zinc-800">{item.name}</span>
-                <span className="text-xs text-zinc-500">({item.type})</span>
-              </label>
-            ))}
-
-            {actionTemplatesFetching && (
-              <p className="px-1 py-1 text-xs text-zinc-500">Ładowanie...</p>
-            )}
-
-            {!actionTemplatesFetching && actionTemplateItems.length === 0 && (
-              <p className="px-1 py-1 text-xs text-zinc-500">Brak wyników.</p>
-            )}
-          </div>
-
-          {values.postHarvestActionTemplateIds.length > 0 && (
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
-              <p className="mb-2 font-medium">Wybrane:</p>
-              <ul className="space-y-1">
-                {values.postHarvestActionTemplateIds.map((id) => {
-                  const template = selectedActionTemplateMap.get(id);
-                  return (
-                    <li key={id}>
-                      {template ? `${template.name} (${template.type})` : id}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-        </div>
       </section>
 
       <VegetableActionRulesSection
@@ -1616,30 +1542,38 @@ export const VegetableForm = ({
         <h2 className="text-lg font-semibold text-zinc-900">Relacje</h2>
         <div className="mt-4 grid gap-6 md:grid-cols-2">
           <div>
-            <p className="text-sm font-medium text-zinc-700">Common pests</p>
+            <p className="text-sm font-medium text-zinc-700">Szkodniki</p>
             <p className="text-xs text-zinc-500">
               Typowe szkodniki atakujące to warzywo. Wybierane ze słownika
               Pests.
             </p>
             <div className="mt-2 space-y-2">
-              {pestItems.map((pest) => (
-                <label
-                  key={pest.id}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={values.commonPestIds.includes(pest.id)}
-                    onChange={() =>
-                      updateValue(
-                        "commonPestIds",
-                        toggleSelection(values.commonPestIds, pest.id),
-                      )
-                    }
-                  />
-                  {pest.name}
-                </label>
-              ))}
+              {pestItems.map((pest) =>
+                (() => {
+                  const relationValue = getRelationValue(pest);
+                  return (
+                    <label
+                      key={pest.id}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={values.commonPestSlugs.includes(relationValue)}
+                        onChange={() =>
+                          updateValue(
+                            "commonPestSlugs",
+                            toggleSelection(
+                              values.commonPestSlugs,
+                              relationValue,
+                            ),
+                          )
+                        }
+                      />
+                      {pest.name}
+                    </label>
+                  );
+                })(),
+              )}
 
               {pestItems.length === 0 && (
                 <p className="text-sm text-zinc-500">Brak danych.</p>
@@ -1648,30 +1582,40 @@ export const VegetableForm = ({
           </div>
 
           <div>
-            <p className="text-sm font-medium text-zinc-700">Common diseases</p>
+            <p className="text-sm font-medium text-zinc-700">Choroby</p>
             <p className="text-xs text-zinc-500">
               Typowe choroby dotyczące tego warzywa. Wybierane ze słownika
               Diseases.
             </p>
             <div className="mt-2 space-y-2">
-              {diseaseItems.map((disease) => (
-                <label
-                  key={disease.id}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={values.commonDiseaseIds.includes(disease.id)}
-                    onChange={() =>
-                      updateValue(
-                        "commonDiseaseIds",
-                        toggleSelection(values.commonDiseaseIds, disease.id),
-                      )
-                    }
-                  />
-                  {disease.name}
-                </label>
-              ))}
+              {diseaseItems.map((disease) =>
+                (() => {
+                  const relationValue = getRelationValue(disease);
+                  return (
+                    <label
+                      key={disease.id}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={values.commonDiseaseSlugs.includes(
+                          relationValue,
+                        )}
+                        onChange={() =>
+                          updateValue(
+                            "commonDiseaseSlugs",
+                            toggleSelection(
+                              values.commonDiseaseSlugs,
+                              relationValue,
+                            ),
+                          )
+                        }
+                      />
+                      {disease.name}
+                    </label>
+                  );
+                })(),
+              )}
 
               {diseaseItems.length === 0 && (
                 <p className="text-sm text-zinc-500">Brak danych.</p>
@@ -1680,56 +1624,78 @@ export const VegetableForm = ({
           </div>
 
           <div>
-            <p className="text-sm font-medium text-zinc-700">Good companions</p>
+            <p className="text-sm font-medium text-zinc-700">
+              Dobre sąsiedztwo
+            </p>
             <p className="text-xs text-zinc-500">
               Warzywa, które zwykle dobrze rosną obok.
             </p>
             <div className="mt-2 space-y-2">
-              {companionOptions.map((companion) => (
-                <label
-                  key={companion.id}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={values.goodCompanionIds.includes(companion.id)}
-                    onChange={() =>
-                      updateValue(
-                        "goodCompanionIds",
-                        toggleSelection(values.goodCompanionIds, companion.id),
-                      )
-                    }
-                  />
-                  {companion.name}
-                </label>
-              ))}
+              {companionOptions.map((companion) =>
+                (() => {
+                  const relationValue = getRelationValue(companion);
+                  return (
+                    <label
+                      key={companion.id}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={values.goodCompanionSlugs.includes(
+                          relationValue,
+                        )}
+                        onChange={() =>
+                          updateValue(
+                            "goodCompanionSlugs",
+                            toggleSelection(
+                              values.goodCompanionSlugs,
+                              relationValue,
+                            ),
+                          )
+                        }
+                      />
+                      {companion.name}
+                    </label>
+                  );
+                })(),
+              )}
             </div>
           </div>
 
           <div>
-            <p className="text-sm font-medium text-zinc-700">Bad companions</p>
+            <p className="text-sm font-medium text-zinc-700">Złe sąsiedztwo</p>
             <p className="text-xs text-zinc-500">
               Warzywa, których zwykle nie sadzi się obok.
             </p>
             <div className="mt-2 space-y-2">
-              {companionOptions.map((companion) => (
-                <label
-                  key={companion.id}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={values.badCompanionIds.includes(companion.id)}
-                    onChange={() =>
-                      updateValue(
-                        "badCompanionIds",
-                        toggleSelection(values.badCompanionIds, companion.id),
-                      )
-                    }
-                  />
-                  {companion.name}
-                </label>
-              ))}
+              {companionOptions.map((companion) =>
+                (() => {
+                  const relationValue = getRelationValue(companion);
+                  return (
+                    <label
+                      key={companion.id}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={values.badCompanionSlugs.includes(
+                          relationValue,
+                        )}
+                        onChange={() =>
+                          updateValue(
+                            "badCompanionSlugs",
+                            toggleSelection(
+                              values.badCompanionSlugs,
+                              relationValue,
+                            ),
+                          )
+                        }
+                      />
+                      {companion.name}
+                    </label>
+                  );
+                })(),
+              )}
             </div>
           </div>
         </div>
