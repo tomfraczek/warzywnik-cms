@@ -239,6 +239,9 @@ export type VegetableFormProps = {
   isDeletingImage?: boolean;
   onAssignImageFromLibrary?: (url: string) => Promise<void> | void;
   onUploadImage?: (file: File) => Promise<string | null>;
+  isCustomized?: boolean;
+  isResettingCustomization?: boolean;
+  onResetCustomization?: () => void;
 };
 
 export const VegetableForm = ({
@@ -248,6 +251,9 @@ export const VegetableForm = ({
   submitLabel,
   isSubmitting,
   errorMessage,
+  isCustomized,
+  isResettingCustomization,
+  onResetCustomization,
   excludeCompanionId,
   onDeleteImage,
   isDeletingImage,
@@ -1708,7 +1714,30 @@ export const VegetableForm = ({
         </div>
       )}
 
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {onResetCustomization !== undefined ? (
+          <label className="flex cursor-pointer items-center gap-2 text-sm select-none">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-zinc-300"
+              checked={isCustomized ?? false}
+              disabled={isResettingCustomization || isSubmitting}
+              onChange={(e) => {
+                if (!e.target.checked) {
+                  onResetCustomization();
+                }
+              }}
+            />
+            <span className="font-medium text-zinc-700">
+              Chroniony przed aktualizacjami z seeda
+            </span>
+            {isResettingCustomization && (
+              <span className="text-xs text-zinc-400">Resetowanie...</span>
+            )}
+          </label>
+        ) : (
+          <span />
+        )}
         <button
           type="submit"
           className="rounded-lg bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800"

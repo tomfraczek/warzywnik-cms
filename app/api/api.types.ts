@@ -207,6 +207,7 @@ export type Vegetable = {
   commonDiseases: MiniRef[];
   goodCompanions: MiniRef[];
   badCompanions: MiniRef[];
+  isCustomized: boolean;
   createdAt: string;
   updatedAt: string;
 };

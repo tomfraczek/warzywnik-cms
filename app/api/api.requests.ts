@@ -134,6 +134,15 @@ export const deleteVegetableImage = async (id: string): Promise<void> => {
   await apiClient.delete(`/uploads/vegetables/${id}/image`);
 };
 
+export const resetVegetableCustomization = async (
+  id: string,
+): Promise<Vegetable> => {
+  const { data } = await apiClient.patch<Vegetable>(`/vegetables/${id}`, {
+    isCustomized: false,
+  });
+  return data;
+};
+
 export const getPests = async (
   params: { page?: number; limit?: number; q?: string } = {},
 ): Promise<ListResponse<{ id: string; name: string; slug: string | null }>> => {

@@ -8,6 +8,7 @@ import { useGetVegetable } from "@/app/api/queries/vegetables/useGetVegetable";
 import { useUpdateVegetable } from "@/app/api/mutations/vegetables/useUpdateVegetable";
 import { useUploadVegetableImage } from "@/app/api/mutations/vegetables/useUploadVegetableImage";
 import { useDeleteVegetableImage } from "@/app/api/mutations/vegetables/useDeleteVegetableImage";
+import { useResetVegetableCustomization } from "@/app/api/mutations/vegetables/useResetVegetableCustomization";
 import { useQueryClient } from "@tanstack/react-query";
 import { vegetableKeys } from "@/app/api/queries/vegetables/useGetVegetables";
 import type { VegetableFormValues } from "@/app/components/VegetableForm";
@@ -154,6 +155,7 @@ export default function EditVegetablePage() {
   const updateMutation = useUpdateVegetable();
   const uploadMutation = useUploadVegetableImage();
   const deleteImageMutation = useDeleteVegetableImage();
+  const resetCustomizationMutation = useResetVegetableCustomization();
 
   const initialValues = useMemo(
     () => (data ? mapVegetableToFormValues(data) : undefined),
@@ -229,6 +231,11 @@ export default function EditVegetablePage() {
     return result.imageUrl ?? null;
   };
 
+  const handleResetCustomization = async () => {
+    if (!data) return;
+    await resetCustomizationMutation.mutateAsync(data.id);
+  };
+
   if (isLoading) {
     return <p className="text-sm text-zinc-500">Ładowanie...</p>;
   }
@@ -252,16 +259,37 @@ export default function EditVegetablePage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Warzywa
           </p>
-          <button
-            type="submit"
-            form={formId}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-            disabled={updateMutation.isPending || uploadMutation.isPending}
-          >
-            {updateMutation.isPending || uploadMutation.isPending
-              ? "Zapisywanie..."
-              : "Zapisz zmiany"}
-          </button>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex cursor-pointer items-center gap-2 text-sm select-none">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-zinc-300"
+                checked={data.isCustomized}
+                disabled={resetCustomizationMutation.isPending}
+                onChange={(e) => {
+                  if (!e.target.checked) {
+                    handleResetCustomization();
+                  }
+                }}
+              />
+              <span className="font-medium text-zinc-700">
+                Chroniony przed aktualizacjami z seeda
+              </span>
+              {resetCustomizationMutation.isPending && (
+                <span className="text-xs text-zinc-400">Resetowanie...</span>
+              )}
+            </label>
+            <button
+              type="submit"
+              form={formId}
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+              disabled={updateMutation.isPending || uploadMutation.isPending}
+            >
+              {updateMutation.isPending || uploadMutation.isPending
+                ? "Zapisywanie..."
+                : "Zapisz zmiany"}
+            </button>
+          </div>
         </div>
         <h1 className="text-3xl font-semibold text-zinc-900">Edytuj warzywo</h1>
         <p className="text-base text-zinc-600">
@@ -280,7 +308,9 @@ export default function EditVegetablePage() {
         onDeleteImage={handleDeleteImage}
         isDeletingImage={deleteImageMutation.isPending}
         onAssignImageFromLibrary={handleAssignImageFromLibrary}
-        onUploadImage={handleUploadImage}
+        isCustomized={data.isCustomized}
+        isResettingCustomization={resetCustomizationMutation.isPending}
+        onResetCustomization={handleResetCustomization}
       />
     </section>
   );
