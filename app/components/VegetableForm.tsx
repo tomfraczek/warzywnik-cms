@@ -317,21 +317,22 @@ export const VegetableForm = ({
     }
   };
 
-  const validateImageUrl = async (url: string) => {
+  const validateImageUrl = (url: string) => {
     if (!isValidUrl(url)) {
       setImageUrlValid(false);
       return;
     }
     setImageUrlChecking(true);
-    try {
-      const res = await fetch(url, { method: "HEAD" });
-      const contentType = res.headers.get("content-type") || "";
-      setImageUrlValid(res.ok && contentType.startsWith("image/"));
-    } catch {
-      setImageUrlValid(false);
-    } finally {
+    const img = new window.Image();
+    img.onload = () => {
+      setImageUrlValid(true);
       setImageUrlChecking(false);
-    }
+    };
+    img.onerror = () => {
+      setImageUrlValid(false);
+      setImageUrlChecking(false);
+    };
+    img.src = url;
   };
 
   const updateValue = <K extends keyof VegetableFormValues>(
