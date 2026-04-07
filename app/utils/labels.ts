@@ -83,7 +83,7 @@ export const botanicalFamilyLabels: Record<BotanicalFamily, string> = {
   ASTERACEAE: "Astrowate",
   ASPARAGACEAE: "Szparagowate",
   POLYGONACEAE: "Rdestowate",
-  MALVACEAE: "Ślazowate",
+  MALVACEAE: "ślazowate",
   POACEAE: "Wiechlinowate",
 };
 

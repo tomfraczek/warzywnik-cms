@@ -1,6 +1,7 @@
 "use client";
 import { useDeleteVegetable } from "@/app/api/mutations/vegetables/useDeleteVegetable";
 import { useGetVegetable } from "@/app/api/queries/vegetables/useGetVegetable";
+import { useGetVegetables } from "@/app/api/queries/vegetables/useGetVegetables";
 import { getSoils } from "@/app/soils/api/api.requests";
 import { SoilDrawer } from "@/app/components/SoilDrawer";
 import { useQuery } from "@tanstack/react-query";
@@ -48,6 +49,17 @@ export default function VegetableDetailsPage() {
     | undefined;
   const deleteMutation = useDeleteVegetable();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const { data: vegetablesList } = useGetVegetables({ limit: 200 });
+  const navNeighbours = useMemo(() => {
+    const items = vegetablesList?.items ?? [];
+    const idx = items.findIndex((v) => v.id === params?.id);
+    if (idx === -1) return { prev: null, next: null };
+    return {
+      prev: idx > 0 ? items[idx - 1] : null,
+      next: idx < items.length - 1 ? items[idx + 1] : null,
+    };
+  }, [vegetablesList, params?.id]);
 
   const { data: soilItems = [], isLoading: soilsLoading } = useQuery({
     queryKey: ["soils", "all-for-vegetable-details"],
@@ -220,7 +232,39 @@ export default function VegetableDetailsPage() {
             <h1 className="text-3xl font-semibold text-zinc-900">
               {data.name}
             </h1>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                className={`rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium ${
+                  navNeighbours.prev
+                    ? "text-zinc-700"
+                    : "pointer-events-none opacity-40"
+                }`}
+                href={
+                  navNeighbours.prev
+                    ? `/vegetables/${navNeighbours.prev.id}`
+                    : "#"
+                }
+                aria-disabled={!navNeighbours.prev}
+                title={navNeighbours.prev?.name}
+              >
+                ← Poprzednie
+              </Link>
+              <Link
+                className={`rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium ${
+                  navNeighbours.next
+                    ? "text-zinc-700"
+                    : "pointer-events-none opacity-40"
+                }`}
+                href={
+                  navNeighbours.next
+                    ? `/vegetables/${navNeighbours.next.id}`
+                    : "#"
+                }
+                aria-disabled={!navNeighbours.next}
+                title={navNeighbours.next?.name}
+              >
+                Następne →
+              </Link>
               <Link
                 className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium"
                 href={`/vegetables/${data.id}/edit`}

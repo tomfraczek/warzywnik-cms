@@ -2,13 +2,15 @@
 
 import {
   useEffect,
-  useMemo,
   useRef,
   useState,
   type ChangeEvent,
   type FormEvent,
 } from "react";
-import { useQuery } from "@tanstack/react-query";
+import {
+  RelationPickerModal,
+  type RelationPickedItem,
+} from "@/app/components/RelationPickerModal";
 import Image from "next/image";
 import type {
   ActionRuleSchedule,
@@ -140,45 +142,8 @@ const toOptionalString = (value: string) => {
   return value;
 };
 
-type PaginatedListResponse<T> = {
-  items: T[];
-  page: number;
-  limit: number;
-  total: number;
-};
-
-const MAX_DICTIONARY_PAGES = 500;
-
-const fetchAllPages = async <T,>(
-  fetchPage: (page: number) => Promise<PaginatedListResponse<T>>,
-) => {
-  const firstPage = await fetchPage(1);
-  const allItems = [...firstPage.items];
-
-  if (firstPage.limit <= 0 || firstPage.total <= firstPage.items.length) {
-    return allItems;
-  }
-
-  const totalPages = Math.ceil(firstPage.total / firstPage.limit);
-  const lastPage = Math.min(totalPages, MAX_DICTIONARY_PAGES);
-
-  for (let page = 2; page <= lastPage; page += 1) {
-    const nextPage = await fetchPage(page);
-    allItems.push(...nextPage.items);
-
-    if (allItems.length >= firstPage.total) {
-      break;
-    }
-  }
-
-  return allItems;
-};
-
 const normalizeRelationValue = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
-
-const getRelationValue = (item: { id?: unknown; slug?: unknown }) =>
-  normalizeRelationValue(item.slug) || normalizeRelationValue(item.id);
 
 const isValidRelationValue = (value: unknown) =>
   normalizeRelationValue(value).length > 0;
@@ -265,6 +230,7 @@ export const VegetableForm = ({
     ...initialValues,
   });
   const syncedRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (initialValues && !syncedRef.current) {
       syncedRef.current = true;
@@ -286,33 +252,24 @@ export const VegetableForm = ({
     };
   }, [imagePreviewUrl]);
 
-  const { data: pestItems = [] } = useQuery({
-    queryKey: ["pests", "all-for-vegetable-form"],
-    queryFn: () => fetchAllPages((page) => getPests({ page })),
-  });
+  const [relationsLabels, setRelationsLabels] = useState<
+    Record<string, string>
+  >({});
+  const [isSoilsOpen, setIsSoilsOpen] = useState(false);
+  const [isPestsOpen, setIsPestsOpen] = useState(false);
+  const [isDiseasesOpen, setIsDiseasesOpen] = useState(false);
+  const [isGoodCompanionsOpen, setIsGoodCompanionsOpen] = useState(false);
+  const [isBadCompanionsOpen, setIsBadCompanionsOpen] = useState(false);
 
-  const { data: diseaseItems = [] } = useQuery({
-    queryKey: ["diseases", "all-for-vegetable-form"],
-    queryFn: () => fetchAllPages((page) => getDiseases({ page })),
-  });
-
-  const { data: vegetableItems = [] } = useQuery({
-    queryKey: ["vegetables", "all-for-vegetable-form"],
-    queryFn: () => fetchAllPages((page) => getVegetables({ page })),
-  });
-
-  const { data: soilItems = [], isLoading: soilsLoading } = useQuery({
-    queryKey: ["soils", "all-for-vegetable-form"],
-    queryFn: () => fetchAllPages((page) => getSoils({ page })),
-  });
-
-  const companionOptions = useMemo(() => {
-    const items = vegetableItems;
-    if (!excludeCompanionId) {
-      return items;
-    }
-    return items.filter((item) => item.id !== excludeCompanionId);
-  }, [vegetableItems, excludeCompanionId]);
+  const mergeLabels = (items: RelationPickedItem[]) => {
+    setRelationsLabels((prev) => {
+      const next = { ...prev };
+      for (const item of items) {
+        next[item.value] = item.label;
+      }
+      return next;
+    });
+  };
 
   const isValidUrl = (url: string) => {
     try {
@@ -590,11 +547,15 @@ export const VegetableForm = ({
     }
   };
 
-  const toggleSelection = (current: string[], value: string) => {
-    if (current.includes(value)) {
-      return current.filter((item) => item !== value);
+  const handleClearLocalFile = () => {
+    setImageFile(null);
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
     }
-    return [...current, value];
+    setImagePreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -767,6 +728,7 @@ export const VegetableForm = ({
               Dodaj jeden obraz (JPG/PNG/WEBP), maks. 5 MB.
             </span>
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/jpeg,image/png,image/webp"
               className="rounded-lg border border-zinc-200 px-3 py-2"
@@ -774,39 +736,46 @@ export const VegetableForm = ({
             />
 
             {(imagePreviewUrl || (values.imageUrl && imageUrlValid)) && (
-              <div className="mt-2 space-y-2">
-                <div
-                  style={{ maxHeight: 128, width: "auto", display: "block" }}
-                >
-                  <Image
-                    src={imagePreviewUrl ?? values.imageUrl}
-                    alt="Podgląd zdjęcia warzywa"
-                    width={256}
-                    height={128}
-                    style={{
-                      maxHeight: 128,
-                      width: "auto",
-                      height: "auto",
-                      objectFit: "contain",
-                      display: "block",
-                    }}
-                    className="rounded-lg border border-zinc-200"
-                    unoptimized
-                  />
-                </div>
-
-                {onDeleteImage && values.imageUrl && !imagePreviewUrl && (
-                  <button
-                    type="button"
-                    className="text-xs font-medium text-red-600"
-                    onClick={handleDeleteImage}
-                    disabled={isDeletingImage}
-                  >
-                    {isDeletingImage ? "Usuwanie..." : "Usuń zdjęcie"}
-                  </button>
-                )}
+              <div className="mt-2">
+                <Image
+                  src={imagePreviewUrl ?? values.imageUrl}
+                  alt="Podgląd zdjęcia warzywa"
+                  width={256}
+                  height={128}
+                  style={{
+                    maxHeight: 128,
+                    width: "auto",
+                    height: "auto",
+                    objectFit: "contain",
+                    display: "block",
+                  }}
+                  className="rounded-lg border border-zinc-200"
+                  unoptimized
+                />
               </div>
             )}
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              {imagePreviewUrl && (
+                <button
+                  type="button"
+                  className="text-xs font-medium text-zinc-500 hover:text-zinc-800"
+                  onClick={handleClearLocalFile}
+                >
+                  Wyczyść zaznaczony plik
+                </button>
+              )}
+              {onDeleteImage && values.imageUrl && !imagePreviewUrl && (
+                <button
+                  type="button"
+                  className="text-xs font-medium text-red-600"
+                  onClick={handleDeleteImage}
+                  disabled={isDeletingImage}
+                >
+                  {isDeletingImage ? "Usuwanie..." : "Usuń zdjęcie z serwera"}
+                </button>
+              )}
+            </div>
           </label>
         </div>
 
@@ -922,32 +891,44 @@ export const VegetableForm = ({
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <label className="flex flex-col gap-1 text-sm">
+          <div className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Rekomendowane gleby</span>
             <span className="text-xs text-zinc-500">
               Wybierz jedną lub więcej gleb zdefiniowanych w słowniku.
             </span>
-            <select
-              multiple
-              className="min-h-28 rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.recommendedSoilSlugs}
-              onChange={(event) =>
-                updateValue(
-                  "recommendedSoilSlugs",
-                  Array.from(event.target.selectedOptions, (option) =>
-                    option.value.trim(),
-                  ).filter(Boolean),
-                )
-              }
-              disabled={soilsLoading}
-            >
-              {soilItems.map((soil) => (
-                <option key={soil.id} value={getRelationValue(soil)}>
-                  {soil.name}
-                </option>
+            <div className="mt-1 flex min-h-8 flex-wrap gap-1.5">
+              {values.recommendedSoilSlugs.length === 0 && (
+                <span className="text-xs text-zinc-400">Nie wybrano.</span>
+              )}
+              {values.recommendedSoilSlugs.map((slug) => (
+                <span
+                  key={slug}
+                  className="flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs"
+                >
+                  {relationsLabels[slug] ?? slug}
+                  <button
+                    type="button"
+                    className="leading-none text-zinc-400 hover:text-zinc-700"
+                    onClick={() =>
+                      updateValue(
+                        "recommendedSoilSlugs",
+                        values.recommendedSoilSlugs.filter((s) => s !== slug),
+                      )
+                    }
+                  >
+                    ×
+                  </button>
+                </span>
               ))}
-            </select>
-          </label>
+            </div>
+            <button
+              type="button"
+              className="mt-2 self-start rounded-lg border border-zinc-200 px-3 py-1.5 text-xs"
+              onClick={() => setIsSoilsOpen(true)}
+            >
+              Wybierz gleby
+            </button>
+          </div>
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Min. głębokość gleby (cm)</span>
@@ -1548,88 +1529,89 @@ export const VegetableForm = ({
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Relacje</h2>
         <div className="mt-4 grid gap-6 md:grid-cols-2">
+          {/* Szkodniki */}
           <div>
             <p className="text-sm font-medium text-zinc-700">Szkodniki</p>
             <p className="text-xs text-zinc-500">
               Typowe szkodniki atakujące to warzywo. Wybierane ze słownika
               Pests.
             </p>
-            <div className="mt-2 space-y-2">
-              {pestItems.map((pest) =>
-                (() => {
-                  const relationValue = getRelationValue(pest);
-                  return (
-                    <label
-                      key={pest.id}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={values.commonPestSlugs.includes(relationValue)}
-                        onChange={() =>
-                          updateValue(
-                            "commonPestSlugs",
-                            toggleSelection(
-                              values.commonPestSlugs,
-                              relationValue,
-                            ),
-                          )
-                        }
-                      />
-                      {pest.name}
-                    </label>
-                  );
-                })(),
+            <div className="mt-2 flex min-h-8 flex-wrap gap-1.5">
+              {values.commonPestSlugs.length === 0 && (
+                <span className="text-xs text-zinc-400">Nie wybrano.</span>
               )}
-
-              {pestItems.length === 0 && (
-                <p className="text-sm text-zinc-500">Brak danych.</p>
-              )}
+              {values.commonPestSlugs.map((slug) => (
+                <span
+                  key={slug}
+                  className="flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs"
+                >
+                  {relationsLabels[slug] ?? slug}
+                  <button
+                    type="button"
+                    className="leading-none text-zinc-400 hover:text-zinc-700"
+                    onClick={() =>
+                      updateValue(
+                        "commonPestSlugs",
+                        values.commonPestSlugs.filter((s) => s !== slug),
+                      )
+                    }
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
             </div>
+            <button
+              type="button"
+              className="mt-2 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs"
+              onClick={() => setIsPestsOpen(true)}
+            >
+              Wybierz szkodniki
+            </button>
           </div>
 
+          {/* Choroby */}
           <div>
             <p className="text-sm font-medium text-zinc-700">Choroby</p>
             <p className="text-xs text-zinc-500">
               Typowe choroby dotyczące tego warzywa. Wybierane ze słownika
               Diseases.
             </p>
-            <div className="mt-2 space-y-2">
-              {diseaseItems.map((disease) =>
-                (() => {
-                  const relationValue = getRelationValue(disease);
-                  return (
-                    <label
-                      key={disease.id}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={values.commonDiseaseSlugs.includes(
-                          relationValue,
-                        )}
-                        onChange={() =>
-                          updateValue(
-                            "commonDiseaseSlugs",
-                            toggleSelection(
-                              values.commonDiseaseSlugs,
-                              relationValue,
-                            ),
-                          )
-                        }
-                      />
-                      {disease.name}
-                    </label>
-                  );
-                })(),
+            <div className="mt-2 flex min-h-8 flex-wrap gap-1.5">
+              {values.commonDiseaseSlugs.length === 0 && (
+                <span className="text-xs text-zinc-400">Nie wybrano.</span>
               )}
-
-              {diseaseItems.length === 0 && (
-                <p className="text-sm text-zinc-500">Brak danych.</p>
-              )}
+              {values.commonDiseaseSlugs.map((slug) => (
+                <span
+                  key={slug}
+                  className="flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs"
+                >
+                  {relationsLabels[slug] ?? slug}
+                  <button
+                    type="button"
+                    className="leading-none text-zinc-400 hover:text-zinc-700"
+                    onClick={() =>
+                      updateValue(
+                        "commonDiseaseSlugs",
+                        values.commonDiseaseSlugs.filter((s) => s !== slug),
+                      )
+                    }
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
             </div>
+            <button
+              type="button"
+              className="mt-2 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs"
+              onClick={() => setIsDiseasesOpen(true)}
+            >
+              Wybierz choroby
+            </button>
           </div>
 
+          {/* Dobre sąsiedztwo */}
           <div>
             <p className="text-sm font-medium text-zinc-700">
               Dobre sąsiedztwo
@@ -1637,76 +1619,164 @@ export const VegetableForm = ({
             <p className="text-xs text-zinc-500">
               Warzywa, które zwykle dobrze rosną obok.
             </p>
-            <div className="mt-2 space-y-2">
-              {companionOptions.map((companion) =>
-                (() => {
-                  const relationValue = getRelationValue(companion);
-                  return (
-                    <label
-                      key={companion.id}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={values.goodCompanionSlugs.includes(
-                          relationValue,
-                        )}
-                        onChange={() =>
-                          updateValue(
-                            "goodCompanionSlugs",
-                            toggleSelection(
-                              values.goodCompanionSlugs,
-                              relationValue,
-                            ),
-                          )
-                        }
-                      />
-                      {companion.name}
-                    </label>
-                  );
-                })(),
+            <div className="mt-2 flex min-h-8 flex-wrap gap-1.5">
+              {values.goodCompanionSlugs.length === 0 && (
+                <span className="text-xs text-zinc-400">Nie wybrano.</span>
               )}
+              {values.goodCompanionSlugs.map((slug) => (
+                <span
+                  key={slug}
+                  className="flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs"
+                >
+                  {relationsLabels[slug] ?? slug}
+                  <button
+                    type="button"
+                    className="leading-none text-zinc-400 hover:text-zinc-700"
+                    onClick={() =>
+                      updateValue(
+                        "goodCompanionSlugs",
+                        values.goodCompanionSlugs.filter((s) => s !== slug),
+                      )
+                    }
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
             </div>
+            <button
+              type="button"
+              className="mt-2 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs"
+              onClick={() => setIsGoodCompanionsOpen(true)}
+            >
+              Wybierz warzywa
+            </button>
           </div>
 
+          {/* Złe sąsiedztwo */}
           <div>
             <p className="text-sm font-medium text-zinc-700">Złe sąsiedztwo</p>
             <p className="text-xs text-zinc-500">
               Warzywa, których zwykle nie sadzi się obok.
             </p>
-            <div className="mt-2 space-y-2">
-              {companionOptions.map((companion) =>
-                (() => {
-                  const relationValue = getRelationValue(companion);
-                  return (
-                    <label
-                      key={companion.id}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={values.badCompanionSlugs.includes(
-                          relationValue,
-                        )}
-                        onChange={() =>
-                          updateValue(
-                            "badCompanionSlugs",
-                            toggleSelection(
-                              values.badCompanionSlugs,
-                              relationValue,
-                            ),
-                          )
-                        }
-                      />
-                      {companion.name}
-                    </label>
-                  );
-                })(),
+            <div className="mt-2 flex min-h-8 flex-wrap gap-1.5">
+              {values.badCompanionSlugs.length === 0 && (
+                <span className="text-xs text-zinc-400">Nie wybrano.</span>
               )}
+              {values.badCompanionSlugs.map((slug) => (
+                <span
+                  key={slug}
+                  className="flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs"
+                >
+                  {relationsLabels[slug] ?? slug}
+                  <button
+                    type="button"
+                    className="leading-none text-zinc-400 hover:text-zinc-700"
+                    onClick={() =>
+                      updateValue(
+                        "badCompanionSlugs",
+                        values.badCompanionSlugs.filter((s) => s !== slug),
+                      )
+                    }
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
             </div>
+            <button
+              type="button"
+              className="mt-2 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs"
+              onClick={() => setIsBadCompanionsOpen(true)}
+            >
+              Wybierz warzywa
+            </button>
           </div>
         </div>
       </section>
+
+      {/* Modale relacji */}
+      <RelationPickerModal
+        isOpen={isSoilsOpen}
+        onClose={() => setIsSoilsOpen(false)}
+        title="Wybierz gleby"
+        queryKey={["soils", "picker"]}
+        fetchFn={(params) => getSoils(params)}
+        selectedValues={values.recommendedSoilSlugs}
+        onConfirm={(items) => {
+          mergeLabels(items);
+          updateValue(
+            "recommendedSoilSlugs",
+            items.map((i) => i.value),
+          );
+        }}
+      />
+
+      <RelationPickerModal
+        isOpen={isPestsOpen}
+        onClose={() => setIsPestsOpen(false)}
+        title="Wybierz szkodniki"
+        queryKey={["pests", "picker"]}
+        fetchFn={(params) => getPests(params)}
+        selectedValues={values.commonPestSlugs}
+        onConfirm={(items) => {
+          mergeLabels(items);
+          updateValue(
+            "commonPestSlugs",
+            items.map((i) => i.value),
+          );
+        }}
+      />
+
+      <RelationPickerModal
+        isOpen={isDiseasesOpen}
+        onClose={() => setIsDiseasesOpen(false)}
+        title="Wybierz choroby"
+        queryKey={["diseases", "picker"]}
+        fetchFn={(params) => getDiseases(params)}
+        selectedValues={values.commonDiseaseSlugs}
+        onConfirm={(items) => {
+          mergeLabels(items);
+          updateValue(
+            "commonDiseaseSlugs",
+            items.map((i) => i.value),
+          );
+        }}
+      />
+
+      <RelationPickerModal
+        isOpen={isGoodCompanionsOpen}
+        onClose={() => setIsGoodCompanionsOpen(false)}
+        title="Dobre sąsiedztwo – wybierz warzywa"
+        queryKey={["vegetables", "picker-good"]}
+        fetchFn={(params) => getVegetables(params)}
+        selectedValues={values.goodCompanionSlugs}
+        filterItem={(item) => item.id !== excludeCompanionId}
+        onConfirm={(items) => {
+          mergeLabels(items);
+          updateValue(
+            "goodCompanionSlugs",
+            items.map((i) => i.value),
+          );
+        }}
+      />
+
+      <RelationPickerModal
+        isOpen={isBadCompanionsOpen}
+        onClose={() => setIsBadCompanionsOpen(false)}
+        title="Złe sąsiedztwo – wybierz warzywa"
+        queryKey={["vegetables", "picker-bad"]}
+        fetchFn={(params) => getVegetables(params)}
+        selectedValues={values.badCompanionSlugs}
+        filterItem={(item) => item.id !== excludeCompanionId}
+        onConfirm={(items) => {
+          mergeLabels(items);
+          updateValue(
+            "badCompanionSlugs",
+            items.map((i) => i.value),
+          );
+        }}
+      />
 
       {(clientError || errorMessage) && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
