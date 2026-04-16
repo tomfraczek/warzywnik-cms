@@ -53,15 +53,11 @@ body {
   font-size: 0.95rem;
   line-height: 1.7;
   color: #1f2937;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  white-space: normal;
   max-width: 100%;
 }
 
 .article-content * {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  max-width: 100%;
 }
 
 .article-content h2 {
@@ -105,6 +101,7 @@ body {
   color: #2563eb;
   text-decoration: underline;
   text-underline-offset: 2px;
+  overflow-wrap: anywhere;
 }
 
 .article-content a:hover {

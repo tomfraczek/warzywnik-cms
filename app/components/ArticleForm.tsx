@@ -402,14 +402,20 @@ const normalizeLegacyContent = (content: string) => {
     try {
       const parsed = JSON.parse(content) as TiptapNode;
       if (parsed?.type === "doc") {
-        return { html: tiptapJsonToHtml(parsed), isLegacy: true };
+        return {
+          html: normalizeArticleHtmlSpacing(tiptapJsonToHtml(parsed)),
+          isLegacy: true,
+        };
       }
     } catch {
       // ignore
     }
   }
-  return { html: content, isLegacy: false };
+  return { html: normalizeArticleHtmlSpacing(content), isLegacy: false };
 };
+
+const normalizeArticleHtmlSpacing = (html: string) =>
+  html.replace(/(?:&nbsp;|&#160;|\u00a0)+/gi, " ");
 
 const stripHtmlToText = (html: string) =>
   html
@@ -572,7 +578,7 @@ export const ArticleForm = ({
       slug: values.slug.trim(),
       title: values.title.trim(),
       excerpt: values.excerpt.trim(),
-      content: values.content.trim(),
+      content: normalizeArticleHtmlSpacing(values.content).trim(),
       coverImageUrl: values.coverImageUrl.trim() || null,
       status: values.status,
       priority: values.priority,

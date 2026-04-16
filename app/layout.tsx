@@ -94,7 +94,7 @@ export default function RootLayout({
                   </Link>
                 </nav>
               </aside>
-              <main className="flex-1 px-10 py-8">{children}</main>
+              <main className="flex-1 min-w-0 px-10 py-8">{children}</main>
             </div>
           </Providers>
         </ClerkProvider>
