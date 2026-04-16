@@ -1201,65 +1201,65 @@ export const VegetableForm = ({
                   </label>
                 </div>
 
-                <div className="mt-3 grid gap-4 md:grid-cols-2">
-                  <label className="flex flex-col gap-1 text-sm">
-                    <span className="font-medium">Początek przesadzania</span>
-                    <span className="text-xs text-zinc-500">
-                      Zakres miesięcy przesadzania rozsady (tylko dla
-                      seedlings).
-                    </span>
-                    <select
-                      className="rounded-lg border border-zinc-200 px-3 py-2"
-                      value={method.transplantingStartMonth ?? ""}
-                      onChange={(event) => {
-                        const next = [...values.sowingMethods];
-                        next[index] = {
-                          ...next[index],
-                          transplantingStartMonth: event.target.value
-                            ? (event.target.value as Month)
-                            : null,
-                        };
-                        updateValue("sowingMethods", next);
-                      }}
-                    >
-                      <option value="">Brak</option>
-                      {monthOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {monthLabels[option]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                {method.method === "seedlings" && (
+                  <div className="mt-3 grid gap-4 md:grid-cols-2">
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="font-medium">Początek przesadzania</span>
+                      <span className="text-xs text-zinc-500">
+                        Zakres miesięcy przesadzania rozsady.
+                      </span>
+                      <select
+                        className="rounded-lg border border-zinc-200 px-3 py-2"
+                        value={method.transplantingStartMonth ?? ""}
+                        onChange={(event) => {
+                          const next = [...values.sowingMethods];
+                          next[index] = {
+                            ...next[index],
+                            transplantingStartMonth: event.target.value
+                              ? (event.target.value as Month)
+                              : null,
+                          };
+                          updateValue("sowingMethods", next);
+                        }}
+                      >
+                        <option value="">Brak</option>
+                        {monthOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {monthLabels[option]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
 
-                  <label className="flex flex-col gap-1 text-sm">
-                    <span className="font-medium">Koniec przesadzania</span>
-                    <span className="text-xs text-zinc-500">
-                      Zakres miesięcy przesadzania rozsady (tylko dla
-                      seedlings).
-                    </span>
-                    <select
-                      className="rounded-lg border border-zinc-200 px-3 py-2"
-                      value={method.transplantingEndMonth ?? ""}
-                      onChange={(event) => {
-                        const next = [...values.sowingMethods];
-                        next[index] = {
-                          ...next[index],
-                          transplantingEndMonth: event.target.value
-                            ? (event.target.value as Month)
-                            : null,
-                        };
-                        updateValue("sowingMethods", next);
-                      }}
-                    >
-                      <option value="">Brak</option>
-                      {monthOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {monthLabels[option]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="font-medium">Koniec przesadzania</span>
+                      <span className="text-xs text-zinc-500">
+                        Zakres miesięcy przesadzania rozsady.
+                      </span>
+                      <select
+                        className="rounded-lg border border-zinc-200 px-3 py-2"
+                        value={method.transplantingEndMonth ?? ""}
+                        onChange={(event) => {
+                          const next = [...values.sowingMethods];
+                          next[index] = {
+                            ...next[index],
+                            transplantingEndMonth: event.target.value
+                              ? (event.target.value as Month)
+                              : null,
+                          };
+                          updateValue("sowingMethods", next);
+                        }}
+                      >
+                        <option value="">Brak</option>
+                        {monthOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {monthLabels[option]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                )}
               </div>
             );
           })}

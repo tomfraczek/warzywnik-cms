@@ -22,7 +22,10 @@ export const useUpdateVegetable = () => {
     mutationFn: updateVegetableMutation,
     onSuccess: (updated, variables) => {
       queryClient.setQueryData(vegetableKeys.detail(variables.id), updated);
-      queryClient.invalidateQueries({ queryKey: vegetableKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: vegetableKeys.all,
+        refetchType: "all",
+      });
     },
   });
 };

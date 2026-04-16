@@ -179,7 +179,10 @@ export default function EditVegetablePage() {
           queryKey: vegetableKeys.detail(data.id),
         });
       }
-      await queryClient.invalidateQueries({ queryKey: ["vegetables"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["vegetables"],
+        refetchType: "all",
+      });
       router.push(`/vegetables/${result.id}`);
     } catch (err) {
       if (err instanceof AxiosError && err.response) {

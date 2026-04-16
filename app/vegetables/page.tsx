@@ -15,7 +15,6 @@ const csvHeaders = [
   "slug",
   "latinName",
   "family",
-  "botanicalFamily",
   "nutrientNeeds",
   "rotationGroup",
   "imageUrl",
@@ -46,6 +45,7 @@ const csvHeaders = [
   "goodCompanions",
   "badCompanionSlugs",
   "badCompanions",
+  "isCustomized",
   "createdAt",
   "updatedAt",
 ];
@@ -81,7 +81,6 @@ const toCsv = (rows: Vegetable[]) => {
       row.slug ?? "",
       row.latinName ?? "",
       rowWithLegacy.family ?? "",
-      row.botanicalFamily ?? "",
       rowWithLegacy.nutrientNeeds ?? "",
       rowWithLegacy.rotationGroup ?? "",
       row.imageUrl ?? "",
@@ -128,6 +127,7 @@ const toCsv = (rows: Vegetable[]) => {
           [],
       ),
       toJson(row.badCompanions),
+      row.isCustomized,
       row.createdAt,
       row.updatedAt,
     ];
@@ -450,7 +450,10 @@ export default function VegetablesPage() {
               </tr>
             )}
             {data?.items.map((item) => (
-              <tr key={item.id} className="border-t border-zinc-100">
+              <tr
+                key={item.id}
+                className="border-t border-zinc-100 hover:bg-zinc-50"
+              >
                 <td className="px-4 py-3">
                   <input
                     type="checkbox"
