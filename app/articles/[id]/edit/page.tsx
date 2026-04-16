@@ -16,6 +16,7 @@ import { articleKeys } from "@/app/api/queries/articles/useGetArticles";
 import type { Article, CreateArticlePayload } from "@/app/api/api.types";
 
 const mapArticleToFormValues = (data: Article): ArticleFormValues => ({
+  slug: data.slug,
   title: data.title,
   excerpt: data.excerpt,
   content: data.content,

@@ -21,6 +21,7 @@ import type { MediaLibraryItem } from "@/app/api/api.types";
 import { AxiosError } from "axios";
 
 export type ArticleFormValues = {
+  slug: string;
   title: string;
   excerpt: string;
   content: string;
@@ -39,6 +40,7 @@ export type ArticleFormValues = {
 };
 
 const defaultValues: ArticleFormValues = {
+  slug: "",
   title: "",
   excerpt: "",
   content: "",
@@ -55,21 +57,6 @@ const defaultValues: ArticleFormValues = {
   relatedPestIds: [],
   publishedAt: null,
 };
-
-const monthOptions = [
-  { value: 1, label: "Styczeń" },
-  { value: 2, label: "Luty" },
-  { value: 3, label: "Marzec" },
-  { value: 4, label: "Kwiecień" },
-  { value: 5, label: "Maj" },
-  { value: 6, label: "Czerwiec" },
-  { value: 7, label: "Lipiec" },
-  { value: 8, label: "Sierpień" },
-  { value: 9, label: "Wrzesień" },
-  { value: 10, label: "Październik" },
-  { value: 11, label: "Listopad" },
-  { value: 12, label: "Grudzień" },
-];
 
 const seasonLabels: Record<ArticleSeason, string> = {
   winter: "Zima",
@@ -100,6 +87,201 @@ const isValidUrl = (value: string) => {
     return false;
   }
 };
+
+// ─── Reusable pill-toggle helper ───────────────────────────────────────────
+type PillToggleGroupProps<T extends string> = {
+  options: { value: T; label: string }[];
+  selected: T[];
+  onChange: (next: T[]) => void;
+};
+function PillToggleGroup<T extends string>({
+  options,
+  selected,
+  onChange,
+}: PillToggleGroupProps<T>) {
+  const toggle = (value: T) => {
+    if (selected.includes(value)) {
+      onChange(selected.filter((v) => v !== value));
+    } else {
+      onChange([...selected, value]);
+    }
+  };
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map(({ value, label }) => {
+        const active = selected.includes(value);
+        return (
+          <button
+            key={value}
+            type="button"
+            onClick={() => toggle(value)}
+            className={
+              active
+                ? "rounded-full px-4 py-1.5 text-sm font-medium bg-zinc-900 text-white transition"
+                : "rounded-full px-4 py-1.5 text-sm font-medium border border-zinc-300 text-zinc-700 hover:border-zinc-500 transition"
+            }
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Month grid helper ──────────────────────────────────────────────────────
+type MonthGridProps = {
+  selected: number[];
+  onChange: (next: number[]) => void;
+};
+function MonthGrid({ selected, onChange }: MonthGridProps) {
+  const months = [
+    { value: 1, short: "Sty" },
+    { value: 2, short: "Lut" },
+    { value: 3, short: "Mar" },
+    { value: 4, short: "Kwi" },
+    { value: 5, short: "Maj" },
+    { value: 6, short: "Cze" },
+    { value: 7, short: "Lip" },
+    { value: 8, short: "Sie" },
+    { value: 9, short: "Wrz" },
+    { value: 10, short: "Paź" },
+    { value: 11, short: "Lis" },
+    { value: 12, short: "Gru" },
+  ];
+  const toggle = (v: number) => {
+    if (selected.includes(v)) {
+      onChange(selected.filter((m) => m !== v));
+    } else {
+      onChange([...selected, v].sort((a, b) => a - b));
+    }
+  };
+  return (
+    <div className="grid grid-cols-6 gap-2">
+      {months.map(({ value, short }) => {
+        const active = selected.includes(value);
+        return (
+          <button
+            key={value}
+            type="button"
+            onClick={() => toggle(value)}
+            className={
+              active
+                ? "rounded-lg py-2 text-sm font-semibold bg-zinc-900 text-white transition"
+                : "rounded-lg py-2 text-sm border border-zinc-200 text-zinc-600 hover:border-zinc-400 transition"
+            }
+          >
+            {short}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Searchable multi-select with chips ────────────────────────────────────
+type SearchableMultiSelectProps = {
+  label: string;
+  items: { id: string; name: string }[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  isLoading?: boolean;
+  placeholder?: string;
+};
+function SearchableMultiSelect({
+  label,
+  items,
+  selectedIds,
+  onChange,
+  isLoading,
+  placeholder = "Szukaj…",
+}: SearchableMultiSelectProps) {
+  const [query, setQuery] = useState("");
+
+  const filtered = query.trim()
+    ? items.filter((item) =>
+        item.name.toLowerCase().includes(query.toLowerCase()),
+      )
+    : items;
+
+  const toggle = (id: string) => {
+    if (selectedIds.includes(id)) {
+      onChange(selectedIds.filter((v) => v !== id));
+    } else {
+      onChange([...selectedIds, id]);
+    }
+  };
+
+  const selectedItems = items.filter((item) => selectedIds.includes(item.id));
+
+  return (
+    <div className="flex flex-col gap-2 text-sm">
+      <span className="font-medium">{label}</span>
+      {isLoading ? (
+        <div className="h-8 w-32 animate-pulse rounded-md bg-zinc-100" />
+      ) : (
+        <>
+          {selectedItems.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {selectedItems.map((item) => (
+                <span
+                  key={item.id}
+                  className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-xs text-zinc-700"
+                >
+                  {item.name}
+                  <button
+                    type="button"
+                    onClick={() => toggle(item.id)}
+                    className="text-zinc-400 hover:text-zinc-700"
+                    aria-label={`Usuń ${item.name}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={placeholder}
+            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300"
+          />
+          <div className="max-h-44 overflow-y-auto rounded-lg border border-zinc-200 bg-white">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-2 text-xs text-zinc-400">Brak wyników.</p>
+            ) : (
+              filtered.map((item) => {
+                const checked = selectedIds.includes(item.id);
+                return (
+                  <label
+                    key={item.id}
+                    className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-zinc-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggle(item.id)}
+                      className="accent-zinc-900"
+                    />
+                    <span
+                      className={
+                        checked ? "text-zinc-900 font-medium" : "text-zinc-700"
+                      }
+                    >
+                      {item.name}
+                    </span>
+                  </label>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 type PaginatedListResponse<T> = {
   items: T[];
@@ -284,7 +466,7 @@ export const ArticleForm = ({
   const [isContentUploadOpen, setIsContentUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [coverUploadFile, setCoverUploadFile] = useState<File | null>(null);
+  const [coverUploading, setCoverUploading] = useState(false);
   const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
   const uploadResolveRef = useRef<((url: string | null) => void) | null>(null);
   const pickResolveRef = useRef<((url: string | null) => void) | null>(null);
@@ -325,8 +507,22 @@ export const ArticleForm = ({
     setValues((prev) => ({ ...prev, [key]: value }));
   };
 
+  const [slugTouched, setSlugTouched] = useState(false);
+
+  const slugify = (text: string) =>
+    text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/[\s]+/g, "-");
+
   const handleTitleChange = (value: string) => {
     updateValue("title", value);
+    if (!slugTouched) {
+      updateValue("slug", slugify(value));
+    }
   };
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -335,6 +531,14 @@ export const ArticleForm = ({
 
     if (values.title.trim().length < 1) {
       setClientError("Tytuł jest wymagany.");
+      return;
+    }
+    if (values.slug.trim().length < 1) {
+      setClientError("Slug jest wymagany.");
+      return;
+    }
+    if (!/^[a-z0-9-]+$/.test(values.slug.trim())) {
+      setClientError("Slug może zawierać tylko małe litery, cyfry i myślniki.");
       return;
     }
     if (values.excerpt.trim().length < 1) {
@@ -365,6 +569,7 @@ export const ArticleForm = ({
     }
 
     const payload: CreateArticlePayload = {
+      slug: values.slug.trim(),
       title: values.title.trim(),
       excerpt: values.excerpt.trim(),
       content: values.content.trim(),
@@ -398,6 +603,22 @@ export const ArticleForm = ({
               className="rounded-lg border border-zinc-200 px-3 py-2"
               value={values.title}
               onChange={(event) => handleTitleChange(event.target.value)}
+              required
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Slug</span>
+            <span className="text-xs text-zinc-500">
+              Unikalny identyfikator URL. Generowany automatycznie z tytułu —
+              możesz go zmienić.
+            </span>
+            <input
+              className="rounded-lg border border-zinc-200 px-3 py-2 font-mono text-sm"
+              value={values.slug}
+              onChange={(event) => {
+                setSlugTouched(true);
+                updateValue("slug", event.target.value);
+              }}
               required
             />
           </label>
@@ -448,19 +669,11 @@ export const ArticleForm = ({
           )}
         </label>
         <label className="mt-4 flex flex-col gap-1 text-sm">
-          <span className="font-medium">Okładka (URL)</span>
+          <span className="font-medium">Okładka</span>
           <span className="text-xs text-zinc-500">
-            Opcjonalny link do obrazka okładki.
+            Opcjonalne zdjęcie okładki artykułu.
           </span>
           <div className="space-y-3">
-            <input
-              className="rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.coverImageUrl}
-              onChange={(event) =>
-                updateValue("coverImageUrl", event.target.value)
-              }
-              placeholder="https://"
-            />
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
@@ -471,15 +684,47 @@ export const ArticleForm = ({
               </button>
               {onUploadCover && (
                 <label className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-2 text-sm">
-                  Upload okładki
+                  {coverUploading ? "Wgrywanie..." : "Dodaj z dysku"}
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     className="hidden"
-                    onChange={(event) => {
+                    disabled={coverUploading}
+                    onChange={async (event) => {
                       const file = event.target.files?.[0] ?? null;
+                      if (!file) return;
                       setCoverUploadError(null);
-                      setCoverUploadFile(file);
+                      if (!file.type.match(/image\/(jpeg|png|webp)/)) {
+                        setCoverUploadError(
+                          "Dozwolone formaty: JPG, PNG, WEBP.",
+                        );
+                        return;
+                      }
+                      if (file.size > 5 * 1024 * 1024) {
+                        setCoverUploadError(
+                          "Maksymalny rozmiar pliku to 5 MB.",
+                        );
+                        return;
+                      }
+                      try {
+                        setCoverUploading(true);
+                        const url = await onUploadCover(file);
+                        if (url) {
+                          updateValue("coverImageUrl", url);
+                        }
+                      } catch (err) {
+                        if (
+                          err instanceof AxiosError &&
+                          err.response?.status === 401
+                        ) {
+                          setCoverUploadError("Wymagane zalogowanie.");
+                        } else {
+                          setCoverUploadError("Nie udało się wgrać okładki.");
+                        }
+                      } finally {
+                        setCoverUploading(false);
+                        event.target.value = "";
+                      }
                     }}
                   />
                 </label>
@@ -500,47 +745,6 @@ export const ArticleForm = ({
                 </button>
               )}
             </div>
-            {coverUploadFile && onUploadCover && (
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="text-zinc-600">
-                  Wybrano: {coverUploadFile.name}
-                </span>
-                <button
-                  type="button"
-                  className="rounded-lg bg-zinc-900 px-3 py-2 text-white"
-                  onClick={async () => {
-                    setCoverUploadError(null);
-                    if (!coverUploadFile) return;
-                    if (!coverUploadFile.type.match(/image\/(jpeg|png|webp)/)) {
-                      setCoverUploadError("Dozwolone formaty: JPG, PNG, WEBP.");
-                      return;
-                    }
-                    if (coverUploadFile.size > 5 * 1024 * 1024) {
-                      setCoverUploadError("Maksymalny rozmiar pliku to 5 MB.");
-                      return;
-                    }
-                    try {
-                      const url = await onUploadCover(coverUploadFile);
-                      if (url) {
-                        updateValue("coverImageUrl", url);
-                        setCoverUploadFile(null);
-                      }
-                    } catch (err) {
-                      if (
-                        err instanceof AxiosError &&
-                        err.response?.status === 401
-                      ) {
-                        setCoverUploadError("Wymagane zalogowanie.");
-                        return;
-                      }
-                      setCoverUploadError("Nie udało się wgrać okładki.");
-                    }
-                  }}
-                >
-                  Wgraj
-                </button>
-              </div>
-            )}
             {coverUploadError && (
               <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                 {coverUploadError}
@@ -614,208 +818,99 @@ export const ArticleForm = ({
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Tagi czasowe</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
+        <div className="mt-4 space-y-6">
+          <div className="flex flex-col gap-2 text-sm">
             <span className="font-medium">Miesiące</span>
             <span className="text-xs text-zinc-500">
-              Wybierz miesiące, których dotyczy artykuł.
+              Kliknij miesiące, których dotyczy artykuł.
             </span>
-            <select
-              multiple
-              className="min-h-32 rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.months.map(String)}
-              onChange={(event) =>
-                updateValue(
-                  "months",
-                  Array.from(event.target.selectedOptions, (option) =>
-                    Number(option.value),
-                  ).filter((value) => Number.isFinite(value)),
-                )
-              }
-            >
-              {monthOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.value} - {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
+            <MonthGrid
+              selected={values.months}
+              onChange={(months) => updateValue("months", months)}
+            />
+          </div>
+          <div className="flex flex-col gap-2 text-sm">
             <span className="font-medium">Sezony</span>
             <span className="text-xs text-zinc-500">
-              Wybierz sezony, których dotyczy artykuł.
+              Kliknij sezony, których dotyczy artykuł.
             </span>
-            <select
-              multiple
-              className="min-h-32 rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.seasons}
-              onChange={(event) =>
-                updateValue(
-                  "seasons",
-                  Array.from(event.target.selectedOptions, (option) =>
-                    option.value.trim(),
-                  ).filter(Boolean) as ArticleSeason[],
-                )
-              }
-            >
-              {articleSeasonOptions.map((option) => (
-                <option key={option} value={option}>
-                  {seasonLabels[option]}
-                </option>
-              ))}
-            </select>
-          </label>
+            <PillToggleGroup
+              options={articleSeasonOptions.map((s) => ({
+                value: s,
+                label: seasonLabels[s],
+              }))}
+              selected={values.seasons}
+              onChange={(seasons) => updateValue("seasons", seasons)}
+            />
+          </div>
         </div>
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Konteksty</h2>
-        <label className="mt-4 flex flex-col gap-1 text-sm">
+        <div className="mt-4 flex flex-col gap-2 text-sm">
           <span className="font-medium">Konteksty artykułu</span>
           <span className="text-xs text-zinc-500">
             Wybierz co najmniej jeden kontekst użycia.
           </span>
-          <select
-            multiple
-            className="min-h-32 rounded-lg border border-zinc-200 px-3 py-2"
-            value={values.contexts}
-            onChange={(event) =>
-              updateValue(
-                "contexts",
-                Array.from(event.target.selectedOptions, (option) =>
-                  option.value.trim(),
-                ).filter(Boolean) as ArticleContext[],
-              )
-            }
-            required
-          >
-            {articleContextOptions.map((option) => (
-              <option key={option} value={option}>
-                {contextLabels[option]}
-              </option>
-            ))}
-          </select>
-        </label>
+          <PillToggleGroup
+            options={articleContextOptions.map((c) => ({
+              value: c,
+              label: contextLabels[c],
+            }))}
+            selected={values.contexts}
+            onChange={(contexts) => updateValue("contexts", contexts)}
+          />
+        </div>
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Powiązania</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Warzywa</span>
-            <select
-              multiple
-              className="min-h-32 rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.relatedVegetableIds}
-              onChange={(event) =>
-                updateValue(
-                  "relatedVegetableIds",
-                  Array.from(event.target.selectedOptions, (option) =>
-                    option.value.trim(),
-                  ).filter(Boolean),
-                )
-              }
-              disabled={vegetablesLoading}
-            >
-              {vegetableItems.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Gleby</span>
-            <select
-              multiple
-              className="min-h-32 rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.relatedSoilIds}
-              onChange={(event) =>
-                updateValue(
-                  "relatedSoilIds",
-                  Array.from(event.target.selectedOptions, (option) =>
-                    option.value.trim(),
-                  ).filter(Boolean),
-                )
-              }
-              disabled={soilsLoading}
-            >
-              {soilItems.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Nawozy</span>
-            <select
-              multiple
-              className="min-h-32 rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.relatedFertilizerIds}
-              onChange={(event) =>
-                updateValue(
-                  "relatedFertilizerIds",
-                  Array.from(event.target.selectedOptions, (option) =>
-                    option.value.trim(),
-                  ).filter(Boolean),
-                )
-              }
-              disabled={fertilizersLoading}
-            >
-              {fertilizerItems.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Choroby</span>
-            <select
-              multiple
-              className="min-h-32 rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.relatedDiseaseIds}
-              onChange={(event) =>
-                updateValue(
-                  "relatedDiseaseIds",
-                  Array.from(event.target.selectedOptions, (option) =>
-                    option.value.trim(),
-                  ).filter(Boolean),
-                )
-              }
-              disabled={diseasesLoading}
-            >
-              {diseaseItems.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Szkodniki</span>
-            <select
-              multiple
-              className="min-h-32 rounded-lg border border-zinc-200 px-3 py-2"
-              value={values.relatedPestIds}
-              onChange={(event) =>
-                updateValue(
-                  "relatedPestIds",
-                  Array.from(event.target.selectedOptions, (option) =>
-                    option.value.trim(),
-                  ).filter(Boolean),
-                )
-              }
-              disabled={pestsLoading}
-            >
-              {pestItems.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
+        <p className="mt-1 text-xs text-zinc-500">
+          Wyszukaj i zaznacz powiązane elementy. Zaznaczone pozycje pojawią się
+          jako tagi powyżej pola wyszukiwania.
+        </p>
+        <div className="mt-4 grid gap-6 md:grid-cols-2">
+          <SearchableMultiSelect
+            label="Warzywa"
+            items={vegetableItems}
+            selectedIds={values.relatedVegetableIds}
+            onChange={(ids) => updateValue("relatedVegetableIds", ids)}
+            isLoading={vegetablesLoading}
+            placeholder="Szukaj warzywa…"
+          />
+          <SearchableMultiSelect
+            label="Gleby"
+            items={soilItems}
+            selectedIds={values.relatedSoilIds}
+            onChange={(ids) => updateValue("relatedSoilIds", ids)}
+            isLoading={soilsLoading}
+            placeholder="Szukaj gleby…"
+          />
+          <SearchableMultiSelect
+            label="Nawozy"
+            items={fertilizerItems}
+            selectedIds={values.relatedFertilizerIds}
+            onChange={(ids) => updateValue("relatedFertilizerIds", ids)}
+            isLoading={fertilizersLoading}
+            placeholder="Szukaj nawozu…"
+          />
+          <SearchableMultiSelect
+            label="Choroby"
+            items={diseaseItems}
+            selectedIds={values.relatedDiseaseIds}
+            onChange={(ids) => updateValue("relatedDiseaseIds", ids)}
+            isLoading={diseasesLoading}
+            placeholder="Szukaj choroby…"
+          />
+          <SearchableMultiSelect
+            label="Szkodniki"
+            items={pestItems}
+            selectedIds={values.relatedPestIds}
+            onChange={(ids) => updateValue("relatedPestIds", ids)}
+            isLoading={pestsLoading}
+            placeholder="Szukaj szkodnika…"
+          />
         </div>
       </section>
 

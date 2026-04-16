@@ -661,6 +661,7 @@ export type ArticleListItem = {
 
 export type Article = {
   id: string;
+  slug: string;
   title: string;
   excerpt: string;
   content: string;
@@ -681,6 +682,7 @@ export type Article = {
 };
 
 export type CreateArticlePayload = {
+  slug: string;
   title: string;
   excerpt: string;
   content: string;

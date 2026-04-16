@@ -1,5 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
-import { uploadArticleCover } from "@/app/api/api.requests";
+import {
+  uploadArticleCover,
+  uploadArticleCoverAnonymous,
+} from "@/app/api/api.requests";
 import type { Article } from "@/app/api/api.types";
 
 type UploadArticleCoverInput = {
@@ -17,5 +20,11 @@ const uploadArticleCoverMutation = async ({
 export const useUploadArticleCover = () => {
   return useMutation<Article, unknown, UploadArticleCoverInput>({
     mutationFn: uploadArticleCoverMutation,
+  });
+};
+
+export const useUploadArticleCoverAnonymous = () => {
+  return useMutation<string, unknown, File>({
+    mutationFn: uploadArticleCoverAnonymous,
   });
 };

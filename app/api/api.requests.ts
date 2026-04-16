@@ -362,6 +362,18 @@ export const deleteManyArticles = async (
   });
 };
 
+export const uploadArticleCoverAnonymous = async (
+  file: File,
+): Promise<string> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await apiClient.post<{ url: string }>(
+    `/uploads/articles/cover`,
+    formData,
+  );
+  return data.url;
+};
+
 export const uploadArticleCover = async (
   id: string,
   file: File,

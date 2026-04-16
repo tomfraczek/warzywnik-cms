@@ -5,12 +5,14 @@ import { useState } from "react";
 import { AxiosError } from "axios";
 import { ArticleForm } from "@/app/components/ArticleForm";
 import { useCreateArticle } from "@/app/api/mutations/articles/useCreateArticle";
+import { useUploadArticleCoverAnonymous } from "@/app/api/mutations/articles/useUploadArticleCover";
 import type { CreateArticlePayload } from "@/app/api/api.types";
 
 export default function NewArticlePage() {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const createMutation = useCreateArticle();
+  const uploadCoverAnonymousMutation = useUploadArticleCoverAnonymous();
 
   const handleSubmit = async (payload: CreateArticlePayload) => {
     setErrorMessage(null);
@@ -46,6 +48,9 @@ export default function NewArticlePage() {
         onSubmit={handleSubmit}
         isSubmitting={createMutation.isPending}
         errorMessage={errorMessage}
+        onUploadCover={async (file) => {
+          return await uploadCoverAnonymousMutation.mutateAsync(file);
+        }}
       />
     </section>
   );
