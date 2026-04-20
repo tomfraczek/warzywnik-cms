@@ -42,11 +42,13 @@ body {
 }
 
 .quill-editor .ql-container {
-  min-height: 600px;
+  min-height: 400px;
+  max-height: calc(90vh - 42px);
+  overflow-y: auto;
 }
 
 .quill-editor .ql-editor {
-  min-height: 600px;
+  min-height: 400px;
 }
 
 .article-content {

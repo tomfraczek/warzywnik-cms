@@ -10,7 +10,10 @@ import {
 } from "@/app/components/ArticleForm";
 import { useGetArticle } from "@/app/api/queries/articles/useGetArticle";
 import { useUpdateArticle } from "@/app/api/mutations/articles/useUpdateArticle";
-import { useUploadArticleCover } from "@/app/api/mutations/articles/useUploadArticleCover";
+import {
+  useUploadArticleCover,
+  useUploadArticleCoverAnonymous,
+} from "@/app/api/mutations/articles/useUploadArticleCover";
 import { useDeleteArticleCover } from "@/app/api/mutations/articles/useDeleteArticleCover";
 import { articleKeys } from "@/app/api/queries/articles/useGetArticles";
 import type { Article, CreateArticlePayload } from "@/app/api/api.types";
@@ -42,6 +45,7 @@ export default function EditArticlePage() {
   const { data, isLoading, error } = useGetArticle(params?.id);
   const updateMutation = useUpdateArticle();
   const uploadCoverMutation = useUploadArticleCover();
+  const uploadContentImageMutation = useUploadArticleCoverAnonymous();
   const deleteCoverMutation = useDeleteArticleCover();
 
   const initialValues = useMemo(
@@ -111,24 +115,7 @@ export default function EditArticlePage() {
   };
 
   const handleUploadContentImage = async (file: File) => {
-    if (!data) return null;
-    const previousCover = data.coverImageUrl ?? null;
-    const result = await uploadCoverMutation.mutateAsync({
-      id: data.id,
-      file,
-    });
-    const url = result.coverImageUrl ?? null;
-    if (previousCover !== result.coverImageUrl) {
-      await updateMutation.mutateAsync({
-        id: data.id,
-        payload: { coverImageUrl: previousCover },
-      });
-    }
-    await queryClient.invalidateQueries({ queryKey: ["articles"] });
-    await queryClient.invalidateQueries({
-      queryKey: articleKeys.detail(data.id),
-    });
-    return url;
+    return await uploadContentImageMutation.mutateAsync(file);
   };
 
   if (isLoading) {

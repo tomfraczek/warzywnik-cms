@@ -51,6 +51,9 @@ export default function NewArticlePage() {
         onUploadCover={async (file) => {
           return await uploadCoverAnonymousMutation.mutateAsync(file);
         }}
+        onUploadContentImage={async (file) => {
+          return await uploadCoverAnonymousMutation.mutateAsync(file);
+        }}
       />
     </section>
   );
