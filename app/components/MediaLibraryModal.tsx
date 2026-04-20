@@ -14,10 +14,9 @@ type MediaLibraryTab = "vegetables" | "articles";
 
 const resolveMediaUrl = (item: MediaLibraryItem) => {
   const url = item.publicUrl;
-  if (url.endsWith("/") && item.fileName) {
-    return `${url}${item.fileName}`;
-  }
-  return url;
+  const base =
+    url.endsWith("/") && item.fileName ? `${url}${item.fileName}` : url;
+  return `${base}?t=${Date.now()}`;
 };
 
 export type MediaLibraryModalProps = {
@@ -30,6 +29,7 @@ export type MediaLibraryModalProps = {
   ) => Promise<MediaLibraryItem | null>;
   title?: string;
   initialTab?: MediaLibraryTab;
+  allowedTabs?: MediaLibraryTab[];
 };
 
 export const MediaLibraryModal = ({
@@ -39,6 +39,7 @@ export const MediaLibraryModal = ({
   onUpload,
   title = "Biblioteka mediów",
   initialTab = "articles",
+  allowedTabs,
 }: MediaLibraryModalProps) => {
   const [activeTab, setActiveTab] = useState<MediaLibraryTab>(initialTab);
   const [limit, setLimit] = useState(24);
@@ -87,34 +88,38 @@ export const MediaLibraryModal = ({
 
         <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 px-6 py-4">
           <div className="flex gap-2">
-            <button
-              type="button"
-              className={`rounded-lg px-3 py-1 text-sm ${
-                activeTab === "articles"
-                  ? "bg-zinc-900 text-white"
-                  : "border border-zinc-200"
-              }`}
-              onClick={() => {
-                setActiveTab("articles");
-                setSelectedItem(null);
-              }}
-            >
-              Artykuły
-            </button>
-            <button
-              type="button"
-              className={`rounded-lg px-3 py-1 text-sm ${
-                activeTab === "vegetables"
-                  ? "bg-zinc-900 text-white"
-                  : "border border-zinc-200"
-              }`}
-              onClick={() => {
-                setActiveTab("vegetables");
-                setSelectedItem(null);
-              }}
-            >
-              Warzywa
-            </button>
+            {(!allowedTabs || allowedTabs.includes("articles")) && (
+              <button
+                type="button"
+                className={`rounded-lg px-3 py-1 text-sm ${
+                  activeTab === "articles"
+                    ? "bg-zinc-900 text-white"
+                    : "border border-zinc-200"
+                }`}
+                onClick={() => {
+                  setActiveTab("articles");
+                  setSelectedItem(null);
+                }}
+              >
+                Artykuły
+              </button>
+            )}
+            {(!allowedTabs || allowedTabs.includes("vegetables")) && (
+              <button
+                type="button"
+                className={`rounded-lg px-3 py-1 text-sm ${
+                  activeTab === "vegetables"
+                    ? "bg-zinc-900 text-white"
+                    : "border border-zinc-200"
+                }`}
+                onClick={() => {
+                  setActiveTab("vegetables");
+                  setSelectedItem(null);
+                }}
+              >
+                Warzywa
+              </button>
+            )}
           </div>
           <input
             className="flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm"

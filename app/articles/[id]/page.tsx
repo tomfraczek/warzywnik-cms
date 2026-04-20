@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { AxiosError } from "axios";
@@ -97,6 +98,7 @@ function Pills({ items }: { items: string[] }) {
 
 export default function ArticlePreviewPage() {
   const params = useParams<{ id: string }>();
+  const [cacheBuster] = useState(() => Date.now());
   const { data, isLoading, error } = useGetArticle(params?.id);
   const { data: vegetablesData } = useGetVegetables({});
   const { data: diseasesData } = useGetDiseases({});
@@ -163,7 +165,7 @@ export default function ArticlePreviewPage() {
       {data.coverImageUrl && (
         <div className="flex max-h-80 items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
           <Image
-            src={data.coverImageUrl}
+            src={`${data.coverImageUrl}?t=${cacheBuster}`}
             alt={data.title}
             className="h-full w-full object-contain"
             width={960}
