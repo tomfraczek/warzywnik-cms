@@ -12,6 +12,7 @@ import { useGetSoils } from "@/app/api/queries/soils/useGetSoils";
 import { useGetFertilizers } from "@/app/api/queries/fertilizers/useGetFertilizers";
 import { useGetActionTemplates } from "@/app/api/queries/action-templates/useGetActionTemplates";
 import { useGetWarningRules } from "@/app/api/queries/warning-rules/useGetWarningRules";
+import { useGetAnalyticsDashboard } from "@/app/api/queries/analytics/useGetAnalyticsDashboard";
 
 type StatCardProps = {
   label: string;
@@ -38,6 +39,63 @@ function StatCard({ label, value, href, isLoading }: StatCardProps) {
   );
 }
 
+type AnalyticsMetricCardProps = {
+  label: string;
+  value: number | undefined;
+  isLoading: boolean;
+  unit?: string;
+};
+
+function AnalyticsMetricCard({
+  label,
+  value,
+  isLoading,
+  unit,
+}: AnalyticsMetricCardProps) {
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white p-5">
+      <p className="text-sm text-zinc-500">{label}</p>
+      {isLoading ? (
+        <div className="mt-2 h-8 w-16 animate-pulse rounded-md bg-zinc-100" />
+      ) : (
+        <p className="mt-2 text-2xl font-semibold text-zinc-900">
+          {value?.toLocaleString("pl-PL") ?? "—"}
+          {unit ? (
+            <span className="ml-1 text-sm font-normal text-zinc-400">
+              {unit}
+            </span>
+          ) : null}
+        </p>
+      )}
+    </div>
+  );
+}
+
+type TopListProps<T> = {
+  items: T[] | undefined;
+  isLoading: boolean;
+  renderItem: (item: T, index: number) => React.ReactNode;
+};
+
+function TopList<T>({ items, isLoading, renderItem }: TopListProps<T>) {
+  if (isLoading) {
+    return (
+      <ul className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: skeleton only
+          <li key={i} className="h-8 animate-pulse rounded-md bg-zinc-100" />
+        ))}
+      </ul>
+    );
+  }
+  if (!items?.length) {
+    return <p className="text-sm text-zinc-400">Brak danych</p>;
+  }
+  return (
+    <ol className="space-y-1">{items.map((item, i) => renderItem(item, i))}</ol>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -61,6 +119,9 @@ export default function DashboardPage() {
     useGetActionTemplates({ limit: 1 });
   const { data: warningRules, isLoading: loadingWarningRules } =
     useGetWarningRules({ limit: 1 });
+
+  const { data: analytics, isLoading: loadingAnalytics } =
+    useGetAnalyticsDashboard(10);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -191,6 +252,144 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      {/* ── Analytics ─────────────────────────────────────────────── */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+          Statystyki ogólne (wszystkie czasy)
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <AnalyticsMetricCard
+            label="Wyświetlenia artykułów"
+            value={analytics?.totals.articleViewsTotal}
+            isLoading={loadingAnalytics}
+          />
+          <AnalyticsMetricCard
+            label="Czas czytania artykułów"
+            value={
+              analytics?.totals.articleEngagedSecondsTotal != null
+                ? Math.round(analytics.totals.articleEngagedSecondsTotal / 60)
+                : undefined
+            }
+            unit="min"
+            isLoading={loadingAnalytics}
+          />
+          <AnalyticsMetricCard
+            label="Przewinięcia 50% artykułów"
+            value={analytics?.totals.articleScroll50Total}
+            isLoading={loadingAnalytics}
+          />
+          <AnalyticsMetricCard
+            label="Przewinięcia 90% artykułów"
+            value={analytics?.totals.articleScroll90Total}
+            isLoading={loadingAnalytics}
+          />
+          <AnalyticsMetricCard
+            label="Polubienia artykułów"
+            value={analytics?.totals.articleFavoritesTotal}
+            isLoading={loadingAnalytics}
+          />
+          <AnalyticsMetricCard
+            label="Dodania warzyw do ogrodu"
+            value={analytics?.totals.vegetableAddsTotal}
+            isLoading={loadingAnalytics}
+          />
+          <AnalyticsMetricCard
+            label="Polubienia warzyw"
+            value={analytics?.totals.vegetableFavoritesTotal}
+            isLoading={loadingAnalytics}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+          Aktywność — ostatnie 30 dni
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <AnalyticsMetricCard
+            label="Wyświetlenia artykułów"
+            value={analytics?.last30Days.articleViews}
+            isLoading={loadingAnalytics}
+          />
+          <AnalyticsMetricCard
+            label="Dodania warzyw do ogrodu"
+            value={analytics?.last30Days.vegetableAdds}
+            isLoading={loadingAnalytics}
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+            Top warzywa (dodania)
+          </h2>
+          <TopList
+            items={analytics?.top.vegetablesByAdds}
+            isLoading={loadingAnalytics}
+            renderItem={(veg, i) => (
+              <li
+                key={veg.id}
+                className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-zinc-50"
+              >
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="w-5 shrink-0 text-center text-xs font-semibold text-zinc-400">
+                    {i + 1}.
+                  </span>
+                  <Link
+                    href={`/vegetables/${veg.id}`}
+                    className="truncate font-medium text-zinc-800 hover:text-green-700 hover:underline"
+                  >
+                    {veg.name}
+                  </Link>
+                </span>
+                <span className="shrink-0 text-xs font-semibold text-zinc-500">
+                  {veg.adds.toLocaleString("pl-PL")} dodań
+                </span>
+              </li>
+            )}
+          />
+        </div>
+
+        <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+            Top artykuły (wyświetlenia)
+          </h2>
+          <TopList
+            items={analytics?.top.articlesByViews}
+            isLoading={loadingAnalytics}
+            renderItem={(article, i) => (
+              <li
+                key={article.id}
+                className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-zinc-50"
+              >
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="w-5 shrink-0 text-center text-xs font-semibold text-zinc-400">
+                    {i + 1}.
+                  </span>
+                  <Link
+                    href={`/articles/${article.id}`}
+                    className="truncate font-medium text-zinc-800 hover:text-green-700 hover:underline"
+                  >
+                    {article.title}
+                  </Link>
+                </span>
+                <span className="shrink-0 text-xs font-semibold text-zinc-500">
+                  {article.views.toLocaleString("pl-PL")} wyśw.
+                </span>
+              </li>
+            )}
+          />
+        </div>
+      </div>
+
+      {analytics?.generatedAt ? (
+        <p className="text-right text-xs text-zinc-400">
+          Dane wygenerowane:{" "}
+          {new Date(analytics.generatedAt).toLocaleString("pl-PL")}
+        </p>
+      ) : null}
     </section>
   );
 }

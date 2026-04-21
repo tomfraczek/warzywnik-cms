@@ -730,3 +730,62 @@ export const articleContextOptions: ArticleContext[] = [
   "problem_solving",
   "learning",
 ];
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+export type AnalyticsTotals = {
+  articleViewsTotal: number;
+  articleEngagedSecondsTotal: number;
+  articleScroll50Total: number;
+  articleScroll90Total: number;
+  articleFavoritesTotal: number;
+  vegetableAddsTotal: number;
+  vegetableFavoritesTotal: number;
+};
+
+export type AnalyticsLast30Days = {
+  articleViews: number;
+  vegetableAdds: number;
+};
+
+export type AnalyticsVegetableTopItem = {
+  id: string;
+  name: string;
+  slug: string | null;
+  adds: number;
+  favorites?: number;
+};
+
+export type AnalyticsArticleTopItem = {
+  id: string;
+  title: string;
+  slug: string | null;
+  views: number;
+  engagedSeconds?: number;
+  scroll50?: number;
+  scroll90?: number;
+};
+
+export type AnalyticsDashboard = {
+  generatedAt: string;
+  totals: AnalyticsTotals;
+  last30Days: AnalyticsLast30Days;
+  top: {
+    vegetablesByAdds: AnalyticsVegetableTopItem[];
+    articlesByViews: AnalyticsArticleTopItem[];
+  };
+};
+
+export type AnalyticsVegetablesPopularSort = "adds" | "favorites";
+
+export type AnalyticsArticlesPopularSort = "views" | "engagedSeconds";
+
+export type AnalyticsVegetablesPopularResponse = {
+  items: AnalyticsVegetableTopItem[];
+  total: number;
+};
+
+export type AnalyticsArticlesPopularResponse = {
+  items: AnalyticsArticleTopItem[];
+  total: number;
+};

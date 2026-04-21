@@ -29,6 +29,11 @@ import type {
   ActionTemplateEnvironment,
   ActionTemplateType,
   DeleteManyDto,
+  AnalyticsDashboard,
+  AnalyticsVegetablesPopularResponse,
+  AnalyticsArticlesPopularResponse,
+  AnalyticsVegetablesPopularSort,
+  AnalyticsArticlesPopularSort,
 } from "@/app/api/api.types";
 
 export type GetVegetablesParams = {
@@ -417,3 +422,50 @@ export const getArticlesMediaLibrary = async (
 };
 
 export const unwrap = unwrapData;
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+const adminToken = process.env.NEXT_PUBLIC_ADMIN_TOKEN;
+
+const adminHeaders = () => (adminToken ? { "x-admin-token": adminToken } : {});
+
+export const getAnalyticsDashboard = async (
+  top = 10,
+): Promise<AnalyticsDashboard> => {
+  const { data } = await apiClient.get<AnalyticsDashboard>(
+    "/v1/cms/analytics/dashboard",
+    { params: { top }, headers: adminHeaders() },
+  );
+  return data;
+};
+
+export type GetAnalyticsVegetablesPopularParams = {
+  limit?: number;
+  sort?: AnalyticsVegetablesPopularSort;
+  windowDays?: number;
+};
+
+export const getAnalyticsVegetablesPopular = async (
+  params: GetAnalyticsVegetablesPopularParams = {},
+): Promise<AnalyticsVegetablesPopularResponse> => {
+  const { data } = await apiClient.get<AnalyticsVegetablesPopularResponse>(
+    "/v1/cms/analytics/vegetables/popular",
+    { params, headers: adminHeaders() },
+  );
+  return data;
+};
+
+export type GetAnalyticsArticlesPopularParams = {
+  limit?: number;
+  sort?: AnalyticsArticlesPopularSort;
+};
+
+export const getAnalyticsArticlesPopular = async (
+  params: GetAnalyticsArticlesPopularParams = {},
+): Promise<AnalyticsArticlesPopularResponse> => {
+  const { data } = await apiClient.get<AnalyticsArticlesPopularResponse>(
+    "/v1/cms/analytics/articles/popular",
+    { params, headers: adminHeaders() },
+  );
+  return data;
+};

@@ -14,9 +14,10 @@ type MediaLibraryTab = "vegetables" | "articles";
 
 const resolveMediaUrl = (item: MediaLibraryItem) => {
   const url = item.publicUrl;
-  const base =
-    url.endsWith("/") && item.fileName ? `${url}${item.fileName}` : url;
-  return `${base}?t=${Date.now()}`;
+  if (url.endsWith("/") && item.fileName) {
+    return `${url}${item.fileName}`;
+  }
+  return url;
 };
 
 export type MediaLibraryModalProps = {

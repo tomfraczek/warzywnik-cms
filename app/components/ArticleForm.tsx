@@ -474,7 +474,6 @@ export const ArticleForm = ({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
-  const [coverCacheBuster, setCoverCacheBuster] = useState<number>(Date.now());
   const uploadResolveRef = useRef<((url: string | null) => void) | null>(null);
   const pickResolveRef = useRef<((url: string | null) => void) | null>(null);
 
@@ -718,7 +717,6 @@ export const ArticleForm = ({
                         const url = await onUploadCover(file);
                         if (url) {
                           updateValue("coverImageUrl", url);
-                          setCoverCacheBuster(Date.now());
                         }
                       } catch (err) {
                         if (
@@ -761,8 +759,7 @@ export const ArticleForm = ({
             {values.coverImageUrl && (
               <div className="flex h-32 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
                 <Image
-                  key={values.coverImageUrl}
-                  src={`${values.coverImageUrl}?t=${coverCacheBuster}`}
+                  src={values.coverImageUrl}
                   alt="Okładka artykułu"
                   width={512}
                   height={128}
@@ -948,7 +945,6 @@ export const ArticleForm = ({
             await onAssignCoverFromLibrary(item.publicUrl);
           }
           updateValue("coverImageUrl", item.publicUrl);
-          setCoverCacheBuster(Date.now());
         }}
         onUpload={
           onUploadCover
@@ -956,7 +952,6 @@ export const ArticleForm = ({
                 const url = await onUploadCover(file);
                 if (!url) return null;
                 updateValue("coverImageUrl", url);
-                setCoverCacheBuster(Date.now());
                 return {
                   key: url,
                   publicUrl: url,
