@@ -146,7 +146,9 @@ export const ActionTemplateForm = ({
     }
 
     if (typeof values.requiresUserConfirmation !== "boolean") {
-      setClientError("Pole 'Wymaga zatwierdzenia użytkownika' musi być boolean.");
+      setClientError(
+        "Pole 'Wymaga zatwierdzenia użytkownika' musi być boolean.",
+      );
       return;
     }
 
@@ -337,7 +339,9 @@ export const ActionTemplateForm = ({
               ))}
             </select>
             {fieldErrors?.priority && (
-              <span className="text-xs text-red-600">{fieldErrors.priority}</span>
+              <span className="text-xs text-red-600">
+                {fieldErrors.priority}
+              </span>
             )}
           </label>
 

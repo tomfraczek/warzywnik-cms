@@ -228,13 +228,15 @@ export const actionTemplateGenerationModeLabels: Record<
   SEASONAL: "Sezonowe",
 };
 
-export const actionTemplatePriorityLabels: Record<ActionTemplatePriority, string> =
-  {
-    low: "Niski",
-    medium: "Średni",
-    high: "Wysoki",
-    critical: "Krytyczny",
-  };
+export const actionTemplatePriorityLabels: Record<
+  ActionTemplatePriority,
+  string
+> = {
+  low: "Niski",
+  medium: "Średni",
+  high: "Wysoki",
+  critical: "Krytyczny",
+};
 
 // ---------- fertilizer ----------
 export const fertilizerCategoryLabels: Record<FertilizerCategory, string> = {

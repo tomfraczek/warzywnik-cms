@@ -378,7 +378,8 @@ export const VegetableForm = ({
 
       const rulesToPersist = values.actionRules.filter((rule) => {
         const hasTemplate = isValidRelationValue(rule.actionTemplateSlug);
-        const hasTiming = rule.offsetDays.trim() !== "" && rule.offsetDays !== "0";
+        const hasTiming =
+          rule.offsetDays.trim() !== "" && rule.offsetDays !== "0";
         const hasCycle =
           rule.everyNDays.trim() !== "" || rule.occurrencesLimit.trim() !== "";
         const hasScope = rule.applyIfStartMethod.length > 0;
@@ -397,7 +398,9 @@ export const VegetableForm = ({
         }
 
         if (!actionRuleTriggerOptions.includes(rule.trigger)) {
-          throw new Error(`Reguła #${index + 1}: trigger ma niepoprawną wartość.`);
+          throw new Error(
+            `Reguła #${index + 1}: trigger ma niepoprawną wartość.`,
+          );
         }
 
         const offsetDays = parseInteger(rule.offsetDays);

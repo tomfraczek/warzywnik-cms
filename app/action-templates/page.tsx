@@ -440,15 +440,17 @@ export default function ActionTemplatesPage() {
                 <td className="px-4 py-3 text-zinc-500">
                   <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs">
                     {item.generationMode
-                      ? (actionTemplateGenerationModeLabels[item.generationMode] ??
-                        item.generationMode)
+                      ? (actionTemplateGenerationModeLabels[
+                          item.generationMode
+                        ] ?? item.generationMode)
                       : "-"}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-zinc-500">
                   <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs">
                     {item.priority
-                      ? actionTemplatePriorityLabels[item.priority] ?? item.priority
+                      ? (actionTemplatePriorityLabels[item.priority] ??
+                        item.priority)
                       : "-"}
                   </span>
                 </td>
@@ -460,7 +462,9 @@ export default function ActionTemplatesPage() {
                     <span>
                       max: {item.maxAutoOccurrencesPerPlanting ?? "-"}
                     </span>
-                    <span>min dni: {item.minDaysBetweenOccurrences ?? "-"}</span>
+                    <span>
+                      min dni: {item.minDaysBetweenOccurrences ?? "-"}
+                    </span>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-zinc-500">

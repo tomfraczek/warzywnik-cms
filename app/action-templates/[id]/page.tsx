@@ -132,7 +132,8 @@ export default function ActionTemplateDetailsPage() {
               </p>
               <p className="mt-1 font-medium text-zinc-900">
                 {data.priority
-                  ? actionTemplatePriorityLabels[data.priority] ?? data.priority
+                  ? (actionTemplatePriorityLabels[data.priority] ??
+                    data.priority)
                   : "-"}
               </p>
             </div>

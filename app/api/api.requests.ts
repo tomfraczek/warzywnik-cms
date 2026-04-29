@@ -475,13 +475,14 @@ export const getAnalyticsArticlesPopular = async (
 
 // ─── Action automation diagnostics ───────────────────────────────────────────
 
-export const getActionAutomationCoverage = async (): Promise<ActionAutomationCoverage> => {
-  const { data } = await apiClient.get<ActionAutomationCoverage>(
-    "/v1/action-automation/coverage",
-    { headers: adminHeaders() },
-  );
-  return data;
-};
+export const getActionAutomationCoverage =
+  async (): Promise<ActionAutomationCoverage> => {
+    const { data } = await apiClient.get<ActionAutomationCoverage>(
+      "/v1/action-automation/coverage",
+      { headers: adminHeaders() },
+    );
+    return data;
+  };
 
 export const getPlantingTaskGenerationPreview = async (
   plantingId: string,

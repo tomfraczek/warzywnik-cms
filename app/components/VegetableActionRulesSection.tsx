@@ -271,14 +271,15 @@ const RuleRow = ({ rule, onUpdate, onDelete }: RuleRowProps) => {
                           slug/id: {value}
                         </div>
                         <div className="text-xs text-zinc-500">
-                          {item.name} — {" "}
+                          {item.name} —{" "}
                           {item.generationMode
                             ? (actionTemplateGenerationModeLabels[
                                 item.generationMode
                               ] ?? item.generationMode)
                             : "-"}
                           {" / "}
-                          {actionTemplateTargetLabels[item.target] ?? item.target}
+                          {actionTemplateTargetLabels[item.target] ??
+                            item.target}
                           {" / "}
                           {actionTemplateTypeLabels[item.type] ?? item.type}
                           {item.priority
@@ -342,8 +343,8 @@ const RuleRow = ({ rule, onUpdate, onDelete }: RuleRowProps) => {
 
         {selectedTemplate?.generationMode === "SUGGESTION" && (
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 md:col-span-2 xl:col-span-4">
-            Ten szablon powinien działać jako sugestia, a nie jako
-            automatyczne zadanie.
+            Ten szablon powinien działać jako sugestia, a nie jako automatyczne
+            zadanie.
           </p>
         )}
 
@@ -363,9 +364,9 @@ const RuleRow = ({ rule, onUpdate, onDelete }: RuleRowProps) => {
         {(selectedTemplate?.maxAutoOccurrencesPerPlanting != null ||
           selectedTemplate?.minDaysBetweenOccurrences != null) && (
           <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 md:col-span-2 xl:col-span-4">
-            Ograniczenia szablonu: max automatycznych wystąpień = {" "}
-            {selectedTemplate?.maxAutoOccurrencesPerPlanting ?? "-"}, min
-            odstęp (dni) = {selectedTemplate?.minDaysBetweenOccurrences ?? "-"}.
+            Ograniczenia szablonu: max automatycznych wystąpień ={" "}
+            {selectedTemplate?.maxAutoOccurrencesPerPlanting ?? "-"}, min odstęp
+            (dni) = {selectedTemplate?.minDaysBetweenOccurrences ?? "-"}.
           </p>
         )}
 

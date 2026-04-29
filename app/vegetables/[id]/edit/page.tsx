@@ -23,8 +23,9 @@ const mapVegetableToFormValues = (data: Vegetable): VegetableFormValues => ({
   slug: data.slug || "",
   description: data.description,
   latinName: data.latinName || "",
-  botanicalFamily:
-    (data.botanicalFamily || data.family || "") as "" | BotanicalFamily,
+  botanicalFamily: (data.botanicalFamily || data.family || "") as
+    | ""
+    | BotanicalFamily,
   family: (data.family || "") as "" | BotanicalFamily,
   nutrientNeeds: data.nutrientNeeds || "",
   rotationGroup: data.rotationGroup || "",
@@ -282,7 +283,8 @@ export default function EditVegetablePage() {
           </p>
           <div className="flex flex-wrap items-center gap-4">
             <div className="text-sm text-zinc-600">
-              Chroniony przed aktualizacjami z seeda: {data.isCustomized ? "Tak" : "Nie"}
+              Chroniony przed aktualizacjami z seeda:{" "}
+              {data.isCustomized ? "Tak" : "Nie"}
             </div>
             <button
               type="submit"

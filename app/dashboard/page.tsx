@@ -252,16 +252,16 @@ export default function DashboardPage() {
           />
         </div>
       </div>
-        <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-amber-700">
-            Diagnostyka automatyzacji (TODO)
-          </h2>
-          <p className="mt-2 text-sm text-amber-800">
-            Dodano obsługę endpointów: coverage, task-generation-preview,
-            recompute-actions. Ekran admin/dev do podglądu danych diagnostycznych
-            zostanie dodany w kolejnym kroku.
-          </p>
-        </section>
+      <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-amber-700">
+          Diagnostyka automatyzacji (TODO)
+        </h2>
+        <p className="mt-2 text-sm text-amber-800">
+          Dodano obsługę endpointów: coverage, task-generation-preview,
+          recompute-actions. Ekran admin/dev do podglądu danych diagnostycznych
+          zostanie dodany w kolejnym kroku.
+        </p>
+      </section>
 
       {/* ── Analytics ─────────────────────────────────────────────── */}
       <div className="space-y-4">
