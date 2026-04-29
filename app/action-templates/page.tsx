@@ -16,6 +16,8 @@ import {
 import type { ActionTemplate } from "@/app/api/api.types";
 import {
   actionTemplateEnvironmentLabels,
+  actionTemplateGenerationModeLabels,
+  actionTemplatePriorityLabels,
   actionTemplateTargetLabels,
   actionTemplateTypeLabels,
 } from "@/app/utils/labels";
@@ -23,13 +25,20 @@ import {
 const csvHeaders = [
   "id",
   "name",
+  "slug",
   "target",
   "environment",
   "type",
+  "generationMode",
+  "priority",
+  "requiresUserConfirmation",
+  "maxAutoOccurrencesPerPlanting",
+  "minDaysBetweenOccurrences",
   "defaultDueOffsetDays",
   "description",
   "createdAt",
   "updatedAt",
+  "rawJson",
 ];
 
 const escapeCsv = (value: unknown) => {
@@ -45,13 +54,20 @@ const toCsv = (rows: ActionTemplate[]) => {
     const values = [
       row.id,
       row.name,
+      row.slug ?? "",
       row.target,
       row.environment,
       row.type,
+      row.generationMode ?? "",
+      row.priority ?? "",
+      row.requiresUserConfirmation ?? false,
+      row.maxAutoOccurrencesPerPlanting ?? "",
+      row.minDaysBetweenOccurrences ?? "",
       row.defaultDueOffsetDays ?? "",
       row.description ?? "",
       row.createdAt,
       row.updatedAt,
+      JSON.stringify(row),
     ];
     return values.map((value) => escapeCsv(value)).join(",");
   });
@@ -360,6 +376,10 @@ export default function ActionTemplatesPage() {
               <th className="px-4 py-3">Zakres</th>
               <th className="px-4 py-3">Środowisko</th>
               <th className="px-4 py-3">Typ</th>
+              <th className="px-4 py-3">Tryb generowania</th>
+              <th className="px-4 py-3">Priorytet</th>
+              <th className="px-4 py-3">Zatwierdzenie</th>
+              <th className="px-4 py-3">Limity automatyzacji</th>
               <th className="px-4 py-3">Opóźnienie terminu (dni)</th>
               <th className="px-4 py-3">Aktualizacja</th>
               <th className="px-4 py-3 text-right">Akcje</th>
@@ -368,21 +388,21 @@ export default function ActionTemplatesPage() {
           <tbody>
             {isLoading && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={8}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={12}>
                   Ładowanie...
                 </td>
               </tr>
             )}
             {error && (
               <tr>
-                <td className="px-4 py-6 text-red-500" colSpan={8}>
+                <td className="px-4 py-6 text-red-500" colSpan={12}>
                   Nie udało się pobrać listy.
                 </td>
               </tr>
             )}
             {!isLoading && data?.items.length === 0 && (
               <tr>
-                <td className="px-4 py-6 text-zinc-500" colSpan={8}>
+                <td className="px-4 py-6 text-zinc-500" colSpan={12}>
                   Brak szablonów zabiegów.
                 </td>
               </tr>
@@ -416,6 +436,32 @@ export default function ActionTemplatesPage() {
                 </td>
                 <td className="px-4 py-3 text-zinc-500">
                   {actionTemplateTypeLabels[item.type] ?? item.type}
+                </td>
+                <td className="px-4 py-3 text-zinc-500">
+                  <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs">
+                    {item.generationMode
+                      ? (actionTemplateGenerationModeLabels[item.generationMode] ??
+                        item.generationMode)
+                      : "-"}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-zinc-500">
+                  <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs">
+                    {item.priority
+                      ? actionTemplatePriorityLabels[item.priority] ?? item.priority
+                      : "-"}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-zinc-500">
+                  {item.requiresUserConfirmation ? "Tak" : "Nie"}
+                </td>
+                <td className="px-4 py-3 text-zinc-500">
+                  <div className="flex flex-col text-xs">
+                    <span>
+                      max: {item.maxAutoOccurrencesPerPlanting ?? "-"}
+                    </span>
+                    <span>min dni: {item.minDaysBetweenOccurrences ?? "-"}</span>
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-zinc-500">
                   {item.defaultDueOffsetDays ?? "-"}

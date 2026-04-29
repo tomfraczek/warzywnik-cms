@@ -87,6 +87,15 @@ export type ActionTemplateEnvironment =
   | "outdoor"
   | "tunnel"
   | "greenhouse";
+export type ActionTemplateGenerationMode =
+  | "AUTO"
+  | "ROUTINE"
+  | "SUGGESTION"
+  | "MANUAL_ONLY"
+  | "POST_HARVEST_PROMPT"
+  | "WEATHER_TRIGGERED"
+  | "SEASONAL";
+export type ActionTemplatePriority = "low" | "medium" | "high" | "critical";
 export type ActionTemplateType =
   | "sowing"
   | "transplanting"
@@ -162,6 +171,11 @@ export type ActionTemplateListItem = {
   target: ActionTemplateTarget;
   environment: ActionTemplateEnvironment;
   type: ActionTemplateType;
+  generationMode?: ActionTemplateGenerationMode;
+  priority?: ActionTemplatePriority;
+  maxAutoOccurrencesPerPlanting?: number | null;
+  minDaysBetweenOccurrences?: number | null;
+  requiresUserConfirmation?: boolean;
   defaultDueOffsetDays?: number | null;
   updatedAt: string;
 };
@@ -175,6 +189,7 @@ export type Vegetable = {
   id: string;
   name: string;
   slug: string | null;
+  botanicalFamily?: BotanicalFamily | null;
   family: BotanicalFamily | null;
   latinName: string | null;
   nutrientNeeds: NutrientNeeds | null;
@@ -271,8 +286,10 @@ export type DeleteManyDto = {
 
 export type CreateVegetablePayload = {
   name: string;
+  slug?: string | null;
   description: string;
   latinName?: string | null;
+  botanicalFamily?: BotanicalFamily | null;
   family?: BotanicalFamily | null;
   nutrientNeeds?: NutrientNeeds | null;
   rotationGroup?: RotationGroup | null;
@@ -329,11 +346,42 @@ export type CreateActionTemplatePayload = {
   target: ActionTemplateTarget;
   environment: ActionTemplateEnvironment;
   type: ActionTemplateType;
+  generationMode?: ActionTemplateGenerationMode;
+  priority?: ActionTemplatePriority;
+  maxAutoOccurrencesPerPlanting?: number | null;
+  minDaysBetweenOccurrences?: number | null;
+  requiresUserConfirmation?: boolean;
   defaultDueOffsetDays?: number | null;
   description?: string | null;
 };
 
 export type UpdateActionTemplatePayload = Partial<CreateActionTemplatePayload>;
+
+export type ActionAutomationCoverage = {
+  templatesCount: number;
+  rulesCount: number;
+  vegetablesWithoutRulesCount: number;
+  unusedTemplateSlugs: string[];
+  skippedRulesByMissingDateOrLimitCount: number;
+  [key: string]: unknown;
+};
+
+export type TaskGenerationPreview = {
+  tasks: unknown[];
+  suggestions: unknown[];
+  skippedRules: Array<{
+    ruleId?: string;
+    reason?: string;
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+};
+
+export type RecomputePlantingActionsResponse = {
+  ok?: boolean;
+  message?: string;
+  [key: string]: unknown;
+};
 
 export type UpdateDiseasePayload = Partial<CreateDiseasePayload>;
 
@@ -422,6 +470,24 @@ export const actionTemplateEnvironmentOptions: ActionTemplateEnvironment[] = [
   "outdoor",
   "tunnel",
   "greenhouse",
+];
+
+export const actionTemplateGenerationModeOptions: ActionTemplateGenerationMode[] =
+  [
+    "AUTO",
+    "ROUTINE",
+    "SUGGESTION",
+    "MANUAL_ONLY",
+    "POST_HARVEST_PROMPT",
+    "WEATHER_TRIGGERED",
+    "SEASONAL",
+  ];
+
+export const actionTemplatePriorityOptions: ActionTemplatePriority[] = [
+  "low",
+  "medium",
+  "high",
+  "critical",
 ];
 
 export const actionRuleTriggerOptions: ActionRuleTrigger[] = [

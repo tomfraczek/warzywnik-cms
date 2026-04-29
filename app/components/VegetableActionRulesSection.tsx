@@ -6,7 +6,6 @@ import { getActionTemplates } from "@/app/api/api.requests";
 import type {
   ActionRuleSchedule,
   ActionRuleTrigger,
-  ActionTemplate,
   ActionTemplateListItem,
   PlantingStartMethod,
 } from "@/app/api/api.types";
@@ -19,6 +18,9 @@ import {
 import {
   actionRuleScheduleLabels,
   actionRuleTriggerLabels,
+  actionTemplateGenerationModeLabels,
+  actionTemplatePriorityLabels,
+  actionTemplateTargetLabels,
   actionTemplateTypeLabels,
   plantingStartMethodLabels,
 } from "../utils/labels";
@@ -175,14 +177,27 @@ const RuleRow = ({ rule, onUpdate, onDelete }: RuleRowProps) => {
     queryFn: () => fetchAllTemplatePages(templateFilters),
   });
 
+  const selectedTemplate = useMemo(
+    () =>
+      options.find(
+        (item) => getTemplateRelationValue(item) === rule.actionTemplateSlug,
+      ),
+    [options, rule.actionTemplateSlug],
+  );
+
+  const occurrencesLimitParsed = Number(rule.occurrencesLimit);
+  const isHighOccurrencesLimit =
+    rule.schedule === "EVERY_N_DAYS" &&
+    Number.isFinite(occurrencesLimitParsed) &&
+    occurrencesLimitParsed > 6;
+
   useEffect(() => {
     if (options.length > 0) {
       setResolvedNames((prev) => {
         const next = { ...prev };
         for (const item of options) {
           const value = getTemplateRelationValue(item);
-          next[value] =
-            `${item.name} (${actionTemplateTypeLabels[item.type] ?? item.type})`;
+          next[value] = `${item.name} · ${value}`;
         }
         return next;
       });
@@ -249,10 +264,27 @@ const RuleRow = ({ rule, onUpdate, onDelete }: RuleRowProps) => {
                           setQuery("");
                         }}
                       >
-                        {item.name}{" "}
-                        <span className="text-zinc-400">
-                          ({actionTemplateTypeLabels[item.type] ?? item.type})
-                        </span>
+                        <div className="font-medium text-zinc-900">
+                          {item.name}
+                        </div>
+                        <div className="text-xs text-zinc-500">
+                          slug/id: {value}
+                        </div>
+                        <div className="text-xs text-zinc-500">
+                          {item.name} — {" "}
+                          {item.generationMode
+                            ? (actionTemplateGenerationModeLabels[
+                                item.generationMode
+                              ] ?? item.generationMode)
+                            : "-"}
+                          {" / "}
+                          {actionTemplateTargetLabels[item.target] ?? item.target}
+                          {" / "}
+                          {actionTemplateTypeLabels[item.type] ?? item.type}
+                          {item.priority
+                            ? ` / ${actionTemplatePriorityLabels[item.priority] ?? item.priority}`
+                            : ""}
+                        </div>
                       </button>
                     </li>
                   );
@@ -294,11 +326,53 @@ const RuleRow = ({ rule, onUpdate, onDelete }: RuleRowProps) => {
           </select>
         </label>
 
+        {rule.trigger === "ON_HARVEST_CONFIRMED" && (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 md:col-span-2 xl:col-span-4">
+            Ten trigger nie tworzy zwykłego automatycznego zadania. Backend
+            obsługuje go jako prompt/sugestię po potwierdzeniu zbioru.
+          </p>
+        )}
+
+        {selectedTemplate?.generationMode === "MANUAL_ONLY" && (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 md:col-span-2 xl:col-span-4">
+            Ten szablon jest oznaczony jako tylko ręczny. Nie powinien być
+            używany w automatycznych regułach.
+          </p>
+        )}
+
+        {selectedTemplate?.generationMode === "SUGGESTION" && (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 md:col-span-2 xl:col-span-4">
+            Ten szablon powinien działać jako sugestia, a nie jako
+            automatyczne zadanie.
+          </p>
+        )}
+
+        {selectedTemplate?.generationMode === "POST_HARVEST_PROMPT" && (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 md:col-span-2 xl:col-span-4">
+            Ten szablon jest przeznaczony do sugestii po zbiorze.
+          </p>
+        )}
+
+        {selectedTemplate?.generationMode === "WEATHER_TRIGGERED" && (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 md:col-span-2 xl:col-span-4">
+            Ten szablon zwykle powinien być uruchamiany przez warunki pogodowe,
+            nie przez zwykłą regułę warzywa.
+          </p>
+        )}
+
+        {(selectedTemplate?.maxAutoOccurrencesPerPlanting != null ||
+          selectedTemplate?.minDaysBetweenOccurrences != null) && (
+          <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 md:col-span-2 xl:col-span-4">
+            Ograniczenia szablonu: max automatycznych wystąpień = {" "}
+            {selectedTemplate?.maxAutoOccurrencesPerPlanting ?? "-"}, min
+            odstęp (dni) = {selectedTemplate?.minDaysBetweenOccurrences ?? "-"}.
+          </p>
+        )}
+
         <label className="flex flex-col gap-1 text-xs">
           <span className="font-medium">Opóźnienie (dni)</span>
           <input
             type="number"
-            min={0}
             step={1}
             className="rounded-lg border border-zinc-200 px-3 py-2"
             value={rule.offsetDays}
@@ -333,46 +407,52 @@ const RuleRow = ({ rule, onUpdate, onDelete }: RuleRowProps) => {
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium">Co ile dni</span>
-          <input
-            type="number"
-            min={1}
-            step={1}
-            className="rounded-lg border border-zinc-200 px-3 py-2"
-            value={rule.everyNDays}
-            onChange={(event) =>
-              onUpdate({
-                ...rule,
-                everyNDays: event.target.value,
-              })
-            }
-            disabled={rule.schedule !== "EVERY_N_DAYS"}
-            placeholder={
-              rule.schedule === "EVERY_N_DAYS"
-                ? "wymagane"
-                : "tylko dla trybu 'Co N dni'"
-            }
-          />
-        </label>
+        {rule.schedule === "EVERY_N_DAYS" && (
+          <>
+            <label className="flex flex-col gap-1 text-xs">
+              <span className="font-medium">Co ile dni</span>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                className="rounded-lg border border-zinc-200 px-3 py-2"
+                value={rule.everyNDays}
+                onChange={(event) =>
+                  onUpdate({
+                    ...rule,
+                    everyNDays: event.target.value,
+                  })
+                }
+                placeholder="wymagane"
+              />
+            </label>
 
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium">Limit powtórzeń</span>
-          <input
-            type="number"
-            min={1}
-            step={1}
-            className="rounded-lg border border-zinc-200 px-3 py-2"
-            value={rule.occurrencesLimit}
-            onChange={(event) =>
-              onUpdate({
-                ...rule,
-                occurrencesLimit: event.target.value,
-              })
-            }
-            placeholder="opcjonalnie"
-          />
-        </label>
+            <label className="flex flex-col gap-1 text-xs">
+              <span className="font-medium">Limit wystąpień</span>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                className="rounded-lg border border-zinc-200 px-3 py-2"
+                value={rule.occurrencesLimit}
+                onChange={(event) =>
+                  onUpdate({
+                    ...rule,
+                    occurrencesLimit: event.target.value,
+                  })
+                }
+                placeholder="opcjonalnie"
+              />
+            </label>
+          </>
+        )}
+
+        {isHighOccurrencesLimit && (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 md:col-span-2 xl:col-span-4">
+            Wysoki limit może prowadzić do zbyt wielu zadań. Backend zastosuje
+            limity anty-zalewowe, ale warto ograniczyć liczbę wystąpień.
+          </p>
+        )}
 
         <div className="flex flex-col gap-1 text-xs">
           <span className="font-medium">Dotyczy metody rozpoczęcia</span>
@@ -388,6 +468,11 @@ const RuleRow = ({ rule, onUpdate, onDelete }: RuleRowProps) => {
               </label>
             ))}
           </div>
+          <p className="text-zinc-500">
+            DIRECT_SOW — reguła będzie działać tylko dla upraw z siewu
+            bezpośredniego. TRANSPLANT — reguła będzie działać tylko dla upraw
+            przez rozsadę. Puste — reguła działa dla obu ścieżek.
+          </p>
         </div>
 
         <div className="flex items-end justify-between gap-3 text-xs">
@@ -517,6 +602,9 @@ export const VegetableActionRulesSection = ({
 
       <p className="mt-3 text-xs text-zinc-500">
         Dostępne triggery: {actionRuleTriggerOptions.join(", ")}
+      </p>
+      <p className="mt-1 text-xs text-zinc-500">
+        Diagnostyka generowania zadań będzie dostępna w osobnym widoku.
       </p>
     </section>
   );

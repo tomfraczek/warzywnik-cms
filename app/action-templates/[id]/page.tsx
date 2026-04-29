@@ -11,6 +11,8 @@ import {
 } from "@/app/api/api.types";
 import {
   actionTemplateEnvironmentLabels,
+  actionTemplateGenerationModeLabels,
+  actionTemplatePriorityLabels,
   actionTemplateTargetLabels,
   actionTemplateTypeLabels,
 } from "@/app/utils/labels";
@@ -111,6 +113,51 @@ export default function ActionTemplateDetailsPage() {
               </p>
               <p className="mt-1 font-medium text-zinc-900">
                 {actionTemplateTypeLabels[data.type] ?? data.type}
+              </p>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">
+                Tryb generowania
+              </p>
+              <p className="mt-1 font-medium text-zinc-900">
+                {data.generationMode
+                  ? (actionTemplateGenerationModeLabels[data.generationMode] ??
+                    data.generationMode)
+                  : "-"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">
+                Priorytet
+              </p>
+              <p className="mt-1 font-medium text-zinc-900">
+                {data.priority
+                  ? actionTemplatePriorityLabels[data.priority] ?? data.priority
+                  : "-"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">
+                Wymaga zatwierdzenia użytkownika
+              </p>
+              <p className="mt-1 font-medium text-zinc-900">
+                {data.requiresUserConfirmation ? "Tak" : "Nie"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">
+                Maksymalna liczba automatycznych wystąpień
+              </p>
+              <p className="mt-1 font-medium text-zinc-900">
+                {data.maxAutoOccurrencesPerPlanting ?? "-"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">
+                Minimalny odstęp między zadaniami
+              </p>
+              <p className="mt-1 font-medium text-zinc-900">
+                {data.minDaysBetweenOccurrences ?? "-"}
               </p>
             </div>
             <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">

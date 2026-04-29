@@ -2,6 +2,8 @@ import type {
   ActionRuleSchedule,
   ActionRuleTrigger,
   ActionTemplateType,
+  ActionTemplateGenerationMode,
+  ActionTemplatePriority,
   ActionTemplateEnvironment,
   ActionTemplateTarget,
   BotanicalFamily,
@@ -114,25 +116,25 @@ export const dominantNutrientDemandLabels: Record<
 };
 
 export const actionRuleTriggerLabels: Record<ActionRuleTrigger, string> = {
-  ON_SOWED: "Siew zakończony",
-  AFTER_SOWING_DAYS: "Po X dniach od siewu",
+  ON_SOWED: "W dniu siewu",
+  AFTER_SOWING_DAYS: "X dni po siewie",
   BEFORE_TRANSPLANT_DAYS: "X dni przed przesadzeniem",
-  ON_TRANSPLANTED: "Przesadzenie zakończone",
-  AFTER_TRANSPLANT_DAYS: "Po X dniach od przesadzenia",
-  ON_HARVEST_WINDOW_START: "Początek okna zbioru",
-  BEFORE_HARVEST_WINDOW_START_DAYS: "X dni przed oknem zbioru",
-  ON_HARVEST_CONFIRMED: "Zbiór potwierdzony",
-  AFTER_HARVEST_DAYS: "Po X dniach od zbioru",
+  ON_TRANSPLANTED: "W dniu przesadzenia",
+  AFTER_TRANSPLANT_DAYS: "X dni po przesadzeniu",
+  ON_HARVEST_WINDOW_START: "Na początku okna zbioru",
+  BEFORE_HARVEST_WINDOW_START_DAYS: "X dni przed początkiem okna zbioru",
+  ON_HARVEST_CONFIRMED: "Po potwierdzeniu zbioru",
+  AFTER_HARVEST_DAYS: "X dni po zbiorze",
 };
 
 export const actionRuleScheduleLabels: Record<ActionRuleSchedule, string> = {
   ONCE: "Jednorazowo",
-  EVERY_N_DAYS: "Co N dni",
+  EVERY_N_DAYS: "Cyklicznie co X dni",
 };
 
 export const plantingStartMethodLabels: Record<PlantingStartMethod, string> = {
   DIRECT_SOW: "Siew bezpośredni",
-  TRANSPLANT: "Rozsada/przesadzenie",
+  TRANSPLANT: "Rozsada / przesadzanie",
 };
 
 export const soilStructureLabels: Record<SoilStructure, string> = {
@@ -212,6 +214,27 @@ export const actionTemplateTypeLabels: Record<ActionTemplateType, string> = {
   seasonal_preparation: "Przygotowanie sezonowe",
   manual_custom: "Ręczny (własny)",
 };
+
+export const actionTemplateGenerationModeLabels: Record<
+  ActionTemplateGenerationMode,
+  string
+> = {
+  AUTO: "Automatyczne",
+  ROUTINE: "Rutynowe",
+  SUGGESTION: "Sugestia",
+  MANUAL_ONLY: "Tylko ręczne",
+  POST_HARVEST_PROMPT: "Po zbiorze",
+  WEATHER_TRIGGERED: "Zależne od pogody",
+  SEASONAL: "Sezonowe",
+};
+
+export const actionTemplatePriorityLabels: Record<ActionTemplatePriority, string> =
+  {
+    low: "Niski",
+    medium: "Średni",
+    high: "Wysoki",
+    critical: "Krytyczny",
+  };
 
 // ---------- fertilizer ----------
 export const fertilizerCategoryLabels: Record<FertilizerCategory, string> = {

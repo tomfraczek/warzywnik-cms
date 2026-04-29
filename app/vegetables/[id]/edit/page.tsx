@@ -20,8 +20,11 @@ import type {
 
 const mapVegetableToFormValues = (data: Vegetable): VegetableFormValues => ({
   name: data.name,
+  slug: data.slug || "",
   description: data.description,
   latinName: data.latinName || "",
+  botanicalFamily:
+    (data.botanicalFamily || data.family || "") as "" | BotanicalFamily,
   family: (data.family || "") as "" | BotanicalFamily,
   nutrientNeeds: data.nutrientNeeds || "",
   rotationGroup: data.rotationGroup || "",
@@ -191,7 +194,22 @@ export default function EditVegetablePage() {
           return;
         }
         if (err.response.status === 400) {
-          setErrorMessage("Błąd walidacji danych.");
+          const backendMessage =
+            typeof err.response.data === "object" &&
+            err.response.data &&
+            typeof (err.response.data as { message?: unknown }).message ===
+              "string"
+              ? String((err.response.data as { message?: string }).message)
+              : null;
+
+          if (backendMessage) {
+            setErrorMessage(backendMessage);
+            return;
+          }
+
+          setErrorMessage(
+            "Błąd walidacji danych (np. limity, nieistniejący actionTemplateSlug lub brak everyNDays).",
+          );
           return;
         }
         if (err.response.status === 404) {
@@ -263,25 +281,9 @@ export default function EditVegetablePage() {
             Warzywa
           </p>
           <div className="flex flex-wrap items-center gap-4">
-            <label className="flex cursor-pointer items-center gap-2 text-sm select-none">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-zinc-300"
-                checked={data.isCustomized}
-                disabled={resetCustomizationMutation.isPending}
-                onChange={(e) => {
-                  if (!e.target.checked) {
-                    handleResetCustomization();
-                  }
-                }}
-              />
-              <span className="font-medium text-zinc-700">
-                Chroniony przed aktualizacjami z seeda
-              </span>
-              {resetCustomizationMutation.isPending && (
-                <span className="text-xs text-zinc-400">Resetowanie...</span>
-              )}
-            </label>
+            <div className="text-sm text-zinc-600">
+              Chroniony przed aktualizacjami z seeda: {data.isCustomized ? "Tak" : "Nie"}
+            </div>
             <button
               type="submit"
               form={formId}
@@ -312,7 +314,8 @@ export default function EditVegetablePage() {
         isDeletingImage={deleteImageMutation.isPending}
         onAssignImageFromLibrary={handleAssignImageFromLibrary}
         isCustomized={data.isCustomized}
-        isResettingCustomization={resetCustomizationMutation.isPending}
+        createdAt={data.createdAt}
+        updatedAt={data.updatedAt}
         onResetCustomization={handleResetCustomization}
       />
     </section>

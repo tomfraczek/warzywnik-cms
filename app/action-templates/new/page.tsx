@@ -19,6 +19,11 @@ const mapBackendFieldToFormField = (
     target: "target",
     environment: "environment",
     type: "type",
+    generationMode: "generationMode",
+    priority: "priority",
+    maxAutoOccurrencesPerPlanting: "maxAutoOccurrencesPerPlanting",
+    minDaysBetweenOccurrences: "minDaysBetweenOccurrences",
+    requiresUserConfirmation: "requiresUserConfirmation",
     defaultDueOffsetDays: "defaultDueOffsetDays",
     description: "description",
   };
@@ -39,6 +44,11 @@ const extractFieldErrors = (payload: unknown): FieldErrors => {
       "target",
       "environment",
       "type",
+      "generationMode",
+      "priority",
+      "maxAutoOccurrencesPerPlanting",
+      "minDaysBetweenOccurrences",
+      "requiresUserConfirmation",
       "defaultDueOffsetDays",
       "description",
     ];
@@ -109,7 +119,14 @@ export default function NewActionTemplatePage() {
         if (error.response.status === 400) {
           const nextFieldErrors = extractFieldErrors(error.response.data);
           setFieldErrors(nextFieldErrors);
-          setErrorMessage("Błąd walidacji danych. Sprawdź pola formularza.");
+          const message =
+            typeof error.response.data === "object" &&
+            error.response.data &&
+            typeof (error.response.data as { message?: unknown }).message ===
+              "string"
+              ? String((error.response.data as { message?: string }).message)
+              : "Błąd walidacji danych. Sprawdź pola formularza.";
+          setErrorMessage(message);
           return;
         }
       }

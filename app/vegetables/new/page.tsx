@@ -35,7 +35,22 @@ export default function NewVegetablePage() {
           return;
         }
         if (error.response.status === 400) {
-          setErrorMessage("Błąd walidacji danych.");
+          const backendMessage =
+            typeof error.response.data === "object" &&
+            error.response.data &&
+            typeof (error.response.data as { message?: unknown }).message ===
+              "string"
+              ? String((error.response.data as { message?: string }).message)
+              : null;
+
+          if (backendMessage) {
+            setErrorMessage(backendMessage);
+            return;
+          }
+
+          setErrorMessage(
+            "Błąd walidacji danych (np. limity, nieistniejący actionTemplateSlug lub brak everyNDays).",
+          );
           return;
         }
       }

@@ -26,11 +26,14 @@ import type {
   SowingMethodType,
 } from "@/app/api/api.types";
 import {
+  actionRuleScheduleOptions,
+  actionRuleTriggerOptions,
   botanicalFamilyOptions,
   demandLevelOptions,
   dominantNutrientDemandOptions,
   monthOptions,
   nutrientNeedsOptions,
+  plantingStartMethodOptions,
   rotationGroupOptions,
   sowingMethodOptions,
   sunExposureOptions,
@@ -56,8 +59,10 @@ import {
 
 export type VegetableFormValues = {
   name: string;
+  slug: string;
   description: string;
   latinName: string;
+  botanicalFamily: "" | BotanicalFamily;
   family: "" | BotanicalFamily;
   nutrientNeeds: "" | NutrientNeeds;
   rotationGroup: "" | RotationGroup;
@@ -163,8 +168,10 @@ const parseInteger = (value: string) => {
 
 const defaultValues: VegetableFormValues = {
   name: "",
+  slug: "",
   description: "",
   latinName: "",
+  botanicalFamily: "",
   family: "",
   nutrientNeeds: "",
   rotationGroup: "",
@@ -205,7 +212,8 @@ export type VegetableFormProps = {
   onAssignImageFromLibrary?: (url: string) => Promise<void> | void;
   onUploadImage?: (file: File) => Promise<string | null>;
   isCustomized?: boolean;
-  isResettingCustomization?: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
   onResetCustomization?: () => void;
 };
 
@@ -217,7 +225,8 @@ export const VegetableForm = ({
   isSubmitting,
   errorMessage,
   isCustomized,
-  isResettingCustomization,
+  createdAt,
+  updatedAt,
   onResetCustomization,
   excludeCompanionId,
   onDeleteImage,
@@ -367,21 +376,48 @@ export const VegetableForm = ({
         return;
       }
 
-      const normalizedActionRules = values.actionRules.map((rule, index) => {
+      const rulesToPersist = values.actionRules.filter((rule) => {
+        const hasTemplate = isValidRelationValue(rule.actionTemplateSlug);
+        const hasTiming = rule.offsetDays.trim() !== "" && rule.offsetDays !== "0";
+        const hasCycle =
+          rule.everyNDays.trim() !== "" || rule.occurrencesLimit.trim() !== "";
+        const hasScope = rule.applyIfStartMethod.length > 0;
+        return hasTemplate || hasTiming || hasCycle || hasScope;
+      });
+
+      const normalizedActionRules = rulesToPersist.map((rule, index) => {
         if (!isValidRelationValue(rule.actionTemplateSlug)) {
           throw new Error(
-            `Reguła #${index + 1}: ActionTemplate musi mieć poprawną wartość relacji.`,
+            `Reguła #${index + 1}: actionTemplateSlug jest wymagane.`,
           );
+        }
+
+        if (!rule.trigger) {
+          throw new Error(`Reguła #${index + 1}: trigger jest wymagany.`);
+        }
+
+        if (!actionRuleTriggerOptions.includes(rule.trigger)) {
+          throw new Error(`Reguła #${index + 1}: trigger ma niepoprawną wartość.`);
         }
 
         const offsetDays = parseInteger(rule.offsetDays);
-        if (offsetDays === null || offsetDays < 0) {
+        if (offsetDays === null) {
           throw new Error(
-            `Reguła #${index + 1}: offsetDays musi być liczbą całkowitą >= 0.`,
+            `Reguła #${index + 1}: offsetDays musi być liczbą całkowitą.`,
           );
         }
 
+        if (!rule.schedule) {
+          throw new Error(`Reguła #${index + 1}: schedule jest wymagane.`);
+        }
+
         const schedule = rule.schedule as ActionRuleSchedule;
+        if (!actionRuleScheduleOptions.includes(schedule)) {
+          throw new Error(
+            `Reguła #${index + 1}: schedule ma niepoprawną wartość.`,
+          );
+        }
+
         let everyNDays: number | null = null;
 
         if (schedule === "EVERY_N_DAYS") {
@@ -400,6 +436,16 @@ export const VegetableForm = ({
           );
         }
 
+        const invalidStartMethod = rule.applyIfStartMethod.find(
+          (method) => !plantingStartMethodOptions.includes(method),
+        );
+
+        if (invalidStartMethod) {
+          throw new Error(
+            `Reguła #${index + 1}: applyIfStartMethod zawiera niepoprawną wartość '${invalidStartMethod}'.`,
+          );
+        }
+
         return {
           actionTemplateSlug: rule.actionTemplateSlug,
           trigger: rule.trigger as ActionRuleTrigger,
@@ -410,7 +456,8 @@ export const VegetableForm = ({
           applyIfStartMethod: rule.applyIfStartMethod.length
             ? (rule.applyIfStartMethod as PlantingStartMethod[])
             : null,
-          isEnabled: rule.isEnabled,
+          isEnabled:
+            typeof rule.isEnabled === "boolean" ? rule.isEnabled : true,
         };
       });
 
@@ -450,6 +497,14 @@ export const VegetableForm = ({
             seedDepthCm: toNumberOrNull(method.seedDepthCm) ?? null,
             rowSpacingCm: toNumberOrNull(method.rowSpacingCm) ?? null,
             plantSpacingCm: toNumberOrNull(method.plantSpacingCm) ?? null,
+            transplantingStartMonth:
+              method.method === "seedlings"
+                ? (method.transplantingStartMonth ?? null)
+                : null,
+            transplantingEndMonth:
+              method.method === "seedlings"
+                ? (method.transplantingEndMonth ?? null)
+                : null,
           }))
         : null;
 
@@ -462,9 +517,11 @@ export const VegetableForm = ({
 
       const payload: CreateVegetablePayload = {
         name: values.name.trim(),
+        slug: toOptionalString(values.slug),
         description: values.description.trim(),
         latinName: toOptionalString(values.latinName),
-        family: values.family || null,
+        family: values.botanicalFamily || values.family || null,
+        botanicalFamily: values.botanicalFamily || values.family || null,
         nutrientNeeds: values.nutrientNeeds || null,
         rotationGroup: values.rotationGroup || null,
         imageUrl: toOptionalString(values.imageUrl),
@@ -577,6 +634,19 @@ export const VegetableForm = ({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Slug</span>
+            <span className="text-xs text-zinc-500">
+              Unikalny identyfikator URL (opcjonalnie).
+            </span>
+            <input
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.slug}
+              onChange={(event) => updateValue("slug", event.target.value)}
+              placeholder="np. pomidor-gruntowy"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Nazwa łacińska</span>
             <span className="text-xs text-zinc-500">
               Nazwa łacińska gatunku (opcjonalnie).
@@ -589,9 +659,33 @@ export const VegetableForm = ({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Rodzina botaniczna (nowy model)</span>
+            <span className="text-xs text-zinc-500">
+              Docelowe pole modelu warzywa.
+            </span>
+            <select
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.botanicalFamily}
+              onChange={(event) =>
+                updateValue(
+                  "botanicalFamily",
+                  event.target.value as "" | BotanicalFamily,
+                )
+              }
+            >
+              <option value="">Brak</option>
+              {botanicalFamilyOptions.map((option) => (
+                <option key={option} value={option}>
+                  {botanicalFamilyLabels[option]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Rodzina botaniczna</span>
             <span className="text-xs text-zinc-500">
-              Rodzina botaniczna warzywa (opcjonalnie).
+              Pole kompatybilności legacy `family`.
             </span>
             <select
               className="rounded-lg border border-zinc-200 px-3 py-2"
@@ -1097,6 +1191,22 @@ export const VegetableForm = ({
                   </label>
                 </div>
 
+                <label className="mt-3 flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={method.underCover}
+                    onChange={(event) => {
+                      const next = [...values.sowingMethods];
+                      next[index] = {
+                        ...next[index],
+                        underCover: event.target.checked,
+                      };
+                      updateValue("sowingMethods", next);
+                    }}
+                  />
+                  Wysiew pod osłonami (`underCover`)
+                </label>
+
                 <label className="mt-3 flex flex-col gap-1 text-sm">
                   <span className="font-medium">Dni kiełkowania min</span>
                   <span className="text-xs text-zinc-500">
@@ -1415,6 +1525,30 @@ export const VegetableForm = ({
         rules={values.actionRules}
         onChange={(nextRules) => updateValue("actionRules", nextRules)}
       />
+
+      <section className="rounded-xl border border-zinc-200 bg-white p-6">
+        <h2 className="text-lg font-semibold text-zinc-900">
+          Informacje techniczne
+        </h2>
+        <div className="mt-3 grid gap-3 text-sm md:grid-cols-2">
+          <p>
+            <span className="font-medium">Wersja reguł:</span>{" "}
+            {values.rulesVersion || "-"}
+          </p>
+          <p>
+            <span className="font-medium">Chronione (`isCustomized`):</span>{" "}
+            {isCustomized ? "Tak" : "Nie"}
+          </p>
+          <p>
+            <span className="font-medium">Utworzono:</span>{" "}
+            {createdAt ? new Date(createdAt).toLocaleString("pl-PL") : "-"}
+          </p>
+          <p>
+            <span className="font-medium">Zaktualizowano:</span>{" "}
+            {updatedAt ? new Date(updatedAt).toLocaleString("pl-PL") : "-"}
+          </p>
+        </div>
+      </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="flex items-center justify-between">
@@ -1786,25 +1920,9 @@ export const VegetableForm = ({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         {onResetCustomization !== undefined ? (
-          <label className="flex cursor-pointer items-center gap-2 text-sm select-none">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-zinc-300"
-              checked={isCustomized ?? false}
-              disabled={isResettingCustomization || isSubmitting}
-              onChange={(e) => {
-                if (!e.target.checked) {
-                  onResetCustomization();
-                }
-              }}
-            />
-            <span className="font-medium text-zinc-700">
-              Chroniony przed aktualizacjami z seeda
-            </span>
-            {isResettingCustomization && (
-              <span className="text-xs text-zinc-400">Resetowanie...</span>
-            )}
-          </label>
+          <div className="text-sm text-zinc-600">
+            Diagnostyka generowania zadań będzie dostępna w osobnym widoku.
+          </div>
         ) : (
           <span />
         )}

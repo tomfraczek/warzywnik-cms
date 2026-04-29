@@ -34,6 +34,9 @@ import type {
   AnalyticsArticlesPopularResponse,
   AnalyticsVegetablesPopularSort,
   AnalyticsArticlesPopularSort,
+  ActionAutomationCoverage,
+  TaskGenerationPreview,
+  RecomputePlantingActionsResponse,
 } from "@/app/api/api.types";
 
 export type GetVegetablesParams = {
@@ -466,6 +469,37 @@ export const getAnalyticsArticlesPopular = async (
   const { data } = await apiClient.get<AnalyticsArticlesPopularResponse>(
     "/v1/cms/analytics/articles/popular",
     { params, headers: adminHeaders() },
+  );
+  return data;
+};
+
+// ─── Action automation diagnostics ───────────────────────────────────────────
+
+export const getActionAutomationCoverage = async (): Promise<ActionAutomationCoverage> => {
+  const { data } = await apiClient.get<ActionAutomationCoverage>(
+    "/v1/action-automation/coverage",
+    { headers: adminHeaders() },
+  );
+  return data;
+};
+
+export const getPlantingTaskGenerationPreview = async (
+  plantingId: string,
+): Promise<TaskGenerationPreview> => {
+  const { data } = await apiClient.get<TaskGenerationPreview>(
+    `/v1/plantings/${plantingId}/task-generation-preview`,
+    { headers: adminHeaders() },
+  );
+  return data;
+};
+
+export const recomputePlantingActions = async (
+  plantingId: string,
+): Promise<RecomputePlantingActionsResponse> => {
+  const { data } = await apiClient.post<RecomputePlantingActionsResponse>(
+    `/v1/plantings/${plantingId}/recompute-actions`,
+    {},
+    { headers: adminHeaders() },
   );
   return data;
 };

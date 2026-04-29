@@ -5,12 +5,16 @@ import type { CreateActionTemplatePayload } from "@/app/api/api.types";
 import {
   actionTemplateDefaultTypeByTarget,
   actionTemplateEnvironmentOptions,
+  actionTemplateGenerationModeOptions,
+  actionTemplatePriorityOptions,
   actionTemplateTypeGroups,
   actionTemplateTargetOptions,
   mapActionTemplateType,
 } from "@/app/api/api.types";
 import {
   actionTemplateEnvironmentLabels,
+  actionTemplateGenerationModeLabels,
+  actionTemplatePriorityLabels,
   actionTemplateTargetLabels,
   actionTemplateTypeLabels,
 } from "@/app/utils/labels";
@@ -21,6 +25,11 @@ export type ActionTemplateFormValues = {
   target: CreateActionTemplatePayload["target"];
   environment: CreateActionTemplatePayload["environment"];
   type: CreateActionTemplatePayload["type"];
+  generationMode: NonNullable<CreateActionTemplatePayload["generationMode"]>;
+  priority: NonNullable<CreateActionTemplatePayload["priority"]>;
+  maxAutoOccurrencesPerPlanting: number | null;
+  minDaysBetweenOccurrences: number | null;
+  requiresUserConfirmation: boolean;
   defaultDueOffsetDays: number | null;
   description: string;
 };
@@ -31,6 +40,11 @@ const defaultValues: ActionTemplateFormValues = {
   target: "bed",
   environment: "any",
   type: actionTemplateDefaultTypeByTarget.bed,
+  generationMode: "MANUAL_ONLY",
+  priority: "medium",
+  maxAutoOccurrencesPerPlanting: null,
+  minDaysBetweenOccurrences: null,
+  requiresUserConfirmation: false,
   defaultDueOffsetDays: null,
   description: "",
 };
@@ -75,15 +89,64 @@ export const ActionTemplateForm = ({
       return;
     }
 
+    if (!values.target) {
+      setClientError("Pole 'Zakres' jest wymagane.");
+      return;
+    }
+
+    if (!values.type) {
+      setClientError("Pole 'Typ' jest wymagane.");
+      return;
+    }
+
+    if (!actionTemplateGenerationModeOptions.includes(values.generationMode)) {
+      setClientError("Niepoprawny tryb generowania.");
+      return;
+    }
+
+    if (!actionTemplatePriorityOptions.includes(values.priority)) {
+      setClientError("Niepoprawny priorytet.");
+      return;
+    }
+
     if (values.name.trim().length > 120) {
       setClientError("Nazwa może mieć maksymalnie 120 znaków.");
       return;
     }
 
     const offsetDays = values.defaultDueOffsetDays;
+    const maxAutoOccurrencesPerPlanting = values.maxAutoOccurrencesPerPlanting;
+    const minDaysBetweenOccurrences = values.minDaysBetweenOccurrences;
 
     if (offsetDays !== null && !Number.isInteger(offsetDays)) {
       setClientError("Opóźnienie terminu musi być liczbą całkowitą.");
+      return;
+    }
+
+    if (
+      maxAutoOccurrencesPerPlanting !== null &&
+      (!Number.isInteger(maxAutoOccurrencesPerPlanting) ||
+        maxAutoOccurrencesPerPlanting < 1)
+    ) {
+      setClientError(
+        "Maksymalna liczba automatycznych wystąpień musi być pusta albo >= 1.",
+      );
+      return;
+    }
+
+    if (
+      minDaysBetweenOccurrences !== null &&
+      (!Number.isInteger(minDaysBetweenOccurrences) ||
+        minDaysBetweenOccurrences < 1)
+    ) {
+      setClientError(
+        "Minimalny odstęp między zadaniami musi być pusty albo >= 1.",
+      );
+      return;
+    }
+
+    if (typeof values.requiresUserConfirmation !== "boolean") {
+      setClientError("Pole 'Wymaga zatwierdzenia użytkownika' musi być boolean.");
       return;
     }
 
@@ -95,6 +158,11 @@ export const ActionTemplateForm = ({
       target: values.target,
       environment: values.environment,
       type: mapActionTemplateType(values.type, values.target),
+      generationMode: values.generationMode,
+      priority: values.priority,
+      maxAutoOccurrencesPerPlanting,
+      minDaysBetweenOccurrences,
+      requiresUserConfirmation: values.requiresUserConfirmation,
       defaultDueOffsetDays: offsetDays,
       description: trimmedDescription === "" ? null : trimmedDescription,
     });
@@ -221,6 +289,123 @@ export const ActionTemplateForm = ({
               <span className="text-xs text-red-600">{fieldErrors.type}</span>
             )}
           </label>
+
+          <label className="flex flex-col gap-2 text-sm">
+            Tryb generowania
+            <select
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.generationMode}
+              onChange={(event) =>
+                updateValue(
+                  "generationMode",
+                  event.target
+                    .value as ActionTemplateFormValues["generationMode"],
+                )
+              }
+              required
+            >
+              {actionTemplateGenerationModeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {actionTemplateGenerationModeLabels[option] ?? option}
+                </option>
+              ))}
+            </select>
+            {fieldErrors?.generationMode && (
+              <span className="text-xs text-red-600">
+                {fieldErrors.generationMode}
+              </span>
+            )}
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm">
+            Priorytet
+            <select
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.priority}
+              onChange={(event) =>
+                updateValue(
+                  "priority",
+                  event.target.value as ActionTemplateFormValues["priority"],
+                )
+              }
+              required
+            >
+              {actionTemplatePriorityOptions.map((option) => (
+                <option key={option} value={option}>
+                  {actionTemplatePriorityLabels[option] ?? option}
+                </option>
+              ))}
+            </select>
+            {fieldErrors?.priority && (
+              <span className="text-xs text-red-600">{fieldErrors.priority}</span>
+            )}
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm">
+            Maksymalna liczba automatycznych wystąpień
+            <input
+              type="number"
+              min={1}
+              step={1}
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.maxAutoOccurrencesPerPlanting ?? ""}
+              onChange={(event) => {
+                const raw = event.target.value;
+                const parsedValue = event.target.valueAsNumber;
+                updateValue(
+                  "maxAutoOccurrencesPerPlanting",
+                  raw === "" || Number.isNaN(parsedValue) ? null : parsedValue,
+                );
+              }}
+              placeholder="opcjonalnie"
+            />
+            {fieldErrors?.maxAutoOccurrencesPerPlanting && (
+              <span className="text-xs text-red-600">
+                {fieldErrors.maxAutoOccurrencesPerPlanting}
+              </span>
+            )}
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm">
+            Minimalny odstęp między zadaniami
+            <input
+              type="number"
+              min={1}
+              step={1}
+              className="rounded-lg border border-zinc-200 px-3 py-2"
+              value={values.minDaysBetweenOccurrences ?? ""}
+              onChange={(event) => {
+                const raw = event.target.value;
+                const parsedValue = event.target.valueAsNumber;
+                updateValue(
+                  "minDaysBetweenOccurrences",
+                  raw === "" || Number.isNaN(parsedValue) ? null : parsedValue,
+                );
+              }}
+              placeholder="opcjonalnie"
+            />
+            {fieldErrors?.minDaysBetweenOccurrences && (
+              <span className="text-xs text-red-600">
+                {fieldErrors.minDaysBetweenOccurrences}
+              </span>
+            )}
+          </label>
+
+          <label className="flex items-center gap-2 text-sm md:col-span-2">
+            <input
+              type="checkbox"
+              checked={values.requiresUserConfirmation}
+              onChange={(event) =>
+                updateValue("requiresUserConfirmation", event.target.checked)
+              }
+            />
+            Wymaga zatwierdzenia użytkownika
+          </label>
+          {fieldErrors?.requiresUserConfirmation && (
+            <span className="text-xs text-red-600 md:col-span-2">
+              {fieldErrors.requiresUserConfirmation}
+            </span>
+          )}
 
           <label className="flex flex-col gap-2 text-sm md:col-span-2">
             Domyślne opóźnienie terminu (dni)

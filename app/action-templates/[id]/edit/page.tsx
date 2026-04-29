@@ -7,6 +7,8 @@ import { ActionTemplateForm } from "@/app/components/ActionTemplateForm";
 import { useGetActionTemplate } from "@/app/api/queries/action-templates/useGetActionTemplate";
 import { useUpdateActionTemplate } from "@/app/api/mutations/action-templates/useUpdateActionTemplate";
 import {
+  actionTemplateGenerationModeOptions,
+  actionTemplatePriorityOptions,
   mapActionTemplateType,
   normalizeActionTemplateEnvironment,
   normalizeActionTemplateTarget,
@@ -29,6 +31,11 @@ const mapBackendFieldToFormField = (
     target: "target",
     environment: "environment",
     type: "type",
+    generationMode: "generationMode",
+    priority: "priority",
+    maxAutoOccurrencesPerPlanting: "maxAutoOccurrencesPerPlanting",
+    minDaysBetweenOccurrences: "minDaysBetweenOccurrences",
+    requiresUserConfirmation: "requiresUserConfirmation",
     defaultDueOffsetDays: "defaultDueOffsetDays",
     description: "description",
   };
@@ -49,6 +56,11 @@ const extractFieldErrors = (payload: unknown): FieldErrors => {
       "target",
       "environment",
       "type",
+      "generationMode",
+      "priority",
+      "maxAutoOccurrencesPerPlanting",
+      "minDaysBetweenOccurrences",
+      "requiresUserConfirmation",
       "defaultDueOffsetDays",
       "description",
     ];
@@ -113,6 +125,31 @@ const buildUpdatePayload = (
     next.environment = current.environment;
   }
   if (current.type !== initial.type) next.type = current.type;
+  if (current.generationMode !== initial.generationMode) {
+    next.generationMode = current.generationMode;
+  }
+  if (current.priority !== initial.priority) {
+    next.priority = current.priority;
+  }
+
+  if (
+    (current.maxAutoOccurrencesPerPlanting ?? null) !==
+    initial.maxAutoOccurrencesPerPlanting
+  ) {
+    next.maxAutoOccurrencesPerPlanting =
+      current.maxAutoOccurrencesPerPlanting ?? null;
+  }
+
+  if (
+    (current.minDaysBetweenOccurrences ?? null) !==
+    initial.minDaysBetweenOccurrences
+  ) {
+    next.minDaysBetweenOccurrences = current.minDaysBetweenOccurrences ?? null;
+  }
+
+  if (current.requiresUserConfirmation !== initial.requiresUserConfirmation) {
+    next.requiresUserConfirmation = current.requiresUserConfirmation;
+  }
 
   if ((current.defaultDueOffsetDays ?? null) !== initial.defaultDueOffsetDays) {
     next.defaultDueOffsetDays = current.defaultDueOffsetDays ?? null;
@@ -136,6 +173,17 @@ const mapActionTemplateFromApi = (
     target,
     environment: normalizeActionTemplateEnvironment(data.environment),
     type: mapActionTemplateType(data.type, target),
+    generationMode: actionTemplateGenerationModeOptions.includes(
+      data.generationMode ?? "MANUAL_ONLY",
+    )
+      ? (data.generationMode ?? "MANUAL_ONLY")
+      : "MANUAL_ONLY",
+    priority: actionTemplatePriorityOptions.includes(data.priority ?? "medium")
+      ? (data.priority ?? "medium")
+      : "medium",
+    maxAutoOccurrencesPerPlanting: data.maxAutoOccurrencesPerPlanting ?? null,
+    minDaysBetweenOccurrences: data.minDaysBetweenOccurrences ?? null,
+    requiresUserConfirmation: Boolean(data.requiresUserConfirmation),
     defaultDueOffsetDays: data.defaultDueOffsetDays ?? null,
     description: data.description || "",
   };
@@ -183,7 +231,14 @@ export default function EditActionTemplatePage() {
         if (err.response.status === 400) {
           const nextFieldErrors = extractFieldErrors(err.response.data);
           setFieldErrors(nextFieldErrors);
-          setErrorMessage("Błąd walidacji danych. Sprawdź pola formularza.");
+          const message =
+            typeof err.response.data === "object" &&
+            err.response.data &&
+            typeof (err.response.data as { message?: unknown }).message ===
+              "string"
+              ? String((err.response.data as { message?: string }).message)
+              : "Błąd walidacji danych. Sprawdź pola formularza.";
+          setErrorMessage(message);
           return;
         }
         if (err.response.status === 404) {

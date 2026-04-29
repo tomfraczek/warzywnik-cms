@@ -48,6 +48,7 @@ const csvHeaders = [
   "isCustomized",
   "createdAt",
   "updatedAt",
+  "rawJson",
 ];
 
 const toJson = (value: unknown) => {
@@ -88,7 +89,7 @@ const toCsv = (rows: Vegetable[]) => {
       row.sunExposure ?? "",
       row.waterDemand ?? "",
       row.nutrientDemand ?? "",
-      (row.recommendedSoilSlugs ?? []).join(" | "),
+      toJson(row.recommendedSoilSlugs ?? []),
       row.minSoilDepthCm ?? "",
       row.dominantNutrientDemand ?? "",
       toJson(row.sowingMethods),
@@ -130,6 +131,7 @@ const toCsv = (rows: Vegetable[]) => {
       row.isCustomized,
       row.createdAt,
       row.updatedAt,
+      toJson(row),
     ];
     return values.map((value) => escapeCsv(value)).join(",");
   });
