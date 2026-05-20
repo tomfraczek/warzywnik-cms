@@ -321,6 +321,195 @@ export type GetArticlesParams = {
   context?: ArticleContext;
 };
 
+const normalizeArticleStatus = (status: unknown): ArticleStatus => {
+  if (typeof status === "string") {
+    const normalized = status.trim().toUpperCase();
+    if (normalized === "PUBLISHED") return "PUBLISHED";
+    if (normalized === "DRAFT") return "DRAFT";
+  }
+  return "DRAFT";
+};
+
+const normalizeStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+};
+
+const normalizeNumberArray = (value: unknown): number[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === "number" ? item : Number(item)))
+    .filter((item) => Number.isFinite(item));
+};
+
+const firstNonEmptyString = (...values: unknown[]): string | null => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value;
+    }
+  }
+  return null;
+};
+
+const mapArticleFromApi = (article: unknown): Article => {
+  const source = (article ?? {}) as Record<string, unknown>;
+  const publishedAt = firstNonEmptyString(
+    source.publishedAt,
+    source.published_at,
+    source.published,
+    source.published_on,
+  );
+  const statusRaw =
+    source.status ?? source.articleStatus ?? source.article_status;
+
+  const relatedVegetableSlugs = normalizeStringArray(
+    source.relatedVegetableSlugs ?? source.related_vegetable_slugs,
+  );
+  const relatedSoilSlugs = normalizeStringArray(
+    source.relatedSoilSlugs ?? source.related_soil_slugs,
+  );
+  const relatedFertilizerSlugs = normalizeStringArray(
+    source.relatedFertilizerSlugs ?? source.related_fertilizer_slugs,
+  );
+  const relatedDiseaseSlugs = normalizeStringArray(
+    source.relatedDiseaseSlugs ?? source.related_disease_slugs,
+  );
+  const relatedPestSlugs = normalizeStringArray(
+    source.relatedPestSlugs ?? source.related_pest_slugs,
+  );
+
+  return {
+    id: String(source.id ?? ""),
+    slug: String(source.slug ?? ""),
+    title: String(source.title ?? ""),
+    excerpt: String(source.excerpt ?? ""),
+    content: String(source.content ?? ""),
+    coverImageUrl:
+      typeof source.coverImageUrl === "string"
+        ? source.coverImageUrl
+        : typeof source.cover_image_url === "string"
+          ? source.cover_image_url
+          : null,
+    status:
+      statusRaw != null
+        ? normalizeArticleStatus(statusRaw)
+        : publishedAt != null
+          ? "PUBLISHED"
+          : "DRAFT",
+    priority:
+      typeof source.priority === "number"
+        ? source.priority
+        : Number(source.priority ?? 3),
+    months: normalizeNumberArray(source.months),
+    seasons: normalizeStringArray(source.seasons) as ArticleSeason[],
+    contexts: normalizeStringArray(source.contexts) as ArticleContext[],
+    relatedVegetableSlugs,
+    relatedSoilSlugs,
+    relatedFertilizerSlugs,
+    relatedDiseaseSlugs,
+    relatedPestSlugs,
+    relatedVegetableIds: relatedVegetableSlugs,
+    relatedSoilIds: relatedSoilSlugs,
+    relatedFertilizerIds: relatedFertilizerSlugs,
+    relatedDiseaseIds: relatedDiseaseSlugs,
+    relatedPestIds: relatedPestSlugs,
+    publishedAt,
+    createdAt:
+      firstNonEmptyString(
+        source.createdAt,
+        source.created_at,
+        source.created,
+        source.created_on,
+        source.insertedAt,
+        source.inserted_at,
+      ) ?? "",
+    updatedAt:
+      firstNonEmptyString(
+        source.updatedAt,
+        source.updated_at,
+        source.updated,
+        source.updated_on,
+        source.modifiedAt,
+        source.modified_at,
+      ) ?? "",
+  };
+};
+
+const mapArticleListItemFromApi = (item: unknown): ArticleListItem => {
+  const source = (item ?? {}) as Record<string, unknown>;
+  const publishedAt = firstNonEmptyString(
+    source.publishedAt,
+    source.published_at,
+    source.published,
+    source.published_on,
+  );
+  const statusRaw =
+    source.status ?? source.articleStatus ?? source.article_status;
+  const inferredStatus: ArticleStatus =
+    statusRaw != null
+      ? normalizeArticleStatus(statusRaw)
+      : publishedAt != null
+        ? "PUBLISHED"
+        : "DRAFT";
+  return {
+    id: String(source.id ?? ""),
+    title: String(source.title ?? ""),
+    status: inferredStatus,
+    priority:
+      typeof source.priority === "number"
+        ? source.priority
+        : Number(source.priority ?? 3),
+    publishedAt,
+    updatedAt:
+      firstNonEmptyString(
+        source.updatedAt,
+        source.updated_at,
+        source.updated,
+        source.updated_on,
+        source.modifiedAt,
+        source.modified_at,
+      ) ?? "",
+  };
+};
+
+const normalizeArticlePayload = (
+  payload: CreateArticlePayload | UpdateArticlePayload,
+) => {
+  const source = payload as Record<string, unknown>;
+
+  return {
+    ...payload,
+    relatedVegetableSlugs: normalizeStringArray(
+      source.relatedVegetableSlugs ?? source.relatedVegetableIds,
+    ),
+    relatedSoilSlugs: normalizeStringArray(
+      source.relatedSoilSlugs ?? source.relatedSoilIds,
+    ),
+    relatedFertilizerSlugs: normalizeStringArray(
+      source.relatedFertilizerSlugs ?? source.relatedFertilizerIds,
+    ),
+    relatedDiseaseSlugs: normalizeStringArray(
+      source.relatedDiseaseSlugs ?? source.relatedDiseaseIds,
+    ),
+    relatedPestSlugs: normalizeStringArray(
+      source.relatedPestSlugs ?? source.relatedPestIds,
+    ),
+  };
+};
+
+const normalizeArticlePatchPayload = (payload: UpdateArticlePayload) => {
+  const cleaned: Record<string, unknown> = {};
+
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value === undefined || (typeof value === "string" && value === "")) {
+      return;
+    }
+    cleaned[key] = value;
+  });
+
+  return cleaned as UpdateArticlePayload;
+};
+
 export const getArticles = async (
   params: GetArticlesParams = {},
 ): Promise<ListResponse<ArticleListItem>> => {
@@ -328,31 +517,40 @@ export const getArticles = async (
     "/articles",
     { params },
   );
-  return data;
+  return {
+    ...data,
+    items: (data.items ?? []).map(mapArticleListItemFromApi),
+  };
 };
 
 export const getArticle = async (id: string): Promise<Article> => {
   const { data } = await apiClient.get<Article>(`/articles/${id}`);
-  return data;
+  return mapArticleFromApi(data);
 };
 
 export const createArticle = async (
   payload: CreateArticlePayload,
 ): Promise<Article> => {
-  const { data } = await apiClient.post<Article>("/articles", payload);
-  return data;
+  const normalizedPayload = normalizeArticlePayload(payload);
+  const { data } = await apiClient.post<Article>(
+    "/articles",
+    normalizedPayload,
+  );
+  return mapArticleFromApi(data);
 };
 
 export const updateArticle = async (
   id: string,
   payload: UpdateArticlePayload,
 ): Promise<Article> => {
-  const normalizedPayload = normalizePatchPayload(payload);
+  const normalizedPayload = normalizeArticlePatchPayload(
+    normalizeArticlePayload(payload),
+  );
   const { data } = await apiClient.patch<Article>(
     `/articles/${id}`,
     normalizedPayload,
   );
-  return data;
+  return mapArticleFromApi(data);
 };
 
 export const deleteArticle = async (id: string): Promise<void> => {

@@ -29,11 +29,13 @@ const mapArticleToFormValues = (data: Article): ArticleFormValues => ({
   contexts: data.contexts ?? [],
   priority: data.priority ?? 3,
   status: data.status,
-  relatedVegetableIds: data.relatedVegetableIds ?? [],
-  relatedSoilIds: data.relatedSoilIds ?? [],
-  relatedFertilizerIds: data.relatedFertilizerIds ?? [],
-  relatedDiseaseIds: data.relatedDiseaseIds ?? [],
-  relatedPestIds: data.relatedPestIds ?? [],
+  relatedVegetableSlugs:
+    data.relatedVegetableSlugs ?? data.relatedVegetableIds ?? [],
+  relatedSoilSlugs: data.relatedSoilSlugs ?? data.relatedSoilIds ?? [],
+  relatedFertilizerSlugs:
+    data.relatedFertilizerSlugs ?? data.relatedFertilizerIds ?? [],
+  relatedDiseaseSlugs: data.relatedDiseaseSlugs ?? data.relatedDiseaseIds ?? [],
+  relatedPestSlugs: data.relatedPestSlugs ?? data.relatedPestIds ?? [],
   publishedAt: data.publishedAt,
 });
 

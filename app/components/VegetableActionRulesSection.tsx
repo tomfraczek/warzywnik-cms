@@ -138,9 +138,6 @@ const RuleRow = ({ rule, onUpdate, onDelete }: RuleRowProps) => {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [resolvedNames, setResolvedNames] = useState<Record<string, string>>(
-    {},
-  );
   const comboboxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -191,17 +188,13 @@ const RuleRow = ({ rule, onUpdate, onDelete }: RuleRowProps) => {
     Number.isFinite(occurrencesLimitParsed) &&
     occurrencesLimitParsed > 6;
 
-  useEffect(() => {
-    if (options.length > 0) {
-      setResolvedNames((prev) => {
-        const next = { ...prev };
-        for (const item of options) {
-          const value = getTemplateRelationValue(item);
-          next[value] = `${item.name} · ${value}`;
-        }
-        return next;
-      });
+  const resolvedNames = useMemo(() => {
+    const next: Record<string, string> = {};
+    for (const item of options) {
+      const value = getTemplateRelationValue(item);
+      next[value] = `${item.name} · ${value}`;
     }
+    return next;
   }, [options]);
 
   const toggleStartMethod = (method: PlantingStartMethod) => {

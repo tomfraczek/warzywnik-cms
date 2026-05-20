@@ -18,6 +18,7 @@ type ReactQuillWithRef = ComponentType<{
   value?: string;
   onChange?: (html: string) => void;
   modules?: Record<string, unknown>;
+  formats?: string[];
   className?: string;
 }>;
 
@@ -82,6 +83,20 @@ export const QuillEditor = ({
     [],
   );
 
+  const formats = useMemo(
+    () => [
+      "header",
+      "bold",
+      "italic",
+      "underline",
+      "strike",
+      "list",
+      "link",
+      "image",
+    ],
+    [],
+  );
+
   return (
     <div className="space-y-3">
       <div className="rounded-lg border border-zinc-200 bg-white">
@@ -91,6 +106,7 @@ export const QuillEditor = ({
           value={value}
           onChange={onChange}
           modules={modules}
+          formats={formats}
           className="quill-editor"
         />
       </div>

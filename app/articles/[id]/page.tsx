@@ -17,10 +17,19 @@ import type {
 } from "@/app/api/api.types";
 
 const formatDateTime = (value: string | null) => {
-  if (!value) return "-";
+  if (!value) return "Brak danych z API";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleString("pl-PL");
+};
+
+const formatDateTimeWithFallback = (
+  value: string | null | undefined,
+  fallback: string | null | undefined,
+) => {
+  if (value) return formatDateTime(value);
+  if (fallback) return `${formatDateTime(fallback)} (z daty publikacji)`;
+  return "Brak danych z API";
 };
 
 const monthNames: Record<number, string> = {
@@ -57,6 +66,11 @@ const contextLabels: Record<ArticleContext, string> = {
 const statusLabels: Record<ArticleStatus, string> = {
   DRAFT: "Szkic",
   PUBLISHED: "Opublikowany",
+};
+
+const normalizeStatus = (value: unknown): ArticleStatus => {
+  if (typeof value !== "string") return "DRAFT";
+  return value.toUpperCase() === "PUBLISHED" ? "PUBLISHED" : "DRAFT";
 };
 
 const normalizeArticleHtmlSpacing = (html: string) =>
@@ -104,8 +118,6 @@ export default function ArticlePreviewPage() {
   const { data: fertilizersData } = useGetFertilizers({});
   const { data: soilsData } = useGetSoils({});
 
-  console.log("Article data:", data);
-
   if (isLoading) {
     return <p className="text-sm text-zinc-500">Ładowanie...</p>;
   }
@@ -119,29 +131,39 @@ export default function ArticlePreviewPage() {
   }
 
   const resolveNames = (
-    ids: string[] | undefined,
-    items?: { id: string; name: string }[],
+    slugs: string[] | undefined,
+    items?: { id: string; name: string; slug?: string | null }[],
   ) => {
-    if (!ids) return [];
-    if (!items) return ids;
-    return ids.map((id) => items.find((i) => i.id === id)?.name ?? id);
+    if (!slugs) return [];
+    if (!items) return slugs;
+    return slugs.map(
+      (slug) =>
+        items.find((i) => i.slug === slug || i.id === slug)?.name ?? slug,
+    );
   };
 
   const vegetableNames = resolveNames(
-    data.relatedVegetableIds,
+    data.relatedVegetableSlugs ?? data.relatedVegetableIds,
     vegetablesData?.items,
   );
   const diseaseNames = resolveNames(
-    data.relatedDiseaseIds,
+    data.relatedDiseaseSlugs ?? data.relatedDiseaseIds,
     diseasesData?.items,
   );
-  const pestNames = resolveNames(data.relatedPestIds, pestsData?.items);
+  const pestNames = resolveNames(
+    data.relatedPestSlugs ?? data.relatedPestIds,
+    pestsData?.items,
+  );
   const fertilizerNames = resolveNames(
-    data.relatedFertilizerIds,
+    data.relatedFertilizerSlugs ?? data.relatedFertilizerIds,
     fertilizersData?.items,
   );
-  const soilNames = resolveNames(data.relatedSoilIds, soilsData?.items);
+  const soilNames = resolveNames(
+    data.relatedSoilSlugs ?? data.relatedSoilIds,
+    soilsData?.items,
+  );
   const normalizedContent = normalizeArticleHtmlSpacing(data.content ?? "");
+  const normalizedStatus = normalizeStatus(data.status);
 
   return (
     <section className="space-y-6">
@@ -176,9 +198,9 @@ export default function ArticlePreviewPage() {
       <div className="grid grid-cols-1 gap-5 rounded-xl border border-zinc-200 bg-white p-6 sm:grid-cols-2">
         <Field label="Status">
           <span
-            className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${data.status === "PUBLISHED" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}
+            className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${normalizedStatus === "PUBLISHED" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}
           >
-            {statusLabels[data.status]}
+            {statusLabels[normalizedStatus]}
           </span>
         </Field>
 
@@ -195,10 +217,12 @@ export default function ArticlePreviewPage() {
         </Field>
 
         <Field label="Ostatnia aktualizacja">
-          {formatDateTime(data.updatedAt)}
+          {formatDateTimeWithFallback(data.updatedAt, data.publishedAt)}
         </Field>
 
-        <Field label="Data utworzenia">{formatDateTime(data.createdAt)}</Field>
+        <Field label="Data utworzenia">
+          {formatDateTimeWithFallback(data.createdAt, data.publishedAt)}
+        </Field>
 
         <div className="sm:col-span-2">
           <Field label="Zajawka">

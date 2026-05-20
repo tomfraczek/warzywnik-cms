@@ -737,18 +737,23 @@ export type Article = {
   months: number[];
   seasons: ArticleSeason[];
   contexts: ArticleContext[];
-  relatedVegetableIds: string[];
-  relatedSoilIds: string[];
-  relatedFertilizerIds: string[];
-  relatedDiseaseIds: string[];
-  relatedPestIds: string[];
+  relatedVegetableSlugs: string[];
+  relatedSoilSlugs: string[];
+  relatedFertilizerSlugs: string[];
+  relatedDiseaseSlugs: string[];
+  relatedPestSlugs: string[];
+  relatedVegetableIds?: string[];
+  relatedSoilIds?: string[];
+  relatedFertilizerIds?: string[];
+  relatedDiseaseIds?: string[];
+  relatedPestIds?: string[];
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
 export type CreateArticlePayload = {
-  slug: string;
+  slug?: string;
   title: string;
   excerpt: string;
   content: string;
@@ -758,11 +763,12 @@ export type CreateArticlePayload = {
   months?: number[];
   seasons?: ArticleSeason[];
   contexts: ArticleContext[];
-  relatedVegetableIds?: string[];
-  relatedSoilIds?: string[];
-  relatedFertilizerIds?: string[];
-  relatedDiseaseIds?: string[];
-  relatedPestIds?: string[];
+  relatedVegetableSlugs?: string[];
+  relatedSoilSlugs?: string[];
+  relatedFertilizerSlugs?: string[];
+  relatedDiseaseSlugs?: string[];
+  relatedPestSlugs?: string[];
+  publishedAt?: string | null;
 };
 
 export type UpdateArticlePayload = Partial<CreateArticlePayload>;

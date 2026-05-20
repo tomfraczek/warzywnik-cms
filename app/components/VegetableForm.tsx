@@ -234,18 +234,11 @@ export const VegetableForm = ({
   onAssignImageFromLibrary,
   onUploadImage,
 }: VegetableFormProps) => {
-  const [values, setValues] = useState<VegetableFormValues>({
+  const [values, setValues] = useState<VegetableFormValues>(() => ({
     ...defaultValues,
     ...initialValues,
-  });
-  const syncedRef = useRef(false);
+  }));
   const fileInputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (initialValues && !syncedRef.current) {
-      syncedRef.current = true;
-      setValues({ ...defaultValues, ...initialValues });
-    }
-  }, [initialValues]);
   const [clientError, setClientError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);

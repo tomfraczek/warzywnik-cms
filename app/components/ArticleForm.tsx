@@ -31,11 +31,11 @@ export type ArticleFormValues = {
   contexts: ArticleContext[];
   priority: number;
   status: ArticleStatus;
-  relatedVegetableIds: string[];
-  relatedSoilIds: string[];
-  relatedFertilizerIds: string[];
-  relatedDiseaseIds: string[];
-  relatedPestIds: string[];
+  relatedVegetableSlugs: string[];
+  relatedSoilSlugs: string[];
+  relatedFertilizerSlugs: string[];
+  relatedDiseaseSlugs: string[];
+  relatedPestSlugs: string[];
   publishedAt: string | null;
 };
 
@@ -50,11 +50,11 @@ const defaultValues: ArticleFormValues = {
   contexts: [],
   priority: 3,
   status: "DRAFT",
-  relatedVegetableIds: [],
-  relatedSoilIds: [],
-  relatedFertilizerIds: [],
-  relatedDiseaseIds: [],
-  relatedPestIds: [],
+  relatedVegetableSlugs: [],
+  relatedSoilSlugs: [],
+  relatedFertilizerSlugs: [],
+  relatedDiseaseSlugs: [],
+  relatedPestSlugs: [],
   publishedAt: null,
 };
 
@@ -574,6 +574,9 @@ export const ArticleForm = ({
       return;
     }
 
+    const payloadPublishedAt =
+      values.status === "DRAFT" ? null : (values.publishedAt ?? undefined);
+
     const payload: CreateArticlePayload = {
       slug: values.slug.trim(),
       title: values.title.trim(),
@@ -585,11 +588,12 @@ export const ArticleForm = ({
       months: values.months,
       seasons: values.seasons,
       contexts: values.contexts,
-      relatedVegetableIds: values.relatedVegetableIds,
-      relatedSoilIds: values.relatedSoilIds,
-      relatedFertilizerIds: values.relatedFertilizerIds,
-      relatedDiseaseIds: values.relatedDiseaseIds,
-      relatedPestIds: values.relatedPestIds,
+      relatedVegetableSlugs: values.relatedVegetableSlugs,
+      relatedSoilSlugs: values.relatedSoilSlugs,
+      relatedFertilizerSlugs: values.relatedFertilizerSlugs,
+      relatedDiseaseSlugs: values.relatedDiseaseSlugs,
+      relatedPestSlugs: values.relatedPestSlugs,
+      publishedAt: payloadPublishedAt,
     };
 
     onSubmit(payload);
@@ -880,41 +884,56 @@ export const ArticleForm = ({
         <div className="mt-4 grid gap-6 md:grid-cols-2">
           <SearchableMultiSelect
             label="Warzywa"
-            items={vegetableItems}
-            selectedIds={values.relatedVegetableIds}
-            onChange={(ids) => updateValue("relatedVegetableIds", ids)}
+            items={vegetableItems.map((item) => ({
+              id: item.slug ?? item.id,
+              name: item.name,
+            }))}
+            selectedIds={values.relatedVegetableSlugs}
+            onChange={(ids) => updateValue("relatedVegetableSlugs", ids)}
             isLoading={vegetablesLoading}
             placeholder="Szukaj warzywa…"
           />
           <SearchableMultiSelect
             label="Gleby"
-            items={soilItems}
-            selectedIds={values.relatedSoilIds}
-            onChange={(ids) => updateValue("relatedSoilIds", ids)}
+            items={soilItems.map((item) => ({
+              id: item.slug ?? item.id,
+              name: item.name,
+            }))}
+            selectedIds={values.relatedSoilSlugs}
+            onChange={(ids) => updateValue("relatedSoilSlugs", ids)}
             isLoading={soilsLoading}
             placeholder="Szukaj gleby…"
           />
           <SearchableMultiSelect
             label="Nawozy"
-            items={fertilizerItems}
-            selectedIds={values.relatedFertilizerIds}
-            onChange={(ids) => updateValue("relatedFertilizerIds", ids)}
+            items={fertilizerItems.map((item) => ({
+              id: item.slug ?? item.id,
+              name: item.name,
+            }))}
+            selectedIds={values.relatedFertilizerSlugs}
+            onChange={(ids) => updateValue("relatedFertilizerSlugs", ids)}
             isLoading={fertilizersLoading}
             placeholder="Szukaj nawozu…"
           />
           <SearchableMultiSelect
             label="Choroby"
-            items={diseaseItems}
-            selectedIds={values.relatedDiseaseIds}
-            onChange={(ids) => updateValue("relatedDiseaseIds", ids)}
+            items={diseaseItems.map((item) => ({
+              id: item.slug ?? item.id,
+              name: item.name,
+            }))}
+            selectedIds={values.relatedDiseaseSlugs}
+            onChange={(ids) => updateValue("relatedDiseaseSlugs", ids)}
             isLoading={diseasesLoading}
             placeholder="Szukaj choroby…"
           />
           <SearchableMultiSelect
             label="Szkodniki"
-            items={pestItems}
-            selectedIds={values.relatedPestIds}
-            onChange={(ids) => updateValue("relatedPestIds", ids)}
+            items={pestItems.map((item) => ({
+              id: item.slug ?? item.id,
+              name: item.name,
+            }))}
+            selectedIds={values.relatedPestSlugs}
+            onChange={(ids) => updateValue("relatedPestSlugs", ids)}
             isLoading={pestsLoading}
             placeholder="Szukaj szkodnika…"
           />

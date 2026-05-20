@@ -315,6 +315,7 @@ export default function EditVegetablePage() {
         onDeleteImage={handleDeleteImage}
         isDeletingImage={deleteImageMutation.isPending}
         onAssignImageFromLibrary={handleAssignImageFromLibrary}
+        onUploadImage={handleUploadImage}
         isCustomized={data.isCustomized}
         createdAt={data.createdAt}
         updatedAt={data.updatedAt}
