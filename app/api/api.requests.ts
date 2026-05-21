@@ -634,7 +634,7 @@ export const getAnalyticsDashboard = async (
   top = 10,
 ): Promise<AnalyticsDashboard> => {
   const { data } = await apiClient.get<AnalyticsDashboard>(
-    "/v1/cms/analytics/dashboard",
+    "/cms/analytics/dashboard",
     { params: { top }, headers: adminHeaders() },
   );
   return data;
@@ -650,7 +650,7 @@ export const getAnalyticsVegetablesPopular = async (
   params: GetAnalyticsVegetablesPopularParams = {},
 ): Promise<AnalyticsVegetablesPopularResponse> => {
   const { data } = await apiClient.get<AnalyticsVegetablesPopularResponse>(
-    "/v1/cms/analytics/vegetables/popular",
+    "/cms/analytics/vegetables/popular",
     { params, headers: adminHeaders() },
   );
   return data;
@@ -665,7 +665,7 @@ export const getAnalyticsArticlesPopular = async (
   params: GetAnalyticsArticlesPopularParams = {},
 ): Promise<AnalyticsArticlesPopularResponse> => {
   const { data } = await apiClient.get<AnalyticsArticlesPopularResponse>(
-    "/v1/cms/analytics/articles/popular",
+    "/cms/analytics/articles/popular",
     { params, headers: adminHeaders() },
   );
   return data;
@@ -676,7 +676,7 @@ export const getAnalyticsArticlesPopular = async (
 export const getActionAutomationCoverage =
   async (): Promise<ActionAutomationCoverage> => {
     const { data } = await apiClient.get<ActionAutomationCoverage>(
-      "/v1/action-automation/coverage",
+      "/action-automation/coverage",
       { headers: adminHeaders() },
     );
     return data;
@@ -686,7 +686,7 @@ export const getPlantingTaskGenerationPreview = async (
   plantingId: string,
 ): Promise<TaskGenerationPreview> => {
   const { data } = await apiClient.get<TaskGenerationPreview>(
-    `/v1/plantings/${plantingId}/task-generation-preview`,
+    `/plantings/${plantingId}/task-generation-preview`,
     { headers: adminHeaders() },
   );
   return data;
@@ -696,7 +696,7 @@ export const recomputePlantingActions = async (
   plantingId: string,
 ): Promise<RecomputePlantingActionsResponse> => {
   const { data } = await apiClient.post<RecomputePlantingActionsResponse>(
-    `/v1/plantings/${plantingId}/recompute-actions`,
+    `/plantings/${plantingId}/recompute-actions`,
     {},
     { headers: adminHeaders() },
   );
