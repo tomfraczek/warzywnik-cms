@@ -821,21 +821,31 @@ export type AnalyticsLast30Days = {
 };
 
 export type AnalyticsVegetableTopItem = {
-  id: string;
-  name: string;
-  slug: string | null;
-  adds: number;
-  favorites?: number;
+  vegetableSlug: string;
+  addCountTotal: number;
+  favoriteCount: number;
+  lastAddedAt: string | null;
+  vegetable: {
+    id: string;
+    name: string;
+    imageUrl: string | null;
+  };
 };
 
 export type AnalyticsArticleTopItem = {
-  id: string;
-  title: string;
-  slug: string | null;
-  views: number;
-  engagedSeconds?: number;
-  scroll50?: number;
-  scroll90?: number;
+  articleSlug: string;
+  viewsTotal: number;
+  engagedSecondsTotal: number;
+  scroll50Count: number;
+  scroll90Count: number;
+  favoriteCount: number;
+  article: {
+    id: string;
+    title: string;
+    excerpt: string;
+    coverImageUrl: string | null;
+    publishedAt: string | null;
+  };
 };
 
 export type AnalyticsDashboard = {

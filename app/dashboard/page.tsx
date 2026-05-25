@@ -340,7 +340,7 @@ export default function DashboardPage() {
             isLoading={loadingAnalytics}
             renderItem={(veg, i) => (
               <li
-                key={veg.id}
+                key={veg.vegetableSlug}
                 className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-zinc-50"
               >
                 <span className="flex items-center gap-2 min-w-0">
@@ -348,14 +348,14 @@ export default function DashboardPage() {
                     {i + 1}.
                   </span>
                   <Link
-                    href={`/vegetables/${veg.id}`}
+                    href={`/vegetables/${veg.vegetable.id}`}
                     className="truncate font-medium text-zinc-800 hover:text-green-700 hover:underline"
                   >
-                    {veg.name}
+                    {veg.vegetable.name}
                   </Link>
                 </span>
                 <span className="shrink-0 text-xs font-semibold text-zinc-500">
-                  {veg.adds.toLocaleString("pl-PL")} dodań
+                  {veg.addCountTotal.toLocaleString("pl-PL")} dodań
                 </span>
               </li>
             )}
@@ -371,7 +371,7 @@ export default function DashboardPage() {
             isLoading={loadingAnalytics}
             renderItem={(article, i) => (
               <li
-                key={article.id}
+                key={article.articleSlug}
                 className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-zinc-50"
               >
                 <span className="flex items-center gap-2 min-w-0">
@@ -379,14 +379,14 @@ export default function DashboardPage() {
                     {i + 1}.
                   </span>
                   <Link
-                    href={`/articles/${article.id}`}
+                    href={`/articles/${article.article.id}`}
                     className="truncate font-medium text-zinc-800 hover:text-green-700 hover:underline"
                   >
-                    {article.title}
+                    {article.article.title}
                   </Link>
                 </span>
                 <span className="shrink-0 text-xs font-semibold text-zinc-500">
-                  {article.views.toLocaleString("pl-PL")} wyśw.
+                  {article.viewsTotal.toLocaleString("pl-PL")} wyśw.
                 </span>
               </li>
             )}

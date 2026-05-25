@@ -626,16 +626,12 @@ export const unwrap = unwrapData;
 
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
-const adminToken = process.env.NEXT_PUBLIC_ADMIN_TOKEN;
-
-const adminHeaders = () => (adminToken ? { "x-admin-token": adminToken } : {});
-
 export const getAnalyticsDashboard = async (
   top = 10,
 ): Promise<AnalyticsDashboard> => {
   const { data } = await apiClient.get<AnalyticsDashboard>(
     "/cms/analytics/dashboard",
-    { params: { top }, headers: adminHeaders() },
+    { params: { top } },
   );
   return data;
 };
@@ -651,7 +647,7 @@ export const getAnalyticsVegetablesPopular = async (
 ): Promise<AnalyticsVegetablesPopularResponse> => {
   const { data } = await apiClient.get<AnalyticsVegetablesPopularResponse>(
     "/cms/analytics/vegetables/popular",
-    { params, headers: adminHeaders() },
+    { params },
   );
   return data;
 };
@@ -666,7 +662,7 @@ export const getAnalyticsArticlesPopular = async (
 ): Promise<AnalyticsArticlesPopularResponse> => {
   const { data } = await apiClient.get<AnalyticsArticlesPopularResponse>(
     "/cms/analytics/articles/popular",
-    { params, headers: adminHeaders() },
+    { params },
   );
   return data;
 };
@@ -677,7 +673,6 @@ export const getActionAutomationCoverage =
   async (): Promise<ActionAutomationCoverage> => {
     const { data } = await apiClient.get<ActionAutomationCoverage>(
       "/action-automation/coverage",
-      { headers: adminHeaders() },
     );
     return data;
   };
@@ -687,7 +682,6 @@ export const getPlantingTaskGenerationPreview = async (
 ): Promise<TaskGenerationPreview> => {
   const { data } = await apiClient.get<TaskGenerationPreview>(
     `/plantings/${plantingId}/task-generation-preview`,
-    { headers: adminHeaders() },
   );
   return data;
 };
@@ -698,7 +692,6 @@ export const recomputePlantingActions = async (
   const { data } = await apiClient.post<RecomputePlantingActionsResponse>(
     `/plantings/${plantingId}/recompute-actions`,
     {},
-    { headers: adminHeaders() },
   );
   return data;
 };
