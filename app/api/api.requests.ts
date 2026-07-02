@@ -37,6 +37,8 @@ import type {
   ActionAutomationCoverage,
   TaskGenerationPreview,
   RecomputePlantingActionsResponse,
+  VegetableSuggestionsAdminResponse,
+  VegetableSuggestionsAdminQuery,
 } from "@/app/api/api.types";
 
 export type GetVegetablesParams = {
@@ -694,4 +696,18 @@ export const recomputePlantingActions = async (
     {},
   );
   return data;
+};
+
+export const getVegetableSuggestions = async (
+  params: VegetableSuggestionsAdminQuery = {},
+): Promise<VegetableSuggestionsAdminResponse> => {
+  const { data } = await apiClient.get<VegetableSuggestionsAdminResponse>(
+    "/admin/vegetable-suggestions",
+    { params },
+  );
+  return data;
+};
+
+export const deleteVegetableSuggestion = async (id: string): Promise<void> => {
+  await apiClient.delete(`/admin/vegetable-suggestions/${id}`);
 };

@@ -871,3 +871,25 @@ export type AnalyticsArticlesPopularResponse = {
   items: AnalyticsArticleTopItem[];
   total: number;
 };
+
+export interface VegetableSuggestionAdminItem {
+  id: string;
+  name: string;
+  note: string | null;
+  userId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VegetableSuggestionsAdminResponse {
+  items: VegetableSuggestionAdminItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface VegetableSuggestionsAdminQuery {
+  search?: string;
+  page?: number;
+  limit?: number;
+}

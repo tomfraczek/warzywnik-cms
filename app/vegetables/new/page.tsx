@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { AxiosError } from "axios";
 import { VegetableForm } from "@/app/components/VegetableForm";
@@ -10,6 +10,8 @@ import type { CreateVegetablePayload } from "@/app/api/api.types";
 
 export default function NewVegetablePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const suggestedName = searchParams.get("suggestedName") ?? undefined;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const createMutation = useCreateVegetable();
   const uploadMutation = useUploadVegetableImage();
@@ -74,6 +76,7 @@ export default function NewVegetablePage() {
         onSubmit={handleSubmit}
         isSubmitting={createMutation.isPending || uploadMutation.isPending}
         errorMessage={errorMessage}
+        initialValues={suggestedName ? { name: suggestedName } : undefined}
       />
     </section>
   );
