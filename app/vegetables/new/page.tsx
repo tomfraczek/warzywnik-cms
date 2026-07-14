@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { AxiosError } from "axios";
 import { VegetableForm } from "@/app/components/VegetableForm";
 import { useCreateVegetable } from "@/app/api/mutations/vegetables/useCreateVegetable";
@@ -9,6 +9,14 @@ import { useUploadVegetableImage } from "@/app/api/mutations/vegetables/useUploa
 import type { CreateVegetablePayload } from "@/app/api/api.types";
 
 export default function NewVegetablePage() {
+  return (
+    <Suspense>
+      <NewVegetablePageContent />
+    </Suspense>
+  );
+}
+
+function NewVegetablePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const suggestedName = searchParams.get("suggestedName") ?? undefined;
