@@ -893,3 +893,48 @@ export interface VegetableSuggestionsAdminQuery {
   page?: number;
   limit?: number;
 }
+
+export type ContactMessageCategory =
+  | "app_problem"
+  | "feature_request"
+  | "content_error"
+  | "notifications_problem"
+  | "premium_payments"
+  | "question"
+  | "other";
+
+export const contactMessageCategoryOptions: ContactMessageCategory[] = [
+  "app_problem",
+  "feature_request",
+  "content_error",
+  "notifications_problem",
+  "premium_payments",
+  "question",
+  "other",
+];
+
+export interface ContactMessageAdminItem {
+  id: string;
+  category: ContactMessageCategory;
+  title: string;
+  content: string;
+  userId: string | null;
+  userEmail: string | null;
+  userDisplayName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContactMessagesAdminResponse {
+  items: ContactMessageAdminItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ContactMessagesAdminQuery {
+  category?: ContactMessageCategory;
+  search?: string;
+  page?: number;
+  limit?: number;
+}

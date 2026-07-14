@@ -9,6 +9,7 @@ import type {
   BotanicalFamily,
   CultivationEnvironment,
   CreateVegetablePayload,
+  ContactMessageCategory,
   DemandLevel,
   DominantNutrientDemand,
   Month,
@@ -315,6 +316,20 @@ export const fertilizerRecommendedFrequencyLabels: Record<
   MONTHLY: "Co miesiąc",
   SEASONAL: "Sezonowo",
   AS_NEEDED: "W razie potrzeby",
+};
+
+// ---------- contact message ----------
+export const contactMessageCategoryLabels: Record<
+  ContactMessageCategory,
+  string
+> = {
+  app_problem: "🌱 Problem z aplikacją",
+  feature_request: "💡 Propozycja nowej funkcji",
+  content_error: "🥕 Błąd w treści",
+  notifications_problem: "📅 Problem z powiadomieniami",
+  premium_payments: "💳 Premium i płatności",
+  question: "❓ Pytanie",
+  other: "📩 Inne",
 };
 
 // ---------- helper ----------

@@ -39,6 +39,9 @@ import type {
   RecomputePlantingActionsResponse,
   VegetableSuggestionsAdminResponse,
   VegetableSuggestionsAdminQuery,
+  ContactMessageAdminItem,
+  ContactMessagesAdminResponse,
+  ContactMessagesAdminQuery,
 } from "@/app/api/api.types";
 
 export type GetVegetablesParams = {
@@ -710,4 +713,27 @@ export const getVegetableSuggestions = async (
 
 export const deleteVegetableSuggestion = async (id: string): Promise<void> => {
   await apiClient.delete(`/admin/vegetable-suggestions/${id}`);
+};
+
+export const getContactMessages = async (
+  params: ContactMessagesAdminQuery = {},
+): Promise<ContactMessagesAdminResponse> => {
+  const { data } = await apiClient.get<ContactMessagesAdminResponse>(
+    "/admin/contact-messages",
+    { params },
+  );
+  return data;
+};
+
+export const getContactMessage = async (
+  id: string,
+): Promise<ContactMessageAdminItem> => {
+  const { data } = await apiClient.get<ContactMessageAdminItem>(
+    `/admin/contact-messages/${id}`,
+  );
+  return data;
+};
+
+export const deleteContactMessage = async (id: string): Promise<void> => {
+  await apiClient.delete(`/admin/contact-messages/${id}`);
 };
