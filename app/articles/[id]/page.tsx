@@ -15,6 +15,7 @@ import type {
   ArticleContext,
   ArticleStatus,
 } from "@/app/api/api.types";
+import { normalizeLegacyContent } from "@/app/utils/articleContent";
 
 const formatDateTime = (value: string | null) => {
   if (!value) return "Brak danych z API";
@@ -72,9 +73,6 @@ const normalizeStatus = (value: unknown): ArticleStatus => {
   if (typeof value !== "string") return "DRAFT";
   return value.toUpperCase() === "PUBLISHED" ? "PUBLISHED" : "DRAFT";
 };
-
-const normalizeArticleHtmlSpacing = (html: string) =>
-  html.replace(/(?:&nbsp;|&#160;|\u00a0)+/gi, " ");
 
 function Field({
   label,
@@ -162,7 +160,7 @@ export default function ArticlePreviewPage() {
     data.relatedSoilSlugs ?? data.relatedSoilIds,
     soilsData?.items,
   );
-  const normalizedContent = normalizeArticleHtmlSpacing(data.content ?? "");
+  const normalizedContent = normalizeLegacyContent(data.content ?? "").html;
   const normalizedStatus = normalizeStatus(data.status);
 
   return (
