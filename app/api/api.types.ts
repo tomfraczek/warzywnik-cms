@@ -1002,7 +1002,9 @@ export type AdminUsersSort =
   | "createdAt"
   | "lastLoginAt"
   | "email"
-  | "displayName";
+  | "displayName"
+  | "isActive"
+  | "plan";
 
 export interface AdminUsersQuery {
   search?: string;

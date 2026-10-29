@@ -27,13 +27,20 @@ const LIMIT = 50;
 
 type BooleanFilter = "" | "true" | "false";
 
-const sortOptions: { value: string; label: string }[] = [
-  { value: "createdAt:desc", label: "Najnowsi" },
-  { value: "createdAt:asc", label: "Najstarsi" },
-  { value: "lastLoginAt:desc", label: "Ostatnio aktywni" },
-  { value: "email:asc", label: "E-mail A–Z" },
-  { value: "displayName:asc", label: "Nazwa A–Z" },
-];
+type SortOrder = "asc" | "desc";
+
+type SortState = { field: AdminUsersSort; order: SortOrder };
+
+// Order applied on the first click of a column: newest dates first, text A–Z,
+// blocked users first, premium users first.
+const defaultSortOrder: Record<AdminUsersSort, SortOrder> = {
+  createdAt: "desc",
+  lastLoginAt: "desc",
+  email: "asc",
+  displayName: "asc",
+  isActive: "asc",
+  plan: "desc",
+};
 
 const planBadgeClasses: Record<UserPlanSource, string> = {
   subscription: "bg-amber-100 text-amber-800",
@@ -74,7 +81,10 @@ function UsersPageContent() {
   const [plan, setPlan] = useState<UserPlanSource | "">("");
   const [isActive, setIsActive] = useState<BooleanFilter>("");
   const [isAdmin, setIsAdmin] = useState<BooleanFilter>("");
-  const [sort, setSort] = useState(sortOptions[0].value);
+  const [sort, setSort] = useState<SortState>({
+    field: "createdAt",
+    order: "desc",
+  });
   const [page, setPage] = useState(1);
   const [notice, setNotice] = useState<{
     type: "success" | "error";
@@ -124,22 +134,28 @@ function UsersPageContent() {
     setPage(1);
   };
 
-  const params = useMemo(() => {
-    const [sortField, order] = sort.split(":") as [
-      AdminUsersSort,
-      "asc" | "desc",
-    ];
-    return {
+  const handleSort = (field: AdminUsersSort) => {
+    setSort((prev) =>
+      prev.field === field
+        ? { field, order: prev.order === "asc" ? "desc" : "asc" }
+        : { field, order: defaultSortOrder[field] },
+    );
+    setPage(1);
+  };
+
+  const params = useMemo(
+    () => ({
       search: debouncedQ.trim() || undefined,
       plan: plan || undefined,
       isActive: isActive ? isActive === "true" : undefined,
       isAdmin: isAdmin ? isAdmin === "true" : undefined,
-      sort: sortField,
-      order,
+      sort: sort.field,
+      order: sort.order,
       page,
       limit: LIMIT,
-    };
-  }, [debouncedQ, plan, isActive, isAdmin, sort, page]);
+    }),
+    [debouncedQ, plan, isActive, isAdmin, sort, page],
+  );
 
   const { data, isLoading, error } = useGetAdminUsers(params);
   const updateMutation = useUpdateAdminUser();
@@ -251,25 +267,11 @@ function UsersPageContent() {
           <option value="true">Administratorzy</option>
           <option value="false">Zwykli użytkownicy</option>
         </select>
-        <select
-          className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-          value={sort}
-          onChange={(e) => {
-            setSort(e.target.value);
-            setPage(1);
-          }}
-        >
-          {sortOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
         <button
           type="button"
           onClick={handleClearFilters}
           disabled={!hasActiveFilters}
-          className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 md:col-span-3 xl:col-span-6 xl:justify-self-end"
+          className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 md:col-span-2 xl:col-span-1"
         >
           Wyczyść filtry
         </button>
@@ -292,32 +294,63 @@ function UsersPageContent() {
           <table className="w-full min-w-215 text-left text-sm">
             <thead className="bg-zinc-50 text-xs uppercase text-zinc-400">
               <tr>
-                <th className="px-4 py-3">Użytkownik</th>
-                <th className="px-4 py-3">Plan</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Ostatnie logowanie</th>
-                <th className="px-4 py-3">Rejestracja</th>
+                <SortableHeader
+                  label="Użytkownik"
+                  field="displayName"
+                  sort={sort}
+                  onSort={handleSort}
+                />
+                <SortableHeader
+                  label="E-mail"
+                  field="email"
+                  sort={sort}
+                  onSort={handleSort}
+                />
+                <SortableHeader
+                  label="Plan"
+                  field="plan"
+                  sort={sort}
+                  onSort={handleSort}
+                />
+                <SortableHeader
+                  label="Status"
+                  field="isActive"
+                  sort={sort}
+                  onSort={handleSort}
+                />
+                <SortableHeader
+                  label="Ostatnie logowanie"
+                  field="lastLoginAt"
+                  sort={sort}
+                  onSort={handleSort}
+                />
+                <SortableHeader
+                  label="Rejestracja"
+                  field="createdAt"
+                  sort={sort}
+                  onSort={handleSort}
+                />
                 <th className="px-4 py-3 text-right">Akcje</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td className="px-4 py-6 text-zinc-500" colSpan={6}>
+                  <td className="px-4 py-6 text-zinc-500" colSpan={7}>
                     Ładowanie...
                   </td>
                 </tr>
               )}
               {error && (
                 <tr>
-                  <td className="px-4 py-6 text-red-500" colSpan={6}>
+                  <td className="px-4 py-6 text-red-500" colSpan={7}>
                     Nie udało się pobrać listy użytkowników.
                   </td>
                 </tr>
               )}
               {!isLoading && !error && data?.items.length === 0 && (
                 <tr>
-                  <td className="px-4 py-6" colSpan={6}>
+                  <td className="px-4 py-6" colSpan={7}>
                     {hasAnyFilters ? (
                       <div>
                         <p className="font-medium text-zinc-900">
@@ -358,7 +391,9 @@ function UsersPageContent() {
                         </span>
                       )}
                     </div>
-                    <div className="text-zinc-500">{item.email || "—"}</div>
+                  </td>
+                  <td className="px-4 py-3 text-zinc-600">
+                    {item.email || "—"}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -452,5 +487,38 @@ function UsersPageContent() {
         />
       )}
     </section>
+  );
+}
+
+type SortableHeaderProps = {
+  label: string;
+  field: AdminUsersSort;
+  sort: SortState;
+  onSort: (field: AdminUsersSort) => void;
+};
+
+function SortableHeader({ label, field, sort, onSort }: SortableHeaderProps) {
+  const isActive = sort.field === field;
+
+  return (
+    <th
+      className="px-4 py-3"
+      aria-sort={
+        isActive ? (sort.order === "asc" ? "ascending" : "descending") : "none"
+      }
+    >
+      <button
+        type="button"
+        onClick={() => onSort(field)}
+        className={`inline-flex items-center gap-1 uppercase hover:text-zinc-700 ${
+          isActive ? "text-zinc-900" : ""
+        }`}
+      >
+        {label}
+        <span aria-hidden className={isActive ? "" : "opacity-0"}>
+          {isActive && sort.order === "asc" ? "↑" : "↓"}
+        </span>
+      </button>
+    </th>
   );
 }
