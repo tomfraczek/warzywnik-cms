@@ -46,6 +46,7 @@ import type {
   AdminUsersQuery,
   AdminUserDetails,
   UpdateAdminUserPayload,
+  BulkUpdateAdminUsersPayload,
 } from "@/app/api/api.types";
 
 export type GetVegetablesParams = {
@@ -769,4 +770,29 @@ export const updateAdminUser = async (
 
 export const deleteAdminUser = async (id: string): Promise<void> => {
   await apiClient.delete(`/admin/users/${id}`);
+};
+
+export const bulkUpdateAdminUsers = async (
+  payload: BulkUpdateAdminUsersPayload,
+): Promise<{ updated: number }> => {
+  const { data } = await apiClient.patch<{ updated: number }>(
+    "/admin/users",
+    payload,
+  );
+  return data;
+};
+
+export const bulkDeleteAdminUsers = async (
+  payload: DeleteManyDto,
+): Promise<{ deleted: number }> => {
+  const { data } = await apiClient.delete<{ deleted: number }>(
+    "/admin/users",
+    {
+      data: payload,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
+  return data;
 };

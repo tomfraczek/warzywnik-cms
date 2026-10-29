@@ -14,6 +14,8 @@ import { AxiosError } from "axios";
 import { useGetAdminUsers } from "@/app/api/queries/users/useGetAdminUsers";
 import { useUpdateAdminUser } from "@/app/api/mutations/users/useUpdateAdminUser";
 import { useDeleteAdminUser } from "@/app/api/mutations/users/useDeleteAdminUser";
+import { useBulkUpdateAdminUsers } from "@/app/api/mutations/users/useBulkUpdateAdminUsers";
+import { useBulkDeleteAdminUsers } from "@/app/api/mutations/users/useBulkDeleteAdminUsers";
 import {
   userPlanSourceOptions,
   type AdminUserListItem,
@@ -91,6 +93,8 @@ function UsersPageContent() {
     text: string;
   } | null>(null);
   const [toDelete, setToDelete] = useState<AdminUserListItem | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -160,6 +164,76 @@ function UsersPageContent() {
   const { data, isLoading, error } = useGetAdminUsers(params);
   const updateMutation = useUpdateAdminUser();
   const deleteMutation = useDeleteAdminUser();
+  const bulkUpdateMutation = useBulkUpdateAdminUsers();
+  const bulkDeleteMutation = useBulkDeleteAdminUsers();
+
+  const visibleIds = useMemo(
+    () => data?.items.map((item) => item.id) ?? [],
+    [data?.items],
+  );
+  const allSelectedOnPage =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+  const someSelectedOnPage = !allSelectedOnPage && selectedIds.length > 0;
+
+  useEffect(() => {
+    setSelectedIds((previous) =>
+      previous.filter((id) => visibleIds.includes(id)),
+    );
+  }, [visibleIds]);
+
+  const handleToggleAllOnPage = () => {
+    setSelectedIds(allSelectedOnPage ? [] : visibleIds);
+  };
+
+  const handleToggleSingle = (id: string) => {
+    setSelectedIds((previous) =>
+      previous.includes(id)
+        ? previous.filter((selectedId) => selectedId !== id)
+        : [...previous, id],
+    );
+  };
+
+  const handleBulkUpdate = async (
+    changes: { isActive?: boolean; isAdmin?: boolean },
+    successText: (count: number) => string,
+  ) => {
+    if (selectedIds.length === 0) return;
+    setNotice(null);
+    try {
+      const { updated } = await bulkUpdateMutation.mutateAsync({
+        ids: selectedIds,
+        changes,
+      });
+      setSelectedIds([]);
+      setNotice({ type: "success", text: successText(updated) });
+    } catch (err) {
+      setNotice({
+        type: "error",
+        text: errorMessage(err, "Nie udało się zmienić zaznaczonych kont."),
+      });
+    }
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedIds.length === 0) return;
+    setNotice(null);
+    try {
+      const { deleted } = await bulkDeleteMutation.mutateAsync({
+        ids: selectedIds,
+      });
+      setSelectedIds([]);
+      setNotice({ type: "success", text: `Usunięto kont: ${deleted}.` });
+    } catch (err) {
+      setNotice({
+        type: "error",
+        text: errorMessage(err, "Nie udało się usunąć zaznaczonych kont."),
+      });
+    }
+    setShowBulkDelete(false);
+  };
+
+  const isBulkPending =
+    bulkUpdateMutation.isPending || bulkDeleteMutation.isPending;
 
   const handleToggleActive = async (user: AdminUserListItem) => {
     setNotice(null);
@@ -289,17 +363,73 @@ function UsersPageContent() {
         </div>
       )}
 
+      {selectedIds.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3">
+          <span className="text-sm font-medium text-zinc-900">
+            Zaznaczono: {selectedIds.length}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="rounded-lg border border-amber-200 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-40"
+              disabled={isBulkPending}
+              onClick={() =>
+                handleBulkUpdate(
+                  { isActive: false },
+                  (count) => `Zablokowano kont: ${count}.`,
+                )
+              }
+            >
+              Zablokuj
+            </button>
+            <button
+              type="button"
+              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40"
+              disabled={isBulkPending}
+              onClick={() =>
+                handleBulkUpdate(
+                  { isActive: true },
+                  (count) => `Odblokowano kont: ${count}.`,
+                )
+              }
+            >
+              Odblokuj
+            </button>
+            <button
+              type="button"
+              className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
+              disabled={isBulkPending}
+              onClick={() => setShowBulkDelete(true)}
+            >
+              Usuń
+            </button>
+          </div>
+          <button
+            type="button"
+            className="ml-auto text-sm font-medium text-zinc-500 hover:text-zinc-900"
+            onClick={() => setSelectedIds([])}
+          >
+            Odznacz wszystkie
+          </button>
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
         <div className="overflow-x-auto">
           <table className="w-full min-w-215 text-left text-sm">
             <thead className="bg-zinc-50 text-xs uppercase text-zinc-400">
               <tr>
-                <SortableHeader
-                  label="Użytkownik"
-                  field="displayName"
-                  sort={sort}
-                  onSort={handleSort}
-                />
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelectedOnPage}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someSelectedOnPage;
+                    }}
+                    onChange={handleToggleAllOnPage}
+                    aria-label="Zaznacz wszystkie konta na stronie"
+                  />
+                </th>
                 <SortableHeader
                   label="E-mail"
                   field="email"
@@ -380,10 +510,21 @@ function UsersPageContent() {
                   className="cursor-pointer border-t border-zinc-100 hover:bg-zinc-50"
                   onClick={() => router.push(`/users/${item.id}`)}
                 >
+                  <td
+                    className="px-4 py-3"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(item.id)}
+                      onChange={() => handleToggleSingle(item.id)}
+                      aria-label={`Zaznacz konto ${item.email || item.id}`}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-zinc-900">
-                        {item.displayName || "—"}
+                        {item.email || "—"}
                       </span>
                       {item.isAdmin && (
                         <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800">
@@ -391,9 +532,6 @@ function UsersPageContent() {
                         </span>
                       )}
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-600">
-                    {item.email || "—"}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -484,6 +622,16 @@ function UsersPageContent() {
           isPending={deleteMutation.isPending}
           onCancel={() => setToDelete(null)}
           onConfirm={handleDeleteConfirm}
+        />
+      )}
+
+      {showBulkDelete && (
+        <ConfirmDeleteDialog
+          title={`Usunąć zaznaczone konta (${selectedIds.length})?`}
+          description="Ta operacja jest nieodwracalna. Wszystkie zaznaczone konta zostaną usunięte razem z ich danymi (grządki, nasadzenia, notatki) oraz kontami w Clerku."
+          isPending={bulkDeleteMutation.isPending}
+          onCancel={() => setShowBulkDelete(false)}
+          onConfirm={handleBulkDeleteConfirm}
         />
       )}
     </section>

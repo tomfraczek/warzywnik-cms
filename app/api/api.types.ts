@@ -1034,3 +1034,8 @@ export interface UpdateAdminUserPayload {
   locale?: string;
   timezone?: string;
 }
+
+export interface BulkUpdateAdminUsersPayload {
+  ids: string[];
+  changes: UpdateAdminUserPayload;
+}
