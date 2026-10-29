@@ -10,6 +10,7 @@ import type {
   CultivationEnvironment,
   CreateVegetablePayload,
   ContactMessageCategory,
+  UserPlanSource,
   DemandLevel,
   DominantNutrientDemand,
   Month,
@@ -339,4 +340,10 @@ export const labelOrDash = <K extends string>(
 ): string => {
   if (!value) return "-";
   return labels[value] ?? value;
+};
+
+export const userPlanSourceLabels: Record<UserPlanSource, string> = {
+  subscription: "Premium (subskrypcja)",
+  trial: "Premium (trial)",
+  free: "Darmowy",
 };

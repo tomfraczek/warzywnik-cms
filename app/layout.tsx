@@ -104,6 +104,12 @@ export default function RootLayout({
                   >
                     Wiadomości
                   </Link>
+                  <Link
+                    className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
+                    href="/users"
+                  >
+                    Użytkownicy
+                  </Link>
                 </nav>
               </aside>
               <main className="flex-1 min-w-0 px-10 py-8">{children}</main>

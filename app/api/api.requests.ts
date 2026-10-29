@@ -42,6 +42,10 @@ import type {
   ContactMessageAdminItem,
   ContactMessagesAdminResponse,
   ContactMessagesAdminQuery,
+  AdminUsersResponse,
+  AdminUsersQuery,
+  AdminUserDetails,
+  UpdateAdminUserPayload,
 } from "@/app/api/api.types";
 
 export type GetVegetablesParams = {
@@ -736,4 +740,33 @@ export const getContactMessage = async (
 
 export const deleteContactMessage = async (id: string): Promise<void> => {
   await apiClient.delete(`/admin/contact-messages/${id}`);
+};
+
+export const getAdminUsers = async (
+  params: AdminUsersQuery = {},
+): Promise<AdminUsersResponse> => {
+  const { data } = await apiClient.get<AdminUsersResponse>("/admin/users", {
+    params,
+  });
+  return data;
+};
+
+export const getAdminUser = async (id: string): Promise<AdminUserDetails> => {
+  const { data } = await apiClient.get<AdminUserDetails>(`/admin/users/${id}`);
+  return data;
+};
+
+export const updateAdminUser = async (
+  id: string,
+  payload: UpdateAdminUserPayload,
+): Promise<AdminUserDetails> => {
+  const { data } = await apiClient.patch<AdminUserDetails>(
+    `/admin/users/${id}`,
+    payload,
+  );
+  return data;
+};
+
+export const deleteAdminUser = async (id: string): Promise<void> => {
+  await apiClient.delete(`/admin/users/${id}`);
 };

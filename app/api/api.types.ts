@@ -938,3 +938,97 @@ export interface ContactMessagesAdminQuery {
   page?: number;
   limit?: number;
 }
+
+export type UserPlanSource = "subscription" | "trial" | "free";
+
+export const userPlanSourceOptions: UserPlanSource[] = [
+  "subscription",
+  "trial",
+  "free",
+];
+
+export type UserSubscriptionPlan = "free" | "premium";
+
+export type UserThemeMode = "light" | "dark" | "system";
+
+export type UserLanguage = "system" | "pl" | "en";
+
+export interface AdminUserListItem {
+  id: string;
+  email: string | null;
+  displayName: string | null;
+  avatarId: string | null;
+  isAdmin: boolean;
+  isActive: boolean;
+  planSource: UserPlanSource;
+  subscriptionPlan: UserSubscriptionPlan;
+  subscriptionExpiresAt: string | null;
+  trialEndsAt: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+}
+
+export interface AdminUserDetails extends AdminUserListItem {
+  clerkUserId: string;
+  trialStartedAt: string | null;
+  themeMode: UserThemeMode;
+  language: UserLanguage;
+  locale: string;
+  timezone: string;
+  notificationsEnabled: boolean;
+  notificationHour: number;
+  automaticTasksEnabled: boolean;
+  tutorialsEnabled: boolean;
+  locationMode: "none" | "current" | "manual";
+  locationLabel: string | null;
+  updatedAt: string;
+  stats: {
+    beds: number;
+    plantings: number;
+    notes: number;
+    growingSpaces: number;
+    devices: number;
+  };
+}
+
+export interface AdminUsersResponse {
+  items: AdminUserListItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type AdminUsersSort =
+  | "createdAt"
+  | "lastLoginAt"
+  | "email"
+  | "displayName";
+
+export interface AdminUsersQuery {
+  search?: string;
+  plan?: UserPlanSource;
+  isActive?: boolean;
+  isAdmin?: boolean;
+  sort?: AdminUsersSort;
+  order?: "asc" | "desc";
+  page?: number;
+  limit?: number;
+}
+
+export interface UpdateAdminUserPayload {
+  displayName?: string | null;
+  isAdmin?: boolean;
+  isActive?: boolean;
+  subscriptionPlan?: UserSubscriptionPlan;
+  subscriptionExpiresAt?: string | null;
+  trialStartedAt?: string | null;
+  trialEndsAt?: string | null;
+  notificationsEnabled?: boolean;
+  automaticTasksEnabled?: boolean;
+  tutorialsEnabled?: boolean;
+  notificationHour?: number;
+  themeMode?: UserThemeMode;
+  language?: UserLanguage;
+  locale?: string;
+  timezone?: string;
+}
